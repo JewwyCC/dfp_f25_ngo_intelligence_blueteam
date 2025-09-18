@@ -1,0 +1,41 @@
+# Credentials and sensitive data
+credentials.json
+config/credentials.json
+data/config/auth.json
+*.env
+.env
+
+# Data files
+data/background/*.jsonl
+data/background/*.json
+data/background/*.log
+data/historical/*.jsonl
+data/historical/*.json
+data/merged/*.csv
+data/merged/*.json
+data/out/*.csv
+data/out/*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

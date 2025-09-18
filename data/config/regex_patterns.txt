@@ -1,0 +1,13 @@
+# Regex patterns for core social justice keywords
+# Format: keyword_name|pattern1|pattern2|pattern3|...
+# Lines starting with # are comments and will be ignored
+
+food insecurity|\bfood\s*insecurit(y|ies)\b|\bhungry\b|\bhunger\b|\bstarv(ing|ation)\b|\bfood\s*desert\b|#foodinsecurit|\bskip.*meals?\b|\bfood\s*bank\b|\bfood\s*stamp\b|\bSNAP\b|\bEBT\b|\bfood\s*assistance\b|\bfood\s*crisis\b|\bmalnourish|\bfamine\b
+
+housing|\bhousing\s*crisis\b|\baffordable\s*housing\b|\brent\s*crisis\b|#housingcrisis\b|#housing_crisis\b|\bhousing\s*shortage\b|\brent\s*burden\b|\bhousing\s*costs?\b|\bhousing\s*market\b|\bhousing\s*policy\b|\bhousing\s*rights?\b|\bhousing\s*discrimination\b|\beviction\b|\blandlord\b|\btenant\b
+
+homeless|\bhomeless(ness)?\b|\bunhous(ed|ing)\b|\bshelter\b|\brough\s*sleep|\bstreet\b.*\bsleep|\bcouch\s*surf|\bno\s*home\b|#homeless|\bhousing\s*insecur|\btransient\b|\bvagran(t|cy)\b|\bencampment\b
+
+unemployment|\bunemploy(ed|ment)\b|\bjob\s*loss\b|\bjobless(ness)?\b|#unemployment\b|\bout\s*of\s*work\b|\blayoffs?\b|\blaid\s*off\b|\bfired\b|#jobloss\b|\bunemployment\s*benefits?\b|\bunemployment\s*rate\b|\bjob\s*search\b|\bwork\s*shortage\b|\bemployment\s*crisis\b
+
+gender inequality|\bgender\s*inequalit(y|ies)\b|\bgender\s*gap\b|\bpay\s*gap\b|\bwage\s*gap\b|#genderinequality\b|\bgender\s*bias\b|\bgender\s*discrimination\b|\bequal\s*pay\b|\bpay\s*equity\b|\bwomen.*rights?\b|\bgender.*violence\b|\bdomestic\s*violence\b|\bsexual\s*harassment\b|#metoo\b|#timesup\b|\bfeminist\b|\bpatriarch

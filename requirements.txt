@@ -1,0 +1,15 @@
+# Bluesky Social Justice Data Collector Dependencies
+# DFP F25 Social Media Blue Team
+
+# Core data collection
+atproto>=0.0.38          # Bluesky AT Protocol client
+pandas>=2.0.0            # Data manipulation and CSV export
+requests>=2.31.0         # HTTP requests for API calls
+
+# Analysis and visualization (for Jupyter notebook)
+matplotlib>=3.5.0        # Plotting and visualization
+seaborn>=0.11.0          # Statistical visualization
+jupyter>=1.0.0           # Jupyter notebook support
+
+# Development and testing
+pytest>=7.0.0            # Testing framework (optional)

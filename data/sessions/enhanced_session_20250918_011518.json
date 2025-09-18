@@ -1,0 +1,38 @@
+{
+  "session_type": "enhanced_authenticated",
+  "authentication_used": true,
+  "planned_duration_seconds": 900,
+  "actual_duration_seconds": 19.36389994621277,
+  "collection_period": {
+    "start": "2025-09-18T01:14:59.421393",
+    "end": "2025-09-18T01:15:18.785267"
+  },
+  "statistics": {
+    "start_time": "2025-09-18T01:14:59.421393",
+    "end_time": "2025-09-18T01:15:18.785267",
+    "duration_seconds": 900,
+    "total_processed": 416,
+    "total_relevant": 0,
+    "profiles_fetched": 0,
+    "profiles_cached": 0,
+    "keyword_matches": {},
+    "follower_stats": {
+      "min": Infinity,
+      "max": 0,
+      "total": 0,
+      "count": 0
+    },
+    "last_log_time": 1758172500.270091,
+    "connection_restarts": 0,
+    "errors": 0
+  },
+  "keywords": [
+    "food insecurity",
+    "housing",
+    "homeless",
+    "unemployment",
+    "gender inequality"
+  ],
+  "total_unique_posts": 0,
+  "profile_cache_size": 0
+}

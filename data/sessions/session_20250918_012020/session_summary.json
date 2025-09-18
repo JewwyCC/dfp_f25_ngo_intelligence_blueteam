@@ -1,0 +1,42 @@
+{
+  "session_name": "session_20250918_012020",
+  "session_type": "social_justice_collection",
+  "authentication_used": true,
+  "planned_duration_seconds": 30,
+  "actual_duration_seconds": 30.145303964614868,
+  "collection_period": {
+    "start": "2025-09-18T01:20:21.464160",
+    "end": "2025-09-18T01:20:51.609447"
+  },
+  "statistics": {
+    "session_name": "session_20250918_012020",
+    "start_time": "2025-09-18T01:20:21.464160",
+    "end_time": "2025-09-18T01:20:51.609447",
+    "duration_seconds": 30,
+    "total_processed": 645,
+    "total_relevant": 5,
+    "profiles_fetched": 5,
+    "profiles_cached": 0,
+    "keyword_matches": {
+      "unemployment": 3,
+      "homeless": 1,
+      "housing": 1
+    },
+    "follower_stats": {
+      "min": 67,
+      "max": 2408,
+      "total": 4137,
+      "count": 5
+    },
+    "last_log_time": 1758172822.112801,
+    "errors": 0
+  },
+  "keywords": [
+    "food insecurity",
+    "housing",
+    "homeless",
+    "unemployment",
+    "gender inequality"
+  ],
+  "profile_cache_size": 5
+}

@@ -33,6 +33,8 @@ Create `data/config/auth.json`:
 - `--duration SECONDS` - Firehose duration in seconds
 - `--days-back DAYS` - Historical search days back
 - `--max-posts NUM` - Max posts per keyword for search
+- `--search-timeout SECONDS` - Time limit for search phase
+- `--total-time SECONDS` - Single time parameter (auto-splits: 75% search, 25% firehose)
 - `--session_name NAME` - Custom session name
 
 ```bash
@@ -42,8 +44,11 @@ python bluesky_social_justice_collector.py --method firehose --duration 1800
 # Historical collection (search API with pagination)
 python bluesky_social_justice_collector.py --method search --days-back 30 --max-posts 1000
 
-# Hybrid collection (recommended - historical + real-time)
+# Hybrid collection with separate time controls
 python bluesky_social_justice_collector.py --method both --duration 600 --days-back 7
+
+# Hybrid collection with single time parameter (recommended)
+python bluesky_social_justice_collector.py --method both --total-time 300 --days-back 7
 
 # Quick test
 python bluesky_social_justice_collector.py --method search --days-back 1 --max-posts 10
@@ -119,8 +124,8 @@ data/
 
 3. **Run collection:**
    ```bash
-   # Hybrid collection (recommended)
-   python bluesky_social_justice_collector.py --method both --duration 1800 --days-back 7
+   # Hybrid collection with total time parameter
+   python bluesky_social_justice_collector.py --method both --total-time 1800 --days-back 7
    ```
 
 ## 📊 Performance

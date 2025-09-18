@@ -59,6 +59,9 @@ class CollectionConfig:
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     session_name: Optional[str] = None
+    search_timeout_seconds: Optional[int] = None  # Time limit for search API phase
+    total_time_seconds: Optional[int] = None  # Single time parameter for both phases
+    search_proportion: float = 0.75  # 75% search, 25% firehose
 
 
 class BlueskySocialJusticeCollector:
@@ -67,6 +70,12 @@ class BlueskySocialJusticeCollector:
         self.config = config
         self.session_name = config.session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
+        # Handle total_time_seconds with proportional split
+        if config.total_time_seconds:
+            # Calculate proportional split: 75% search, 25% firehose
+            self.config.search_timeout_seconds = int(config.total_time_seconds * config.search_proportion)
+            self.config.duration_seconds = int(config.total_time_seconds * (1 - config.search_proportion))
+            
         # Legacy support
         self.duration_seconds = config.duration_seconds or 0
         
@@ -155,6 +164,7 @@ class BlueskySocialJusticeCollector:
         self.search_progress = {}  # Track search progress
         self.target_start_date = None
         self.target_end_date = None
+        self.search_start_time = None  # Track search phase timing
         
         # Calculate date range for search
         if config.days_back:
@@ -740,9 +750,14 @@ class BlueskySocialJusticeCollector:
                 print(f"   Date range: {self.target_start_date.strftime('%Y-%m-%d')} to {self.target_end_date.strftime('%Y-%m-%d')}")
             print(f"   Max posts per keyword: {self.config.max_posts_per_keyword or 'unlimited'}")
         elif self.config.method == 'both':
-            print(f"   Firehose duration: {self.duration_seconds/60:.1f} minutes" if self.duration_seconds else "   Firehose: disabled")
-            if self.target_start_date and self.target_end_date:
-                print(f"   Search date range: {self.target_start_date.strftime('%Y-%m-%d')} to {self.target_end_date.strftime('%Y-%m-%d')}")
+            if self.config.total_time_seconds:
+                print(f"   Total time: {self.config.total_time_seconds/60:.1f} minutes")
+                print(f"   Search phase: {self.config.search_timeout_seconds/60:.1f} minutes ({self.config.search_proportion*100:.0f}%)")
+                print(f"   Firehose phase: {self.config.duration_seconds/60:.1f} minutes ({(1-self.config.search_proportion)*100:.0f}%)")
+            else:
+                print(f"   Firehose duration: {self.duration_seconds/60:.1f} minutes" if self.duration_seconds else "   Firehose: disabled")
+                if self.target_start_date and self.target_end_date:
+                    print(f"   Search date range: {self.target_start_date.strftime('%Y-%m-%d')} to {self.target_end_date.strftime('%Y-%m-%d')}")
         
         try:
             success = False
@@ -790,6 +805,13 @@ class BlueskySocialJusticeCollector:
         
         try:
             while len(collected_posts) < max_posts:
+                # Check timeout during pagination
+                if self.config.search_timeout_seconds and self.search_start_time:
+                    elapsed = time.time() - self.search_start_time
+                    if elapsed >= self.config.search_timeout_seconds:
+                        print(f"   ⏰ Search timeout reached during pagination")
+                        break
+                
                 # Use native search API
                 params = {
                     'q': query,
@@ -918,20 +940,43 @@ class BlueskySocialJusticeCollector:
             print("❌ Authentication required for search collection")
             return False
         
+        # Start search timing
+        self.search_start_time = time.time()
+        
         print("🔍 Starting Search API Collection (Option A)")
         print(f"   Date range: {self.target_start_date.strftime('%Y-%m-%d') if self.target_start_date else 'unlimited'} to {self.target_end_date.strftime('%Y-%m-%d') if self.target_end_date else 'now'}")
         print(f"   Max posts per keyword: {self.config.max_posts_per_keyword or 'unlimited'}")
+        if self.config.search_timeout_seconds:
+            print(f"   Search timeout: {self.config.search_timeout_seconds} seconds ({self.config.search_timeout_seconds/60:.1f} minutes)")
         
         total_collected = 0
         
         for keyword in self.keywords:
+            # Check timeout before starting each keyword
+            if self.config.search_timeout_seconds:
+                elapsed = time.time() - self.search_start_time
+                if elapsed >= self.config.search_timeout_seconds:
+                    print(f"\n⏰ Search timeout reached ({self.config.search_timeout_seconds}s), stopping collection")
+                    break
+            
             keyword_total = 0
             queries = self.search_queries.get(keyword, [f'"{keyword}"'])
             
             print(f"\n🎯 Collecting '{keyword}' data:")
             print(f"   Queries: {len(queries)} variations")
+            if self.config.search_timeout_seconds:
+                elapsed = time.time() - self.search_start_time
+                remaining = self.config.search_timeout_seconds - elapsed
+                print(f"   Time remaining: {remaining:.0f}s")
             
             for query in queries:
+                # Check timeout before each query
+                if self.config.search_timeout_seconds:
+                    elapsed = time.time() - self.search_start_time
+                    if elapsed >= self.config.search_timeout_seconds:
+                        print(f"   ⏰ Search timeout reached, stopping at query '{query}'")
+                        break
+                
                 try:
                     posts = self.search_posts_with_pagination(
                         query, 
@@ -1075,6 +1120,12 @@ def main():
                        help='End date for search (ISO format: 2024-01-31)')
     parser.add_argument('--max-posts', type=int, default=1000,
                        help='Maximum posts per keyword for search (default: 1000)')
+    parser.add_argument('--search-timeout', type=int,
+                       help='Time limit for search API phase in seconds')
+    
+    # Hybrid time management
+    parser.add_argument('--total-time', type=int,
+                       help='Total time for hybrid collection in seconds (auto-splits: 75%% search, 25%% firehose)')
     
     # General parameters
     parser.add_argument('--session_name', type=str,
@@ -1091,8 +1142,8 @@ def main():
         print("❌ --days-back or --start-date required for search method")
         return
     
-    if args.method == 'both' and not (args.duration or args.days_back or args.start_date):
-        print("❌ Either --duration or --days-back/--start-date required for both method")
+    if args.method == 'both' and not (args.duration or args.days_back or args.start_date or getattr(args, 'total_time')):
+        print("❌ Either --duration, --total-time, or --days-back/--start-date required for both method")
         return
     
     # Create configuration
@@ -1103,7 +1154,9 @@ def main():
         max_posts_per_keyword=getattr(args, 'max_posts'),
         start_date=getattr(args, 'start_date'),
         end_date=getattr(args, 'end_date'),
-        session_name=args.session_name
+        session_name=args.session_name,
+        search_timeout_seconds=getattr(args, 'search_timeout'),
+        total_time_seconds=getattr(args, 'total_time')
     )
     
     # Initialize and run collector

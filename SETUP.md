@@ -34,8 +34,11 @@ python bluesky_social_justice_collector.py --method search --days-back 1 --max-p
 # Real-time firehose collection
 python bluesky_social_justice_collector.py --method firehose --duration 600
 
-# Hybrid collection (recommended)
-python bluesky_social_justice_collector.py --method both --duration 1200 --days-back 7
+# Hybrid collection with total time parameter (recommended)
+python bluesky_social_justice_collector.py --method both --total-time 1200 --days-back 7
+
+# Hybrid collection with separate time controls
+python bluesky_social_justice_collector.py --method both --duration 300 --search-timeout 900 --days-back 7
 ```
 
 ## 📋 Collection Methods
@@ -53,7 +56,8 @@ python bluesky_social_justice_collector.py --method both --duration 1200 --days-
 **Both (Hybrid):**
 - Historical data first, then real-time
 - Complete coverage approach
-- Combines both parameter sets
+- Use `--total-time` for automatic 75%/25% split
+- Or use separate `--duration` and `--search-timeout` for manual control
 
 ## 📊 Data Output
 

@@ -1,5 +1,5 @@
 # 🔧 Setup Instructions
-## DFP F25 Social Media Blue Team - Bluesky Collector
+## DFP F25 Social Media Blue Team - Bluesky Hybrid Collector
 
 ## 📦 Installation
 
@@ -28,12 +28,32 @@
 ## 🚀 Quick Start
 
 ```bash
-# Test collection (30 seconds)
-python bluesky_social_justice_collector.py --duration 30
+# Test search collection
+python bluesky_social_justice_collector.py --method search --days-back 1 --max-posts 10
 
-# Production collection (20 minutes)
-python bluesky_social_justice_collector.py --duration 1200
+# Real-time firehose collection
+python bluesky_social_justice_collector.py --method firehose --duration 600
+
+# Hybrid collection (recommended)
+python bluesky_social_justice_collector.py --method both --duration 1200 --days-back 7
 ```
+
+## 📋 Collection Methods
+
+**Firehose (Real-time):**
+- Connects to live Bluesky stream
+- Collects posts as they happen
+- Use `--duration` for collection time
+
+**Search API (Historical):**
+- Uses native search with pagination
+- Systematic historical data collection
+- Use `--days-back` or `--start-date`/`--end-date`
+
+**Both (Hybrid):**
+- Historical data first, then real-time
+- Complete coverage approach
+- Combines both parameter sets
 
 ## 📊 Data Output
 

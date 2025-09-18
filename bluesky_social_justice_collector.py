@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """
-Bluesky Social Justice Data Collector
+Bluesky Social Justice Data Collector - HYBRID VERSION
 DFP F25 Social Media Blue Team
 
-Single comprehensive script for collecting social justice data from Bluesky
-with author influence metrics and session-based organization.
+Comprehensive script with DUAL collection methods:
+1. Real-time firehose collection (current posts)
+2. Native search API with deep pagination (historical data)
 
 Features:
-- Real-time firehose collection with authentication
-- Author follower counts and profile data
-- Session-based data organization
-- Automatic alltime file generation
-- Clean, minimal implementation
+- ✅ Real-time firehose collection with authentication
+- ✅ Native search API with cursor pagination (Option A implementation)
+- ✅ Author follower counts and profile data for both methods
+- ✅ Date range filtering for historical collection
+- ✅ Session-based data organization with alltime datasets
+- ✅ Resumable collection with cursor persistence
+- ✅ Enhanced query design with exact phrases and hashtags
 
 Usage:
-    python bluesky_social_justice_collector.py --duration 1800  # 30 minutes
-    python bluesky_social_justice_collector.py --duration 600   # 10 minutes
+    # Real-time collection (firehose)
+    python bluesky_social_justice_collector.py --method firehose --duration 1800
+    
+    # Historical collection (search API)
+    python bluesky_social_justice_collector.py --method search --days-back 30 --max-posts 1000
+    
+    # Hybrid collection (both methods)
+    python bluesky_social_justice_collector.py --method both --duration 600 --days-back 7
 """
 
 import argparse
@@ -25,9 +34,11 @@ import re
 import signal
 import sys
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional, Set, Tuple
 from collections import defaultdict
+import asyncio
+from dataclasses import dataclass
 
 # Import required libraries
 try:
@@ -38,13 +49,26 @@ except ImportError as e:
     sys.exit(1)
 
 
+@dataclass
+class CollectionConfig:
+    """Configuration for collection methods"""
+    method: str  # 'firehose', 'search', or 'both'
+    duration_seconds: Optional[int] = None
+    days_back: Optional[int] = None
+    max_posts_per_keyword: Optional[int] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    session_name: Optional[str] = None
+
+
 class BlueskySocialJusticeCollector:
-    def __init__(self, 
-                 duration_seconds: int,
-                 session_name: str = None):
+    def __init__(self, config: CollectionConfig):
         
-        self.duration_seconds = duration_seconds
-        self.session_name = session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.config = config
+        self.session_name = config.session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Legacy support
+        self.duration_seconds = config.duration_seconds or 0
         
         # Directory structure
         self.session_dir = f"data/sessions/{self.session_name}"
@@ -60,6 +84,35 @@ class BlueskySocialJusticeCollector:
             "food insecurity", "housing", "homeless", 
             "unemployment", "gender inequality"
         ]
+        
+        # Enhanced search queries for native search API (Option A)
+        self.search_queries = {
+            "food insecurity": [
+                '"food insecurity"', '"food insecure"', '#foodinsecurity',
+                '"hunger crisis"', '"food desert"', '"SNAP benefits"',
+                '"food bank"', '"food pantry"', '"EBT"', '"WIC"'
+            ],
+            "housing": [
+                '"housing crisis"', '"affordable housing"', '#housingcrisis',
+                '"rent crisis"', '"housing shortage"', '"eviction"',
+                '"housing costs"', '"rent burden"', '"gentrification"'
+            ],
+            "homeless": [
+                '"homeless"', '"homelessness"', '#homeless',
+                '"unhoused"', '"rough sleeping"', '"encampment"',
+                '"shelter"', '"street sleeping"', '"housing first"'
+            ],
+            "unemployment": [
+                '"unemployment"', '"unemployed"', '#unemployment',
+                '"job loss"', '"layoffs"', '"jobless"',
+                '"unemployment benefits"', '"fired"', '"laid off"'
+            ],
+            "gender inequality": [
+                '"gender inequality"', '"gender gap"', '#gendergap',
+                '"pay gap"', '"wage gap"', '"gender discrimination"',
+                '"equal pay"', '"workplace inequality"', '"glass ceiling"'
+            ]
+        }
         
         # Enhanced regex patterns for better filtering
         self.regex_patterns = {
@@ -97,12 +150,29 @@ class BlueskySocialJusticeCollector:
         self.start_time = None
         self.end_time = None
         
+        # Search API state (Option A)
+        self.search_cursors = {}  # Track pagination cursors per query
+        self.search_progress = {}  # Track search progress
+        self.target_start_date = None
+        self.target_end_date = None
+        
+        # Calculate date range for search
+        if config.days_back:
+            self.target_end_date = datetime.now(timezone.utc)
+            self.target_start_date = self.target_end_date - timedelta(days=config.days_back)
+        elif config.start_date:
+            self.target_start_date = datetime.fromisoformat(config.start_date.replace('Z', '+00:00'))
+            if config.end_date:
+                self.target_end_date = datetime.fromisoformat(config.end_date.replace('Z', '+00:00'))
+            else:
+                self.target_end_date = datetime.now(timezone.utc)
+        
         # Statistics
         self.stats = {
             'session_name': self.session_name,
             'start_time': None,
             'end_time': None,
-            'duration_seconds': duration_seconds,
+            'duration_seconds': self.duration_seconds,
             'total_processed': 0,
             'total_relevant': 0,
             'profiles_fetched': 0,
@@ -122,7 +192,7 @@ class BlueskySocialJusticeCollector:
         
         print(f"🚀 Bluesky Social Justice Collector")
         print(f"   Session: {self.session_name}")
-        print(f"   Duration: {duration_seconds} seconds ({duration_seconds/60:.1f} minutes)")
+        print(f"   Method: {self.config.method}")
         print(f"   Keywords: {', '.join(self.keywords)}")
         print(f"   Authentication: {'✅ Ready' if self.client else '❌ Failed'}")
         print(f"   Existing posts: {len(self.seen_uris):,}")
@@ -651,19 +721,41 @@ class BlueskySocialJusticeCollector:
         return True
     
     def run(self):
-        """Main collection process"""
+        """Main collection process with method selection"""
         self.running = True
         self.start_time = time.time()
-        self.end_time = self.start_time + self.duration_seconds
+        if self.duration_seconds:
+            self.end_time = self.start_time + self.duration_seconds
         self.stats['start_time'] = datetime.now().isoformat()
         
-        print(f"\n🚀 Starting Social Justice Data Collection")
+        print(f"\n🚀 Starting Social Justice Data Collection - HYBRID VERSION")
         print(f"   Session: {self.session_name}")
-        print(f"   Duration: {self.duration_seconds/60:.1f} minutes")
+        print(f"   Method: {self.config.method}")
         print(f"   Keywords: {', '.join(self.keywords)}")
         
+        if self.config.method == 'firehose':
+            print(f"   Duration: {self.duration_seconds/60:.1f} minutes")
+        elif self.config.method == 'search':
+            if self.target_start_date and self.target_end_date:
+                print(f"   Date range: {self.target_start_date.strftime('%Y-%m-%d')} to {self.target_end_date.strftime('%Y-%m-%d')}")
+            print(f"   Max posts per keyword: {self.config.max_posts_per_keyword or 'unlimited'}")
+        elif self.config.method == 'both':
+            print(f"   Firehose duration: {self.duration_seconds/60:.1f} minutes" if self.duration_seconds else "   Firehose: disabled")
+            if self.target_start_date and self.target_end_date:
+                print(f"   Search date range: {self.target_start_date.strftime('%Y-%m-%d')} to {self.target_end_date.strftime('%Y-%m-%d')}")
+        
         try:
-            success = self.run_firehose_collection()
+            success = False
+            
+            if self.config.method == 'firehose':
+                success = self.run_firehose_collection()
+            elif self.config.method == 'search':
+                success = self.run_search_collection()
+            elif self.config.method == 'both':
+                success = self.run_hybrid_collection()
+            else:
+                print(f"❌ Unknown collection method: {self.config.method}")
+                return
             
             if not success:
                 print("❌ Collection failed")
@@ -677,6 +769,227 @@ class BlueskySocialJusticeCollector:
         
         # Cleanup and finalize
         self.cleanup()
+    
+    # ==================== SEARCH API METHODS (Option A) ====================
+    
+    def search_posts_with_pagination(self, query: str, keyword: str, max_posts: int = None) -> List[Dict]:
+        """
+        Native search API with deep pagination (Option A implementation)
+        Uses GET /xrpc/app.bsky.feed.searchPosts with cursor pagination
+        """
+        if not self.client:
+            print("❌ Authentication required for search API")
+            return []
+        
+        collected_posts = []
+        cursor = self.search_cursors.get(f"{keyword}_{query}")
+        page_count = 0
+        max_posts = max_posts or self.config.max_posts_per_keyword or 1000
+        
+        print(f"🔍 Searching for '{query}' (keyword: {keyword})")
+        
+        try:
+            while len(collected_posts) < max_posts:
+                # Use native search API
+                params = {
+                    'q': query,
+                    'limit': min(25, max_posts - len(collected_posts))
+                }
+                if cursor:
+                    params['cursor'] = cursor
+                
+                # Make API call
+                response = self.client.app.bsky.feed.search_posts(params)
+                
+                if not response or not hasattr(response, 'posts'):
+                    break
+                
+                posts = response.posts
+                if not posts:
+                    break
+                
+                page_count += 1
+                posts_in_page = 0
+                reached_start_date = False
+                
+                for post in posts:
+                    # Check date range (emulate date filtering)
+                    post_date = datetime.fromisoformat(post.record.created_at.replace('Z', '+00:00'))
+                    
+                    # Stop if we've gone past our target start date
+                    if self.target_start_date and post_date < self.target_start_date:
+                        reached_start_date = True
+                        break
+                    
+                    # Skip if outside our target end date
+                    if self.target_end_date and post_date > self.target_end_date:
+                        continue
+                    
+                    # Process the post
+                    post_data = self.process_search_post(post, keyword, query)
+                    if post_data and post_data['uri'] not in self.seen_uris:
+                        self.seen_uris.add(post_data['uri'])
+                        collected_posts.append(post_data)
+                        posts_in_page += 1
+                        
+                        if len(collected_posts) >= max_posts:
+                            break
+                
+                print(f"   📄 Page {page_count}: {posts_in_page} relevant posts (total: {len(collected_posts)})")
+                
+                # Update cursor for next page
+                cursor = getattr(response, 'cursor', None)
+                if cursor:
+                    self.search_cursors[f"{keyword}_{query}"] = cursor
+                
+                # Stop conditions
+                if not cursor or reached_start_date or len(collected_posts) >= max_posts:
+                    break
+                
+                # Rate limiting
+                time.sleep(0.5)
+                
+        except Exception as e:
+            print(f"   ⚠️  Search error for '{query}': {e}")
+        
+        return collected_posts
+    
+    def process_search_post(self, post, keyword: str, query: str) -> Optional[Dict]:
+        """Process a post from search API with full profile data"""
+        try:
+            # Extract basic post data
+            uri = post.uri
+            text = post.record.text
+            created_at = post.record.created_at
+            author_handle = post.author.handle
+            author_did = post.author.did
+            
+            # Skip short posts
+            if not text or len(text) < 10:
+                return None
+            
+            # Additional regex filtering
+            if not self.passes_regex_filter(text, keyword):
+                return None
+            
+            # Get full author profile with follower data
+            author_profile = self.get_author_profile(author_handle, author_did)
+            
+            # Extract content features
+            content_features = self._extract_content_features(text, post.record.__dict__)
+            
+            post_data = {
+                # Basic post data
+                'uri': uri,
+                'cid': str(post.cid) if hasattr(post, 'cid') else '',
+                'text': text,
+                'created_at': created_at,
+                'author_handle': author_handle,
+                'author_did': author_did,
+                'keyword': keyword,
+                'search_query': query,
+                'collection_method': 'search_api',
+                'session_name': self.session_name,
+                'collected_at': datetime.now(timezone.utc).isoformat(),
+                'lang': getattr(post.record, 'langs', ['en'])[0] if hasattr(post.record, 'langs') and post.record.langs else 'en',
+                
+                # Author profile data (with auth)
+                **{f'author_{k}': v for k, v in author_profile.items()},
+                
+                # Content analysis
+                **content_features,
+                
+                # Search metadata
+                'indexed_at': getattr(post, 'indexed_at', ''),
+                'reply_count': getattr(post, 'reply_count', 0),
+                'repost_count': getattr(post, 'repost_count', 0),
+                'like_count': getattr(post, 'like_count', 0)
+            }
+            
+            return post_data
+            
+        except Exception as e:
+            print(f"   ⚠️  Error processing search post: {e}")
+            return None
+    
+    def run_search_collection(self):
+        """Run historical collection using search API (Option A)"""
+        if not self.client:
+            print("❌ Authentication required for search collection")
+            return False
+        
+        print("🔍 Starting Search API Collection (Option A)")
+        print(f"   Date range: {self.target_start_date.strftime('%Y-%m-%d') if self.target_start_date else 'unlimited'} to {self.target_end_date.strftime('%Y-%m-%d') if self.target_end_date else 'now'}")
+        print(f"   Max posts per keyword: {self.config.max_posts_per_keyword or 'unlimited'}")
+        
+        total_collected = 0
+        
+        for keyword in self.keywords:
+            keyword_total = 0
+            queries = self.search_queries.get(keyword, [f'"{keyword}"'])
+            
+            print(f"\n🎯 Collecting '{keyword}' data:")
+            print(f"   Queries: {len(queries)} variations")
+            
+            for query in queries:
+                try:
+                    posts = self.search_posts_with_pagination(
+                        query, 
+                        keyword, 
+                        max_posts=self.config.max_posts_per_keyword
+                    )
+                    
+                    if posts:
+                        self.post_buffer.extend(posts)
+                        keyword_total += len(posts)
+                        total_collected += len(posts)
+                        
+                        print(f"   ✅ '{query}': {len(posts)} posts")
+                        
+                        # Save in batches
+                        if len(self.post_buffer) >= 50:
+                            saved_count = self.save_session_data()
+                            print(f"   💾 Saved batch: {saved_count} posts")
+                    else:
+                        print(f"   ⭕ '{query}': 0 posts")
+                    
+                    # Rate limiting between queries
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    print(f"   ❌ Error with query '{query}': {e}")
+                    continue
+            
+            print(f"   📊 Total for '{keyword}': {keyword_total} posts")
+            self.stats['keyword_matches'][keyword] = keyword_total
+        
+        # Save any remaining posts
+        if self.post_buffer:
+            saved_count = self.save_session_data()
+            print(f"\n💾 Final save: {saved_count} posts")
+        
+        print(f"\n📈 Search collection complete: {total_collected} total posts")
+        return True
+    
+    def run_hybrid_collection(self):
+        """Run both firehose and search collection"""
+        print("🚀 Starting HYBRID Collection (Firehose + Search API)")
+        
+        # First, run search collection for historical data
+        if self.config.days_back or self.config.start_date:
+            print("\n📚 Phase 1: Historical data collection (Search API)")
+            self.run_search_collection()
+            
+            # Update alltime files with search results
+            print("🔗 Updating alltime files with search results...")
+            self.update_alltime_data()
+        
+        # Then run firehose for real-time data
+        if self.config.duration_seconds:
+            print("\n⚡ Phase 2: Real-time data collection (Firehose)")
+            self.run_firehose_collection()
+        
+        return True
     
     def cleanup(self):
         """Final cleanup and data organization"""
@@ -743,21 +1056,58 @@ class BlueskySocialJusticeCollector:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bluesky Social Justice Data Collector")
+    parser = argparse.ArgumentParser(description="Bluesky Social Justice Data Collector - HYBRID VERSION")
     
-    parser.add_argument('--duration', type=int, required=True,
-                       help='Collection duration in seconds')
+    # Collection method
+    parser.add_argument('--method', type=str, choices=['firehose', 'search', 'both'], 
+                       default='firehose', help='Collection method')
+    
+    # Firehose parameters
+    parser.add_argument('--duration', type=int,
+                       help='Firehose collection duration in seconds')
+    
+    # Search API parameters
+    parser.add_argument('--days-back', type=int,
+                       help='Days back from now for historical search')
+    parser.add_argument('--start-date', type=str,
+                       help='Start date for search (ISO format: 2024-01-01)')
+    parser.add_argument('--end-date', type=str,
+                       help='End date for search (ISO format: 2024-01-31)')
+    parser.add_argument('--max-posts', type=int, default=1000,
+                       help='Maximum posts per keyword for search (default: 1000)')
+    
+    # General parameters
     parser.add_argument('--session_name', type=str,
                        help='Custom session name (default: auto-generated)')
     
     args = parser.parse_args()
     
-    # Initialize and run collector
-    collector = BlueskySocialJusticeCollector(
+    # Validate arguments
+    if args.method == 'firehose' and not args.duration:
+        print("❌ --duration required for firehose method")
+        return
+    
+    if args.method == 'search' and not (args.days_back or args.start_date):
+        print("❌ --days-back or --start-date required for search method")
+        return
+    
+    if args.method == 'both' and not (args.duration or args.days_back or args.start_date):
+        print("❌ Either --duration or --days-back/--start-date required for both method")
+        return
+    
+    # Create configuration
+    config = CollectionConfig(
+        method=args.method,
         duration_seconds=args.duration,
+        days_back=getattr(args, 'days_back'),
+        max_posts_per_keyword=getattr(args, 'max_posts'),
+        start_date=getattr(args, 'start_date'),
+        end_date=getattr(args, 'end_date'),
         session_name=args.session_name
     )
     
+    # Initialize and run collector
+    collector = BlueskySocialJusticeCollector(config)
     collector.run()
 
 

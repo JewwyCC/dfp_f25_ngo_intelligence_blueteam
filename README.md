@@ -77,6 +77,13 @@ python bluesky_social_justice_collector.py --method search --days-back 1 --max-p
 - Influence scores
 - Profile descriptions
 
+**Why Follower Metrics Matter:**
+- Firehose captures posts within seconds of posting (engagement is typically zero)
+- Traditional metrics (likes, reposts) aren't available for fresh posts
+- Follower counts provide immediate influence assessment
+- Helps identify high-impact authors even on brand-new posts
+- Essential for understanding reach potential of social justice content
+
 **Content Analysis:**
 - Word/character counts
 - Hashtags and mentions
@@ -141,9 +148,10 @@ data/
 - Enhanced query precision reduces noise
 
 **Author Profiles:**
-- Real follower counts with authentication
+- Real follower counts with authentication (crucial for fresh posts with zero engagement)
 - Influence scoring and verification status
 - Profile caching for efficiency
+- Immediate impact assessment for brand-new social justice content
 
 ## 🎯 Perfect For
 
@@ -156,8 +164,8 @@ data/
 ## 📈 Data Quality
 
 ### Session Data
-- **Fresh posts** from real-time firehose
-- **Author influence metrics** (follower counts, verification)
+- **Fresh posts** from real-time firehose (captured within seconds)
+- **Author influence metrics** (follower counts, verification) - critical since engagement starts at zero
 - **Content analysis** (hashtags, media, emotions)
 - **Session organization** for temporal analysis
 
@@ -166,6 +174,12 @@ data/
 - **Automatic deduplication** (never collect same post twice)
 - **Historical growth** tracking
 - **Ready for analysis** in CSV and JSONL formats
+
+### Why Real-time Author Metrics Matter
+- Posts captured via firehose are typically seconds old with zero likes/reposts
+- Follower counts provide the only immediate measure of potential reach
+- Essential for identifying influential voices in social justice conversations
+- Allows prioritization of high-impact content before viral spread
 
 ## 🔍 Example Data
 

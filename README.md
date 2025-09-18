@@ -1,7 +1,7 @@
 # 🦋 DFP F25 Social Media Blue Team
-## Bluesky Social Justice Data Collector
+## Bluesky Social Justice Data Collector - Hybrid System
 
-**Clean, minimal system for collecting social justice data from Bluesky with rich author influence metrics.**
+**Comprehensive data collection with dual methods: real-time firehose + historical search API with deep pagination.**
 
 ## ⚡ Quick Start
 
@@ -21,43 +21,40 @@ Create `data/config/auth.json`:
 }
 ```
 
-### 🚀 Run Collection
+### 🚀 Collection Methods
+
+**Three collection approaches:**
+- `firehose` - Real-time stream collection
+- `search` - Historical data with pagination
+- `both` - Historical first, then real-time (recommended)
 
 **Parameters:**
-- `--duration SECONDS` - Collection duration in seconds
-- `--session_name NAME` - Custom session name (optional)
-
-**Collection automatically:**
-- ✅ Saves every 2 minutes (120 seconds)
-- ✅ Updates alltime files with each batch
-- ✅ Appends new posts (never loses data)
-- ✅ Fetches real author follower counts
+- `--method {firehose,search,both}` - Collection method
+- `--duration SECONDS` - Firehose duration in seconds
+- `--days-back DAYS` - Historical search days back
+- `--max-posts NUM` - Max posts per keyword for search
+- `--session_name NAME` - Custom session name
 
 ```bash
-# Quick test (30 seconds = 0.5 minutes)
-python bluesky_social_justice_collector.py --duration 30
+# Real-time collection (firehose)
+python bluesky_social_justice_collector.py --method firehose --duration 1800
 
-# Short collection (600 seconds = 10 minutes) 
-python bluesky_social_justice_collector.py --duration 600
+# Historical collection (search API with pagination)
+python bluesky_social_justice_collector.py --method search --days-back 30 --max-posts 1000
 
-# Medium collection (1200 seconds = 20 minutes)
-python bluesky_social_justice_collector.py --duration 1200
+# Hybrid collection (recommended - historical + real-time)
+python bluesky_social_justice_collector.py --method both --duration 600 --days-back 7
 
-# Long collection (1800 seconds = 30 minutes)
-python bluesky_social_justice_collector.py --duration 1800
-
-# Extended collection (3600 seconds = 60 minutes)
-python bluesky_social_justice_collector.py --duration 3600
-
-# Custom session name
-python bluesky_social_justice_collector.py --duration 900 --session_name "evening_collection"
+# Quick test
+python bluesky_social_justice_collector.py --method search --days-back 1 --max-posts 10
 ```
 
-### ⏱️ Batching Behavior
-- **Every 2 minutes (120 seconds)**: Saves batch + updates alltime files
-- **Real-time progress**: Shows collection stats every minute
-- **Automatic append**: New posts added to existing alltime datasets
-- **No data loss**: All previous data preserved across sessions
+### 🔍 Search API Features
+- **Deep pagination** with cursor navigation
+- **Date range filtering** by post creation time
+- **Enhanced queries** (exact phrases, hashtags)
+- **Rate limiting** and error handling
+- **Resumable collection** with cursor persistence
 
 ## 🎯 What It Collects
 
@@ -122,16 +119,26 @@ data/
 
 3. **Run collection:**
    ```bash
-   python bluesky_social_justice_collector.py --duration 1800
+   # Hybrid collection (recommended)
+   python bluesky_social_justice_collector.py --method both --duration 1800 --days-back 7
    ```
 
-## 📊 Expected Performance
+## 📊 Performance
 
-- **Processing Rate**: ~20-25 posts/second
-- **Relevance Rate**: ~0.1-1% (high-quality filtering)
-- **Author Profiles**: Real follower counts with authentication
-- **Daily Yield**: 50-500 relevant posts (depends on activity)
-- **Resource Usage**: <200MB RAM, <5% CPU
+**Firehose Collection:**
+- Processing rate: ~20-25 posts/second
+- Relevance rate: ~0.1-1% (high-quality filtering)
+- Real-time monitoring of current conversations
+
+**Search API Collection:**
+- Collection rate: ~50-100 posts/minute
+- Historical data with systematic coverage
+- Enhanced query precision reduces noise
+
+**Author Profiles:**
+- Real follower counts with authentication
+- Influence scoring and verification status
+- Profile caching for efficiency
 
 ## 🎯 Perfect For
 
@@ -170,14 +177,6 @@ data/
 }
 ```
 
-## 🚀 Currently Running
-
-**30-minute collection in progress...**
-- Started: 06:54 AM
-- Expected completion: 07:24 AM  
-- Process ID: 29203
-- Status: Collecting social justice data with author metrics
-
 ---
 
-**🎯 Building rich social justice datasets with real influence metrics!**
+**Hybrid system for comprehensive social justice data collection with full author influence metrics.**

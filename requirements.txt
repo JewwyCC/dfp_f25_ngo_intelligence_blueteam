@@ -11,5 +11,8 @@ matplotlib>=3.5.0        # Plotting and visualization
 seaborn>=0.11.0          # Statistical visualization
 jupyter>=1.0.0           # Jupyter notebook support
 
+# Web interface
+flask>=2.3.0             # Web framework for data viewer
+
 # Development and testing
 pytest>=7.0.0            # Testing framework (optional)

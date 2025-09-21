@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from io import BytesIO
 import base64
+from polarization_analyzer import analyze_posts_polarization
 
 app = Flask(__name__)
 
@@ -284,6 +285,76 @@ class DataViewer:
             'per_page': per_page,
             'total_pages': (len(author_posts) + per_page - 1) // per_page
         }
+    
+    def get_polarization_analysis(self, keyword_filter=""):
+        """Get political polarization analysis for posts"""
+        all_posts = self.data_cache.get('all_posts', [])
+        
+        # Apply keyword filter if specified
+        if keyword_filter:
+            # Map keyword label back to internal keyword
+            label_to_keyword = {v: k for k, v in self.keyword_labels.items()}
+            internal_keyword = label_to_keyword.get(keyword_filter)
+            if internal_keyword:
+                all_posts = [
+                    post for post in all_posts 
+                    if post.get('internal_keyword') == internal_keyword
+                ]
+        
+        # Analyze posts for political polarization
+        analysis_result = analyze_posts_polarization(all_posts)
+        
+        # Format results for frontend
+        return {
+            'total_posts': analysis_result['total_posts_analyzed'],
+            'classifications': {
+                'Left Wing': analysis_result['classifications'].get('left', 0),
+                'Right Wing': analysis_result['classifications'].get('right', 0),
+                'Neutral': analysis_result['classifications'].get('neutral', 0)
+            },
+            'percentages': {
+                'Left Wing': round(analysis_result['percentages'].get('left', 0), 1),
+                'Right Wing': round(analysis_result['percentages'].get('right', 0), 1),
+                'Neutral': round(analysis_result['percentages'].get('neutral', 0), 1)
+            },
+            'average_confidence': round(analysis_result['average_confidence'] * 100, 1),
+            'examples': analysis_result['examples']
+        }
+    
+    def get_polarization_examples(self, keyword_filter="", classification="", page=1, per_page=3):
+        """Get paginated examples for a specific political classification"""
+        all_posts = self.data_cache.get('all_posts', [])
+        
+        # Apply keyword filter if specified
+        if keyword_filter:
+            # Map keyword label back to internal keyword
+            label_to_keyword = {v: k for k, v in self.keyword_labels.items()}
+            internal_keyword = label_to_keyword.get(keyword_filter)
+            if internal_keyword:
+                all_posts = [
+                    post for post in all_posts 
+                    if post.get('internal_keyword') == internal_keyword
+                ]
+        
+        # Get all examples for the classification
+        analysis_result = analyze_posts_polarization(all_posts)
+        all_examples = analysis_result['examples'].get(classification, [])
+        
+        # Sort by confidence (highest first)
+        all_examples.sort(key=lambda x: x['confidence'], reverse=True)
+        
+        # Pagination
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        page_examples = all_examples[start_idx:end_idx]
+        
+        return {
+            'examples': page_examples,
+            'total': len(all_examples),
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (len(all_examples) + per_page - 1) // per_page
+        }
 
 # Initialize data viewer
 viewer = DataViewer()
@@ -339,6 +410,25 @@ def api_author_posts():
     
     posts = viewer.get_author_posts(author_handle, page, per_page)
     return jsonify(posts)
+
+@app.route('/api/polarization')
+def api_polarization():
+    """API endpoint for political polarization analysis"""
+    keyword_filter = request.args.get('keyword', '')
+    
+    analysis = viewer.get_polarization_analysis(keyword_filter)
+    return jsonify(analysis)
+
+@app.route('/api/polarization-examples')
+def api_polarization_examples():
+    """API endpoint for paginated polarization examples"""
+    keyword_filter = request.args.get('keyword', '')
+    classification = request.args.get('classification', '')  # 'left', 'right', 'neutral'
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 3))
+    
+    examples = viewer.get_polarization_examples(keyword_filter, classification, page, per_page)
+    return jsonify(examples)
 
 if __name__ == '__main__':
     import sys

@@ -356,6 +356,196 @@
             color: white;
         }
         
+        /* Polarization Analysis Styles */
+        .polarization-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .polarization-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .polarization-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .polarization-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .polarization-chart-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .polarization-gauge-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .gauge-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .gauge-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+            text-align: center;
+        }
+        
+        .examples-pagination {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .examples-pagination button {
+            padding: 6px 12px;
+            margin: 0 3px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .examples-pagination button:hover {
+            background: #f8f9fa;
+        }
+        
+        .examples-pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .examples-pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .polarization-examples {
+            margin-top: 30px;
+        }
+        
+        .examples-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .example-category {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .example-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .example-header.left-wing {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 2px solid #1976d2;
+        }
+        
+        .example-header.right-wing {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+        }
+        
+        .example-header.neutral {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border: 2px solid #7b1fa2;
+        }
+        
+        .example-content {
+            min-height: 150px;
+        }
+        
+        .example-post {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ddd;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .example-post.left-wing {
+            border-left-color: #1976d2;
+        }
+        
+        .example-post.right-wing {
+            border-left-color: #d32f2f;
+        }
+        
+        .example-post.neutral {
+            border-left-color: #7b1fa2;
+        }
+        
+        .example-confidence {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .example-keywords {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .example-author {
+            font-size: 0.8em;
+            color: #007bff;
+            margin-top: 5px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .example-author:hover {
+            color: #0056b3;
+        }
+        
         .author-header {
             display: flex;
             justify-content: space-between;
@@ -469,6 +659,56 @@
                 <div class="loading">Loading authors...</div>
             </div>
         </div>
+        
+        <!-- Political Polarization Analysis Section -->
+        <div class="polarization-section">
+            <div class="polarization-header">
+                <div class="polarization-title">🗳️ Political Polarization Analysis</div>
+                <div class="polarization-subtitle">Analysis of political leanings in social justice discussions</div>
+            </div>
+            
+            <div class="polarization-chart-container">
+                <div class="chart-title">📊 Political Distribution</div>
+                <canvas id="polarizationChart" width="600" height="200"></canvas>
+            </div>
+            
+            <div class="polarization-gauge-container">
+                <div class="chart-title">🎯 Political Sentiment Gauge</div>
+                <div class="gauge-wrapper">
+                    <canvas id="politicalGauge" width="300" height="150"></canvas>
+                    <div class="gauge-label" id="gaugeLabel">Neutral</div>
+                </div>
+            </div>
+            
+            <div class="polarization-examples">
+                <div class="examples-title">💬 Example Content by Political Leaning</div>
+                <div class="examples-grid">
+                    <div class="example-category">
+                        <div class="example-header left-wing">🔵 Left Wing Examples</div>
+                        <div id="leftExamples" class="example-content">
+                            <div class="loading">Loading examples...</div>
+                        </div>
+                        <div id="leftExamplesPagination" class="examples-pagination"></div>
+                    </div>
+                    
+                    <div class="example-category">
+                        <div class="example-header neutral">⚪ Neutral Examples</div>
+                        <div id="neutralExamples" class="example-content">
+                            <div class="loading">Loading examples...</div>
+                        </div>
+                        <div id="neutralExamplesPagination" class="examples-pagination"></div>
+                    </div>
+                    
+                    <div class="example-category">
+                        <div class="example-header right-wing">🔴 Right Wing Examples</div>
+                        <div id="rightExamples" class="example-content">
+                            <div class="loading">Loading examples...</div>
+                        </div>
+                        <div id="rightExamplesPagination" class="examples-pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Author Posts Modal -->
@@ -493,7 +733,7 @@
         let currentAuthorHandle = '';
         let currentKeywordFilter = '';
         let currentAuthorSortBy = 'posts'; // 'posts' or 'followers'
-        let keywordChart, trendsChart;
+        let keywordChart, trendsChart, polarizationChart, politicalGauge;
 
         // Initialize charts
         function initCharts() {
@@ -552,6 +792,112 @@
                     }
                 }
             });
+            
+            // Initialize polarization horizontal stacked bar chart
+            const polarizationCtx = document.getElementById('polarizationChart').getContext('2d');
+            polarizationChart = new Chart(polarizationCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Political Distribution'],
+                    datasets: [{
+                        label: 'Left Wing',
+                        data: [0],
+                        backgroundColor: '#1976d2',
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }, {
+                        label: 'Neutral',
+                        data: [0],
+                        backgroundColor: '#7b1fa2',
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }, {
+                        label: 'Right Wing',
+                        data: [0],
+                        backgroundColor: '#d32f2f',
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.x;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    return `${label}: ${value} posts`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Posts'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Political Classification'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Initialize political gauge
+            initPoliticalGauge();
+        }
+        
+        // Initialize political gauge
+        function initPoliticalGauge() {
+            const gaugeCtx = document.getElementById('politicalGauge').getContext('2d');
+            
+            // Create a gauge using Chart.js doughnut chart
+            politicalGauge = new Chart(gaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100], // 0% filled, 100% empty
+                        backgroundColor: ['#7b1fa2', '#f0f0f0'],
+                        borderWidth: 0,
+                        cutout: '75%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    },
+                    elements: {
+                        arc: {
+                            borderWidth: 0
+                        }
+                    }
+                }
+            });
         }
 
         // Load keyword statistics
@@ -597,6 +943,130 @@
             } catch (error) {
                 console.error('Error loading daily trends:', error);
             }
+        }
+        
+        // Load polarization analysis
+        async function loadPolarizationAnalysis() {
+            try {
+                const url = `/api/polarization${currentKeywordFilter ? '?keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Update horizontal stacked bar chart
+                polarizationChart.data.datasets[0].data = [data.classifications['Left Wing']]; // Left Wing
+                polarizationChart.data.datasets[1].data = [data.classifications['Neutral']];   // Neutral
+                polarizationChart.data.datasets[2].data = [data.classifications['Right Wing']]; // Right Wing
+                polarizationChart.update();
+                
+                // Update political gauge
+                updatePoliticalGauge(data);
+                
+                // Load examples for each classification
+                await loadPolarizationExamples('left', 1);
+                await loadPolarizationExamples('neutral', 1);
+                await loadPolarizationExamples('right', 1);
+                
+            } catch (error) {
+                console.error('Error loading polarization analysis:', error);
+            }
+        }
+        
+        // Update political gauge based on polarization data
+        function updatePoliticalGauge(data) {
+            const leftPercent = data.percentages['Left Wing'];
+            const rightPercent = data.percentages['Right Wing'];
+            const neutralPercent = data.percentages['Neutral'];
+            
+            // Determine overall sentiment and position on gauge
+            let sentiment = 'Neutral';
+            let color = '#7b1fa2';
+            let fillPercent = neutralPercent;
+            
+            if (leftPercent > rightPercent && leftPercent > neutralPercent) {
+                sentiment = 'Left Wing';
+                color = '#1976d2';
+                fillPercent = leftPercent;
+            } else if (rightPercent > leftPercent && rightPercent > neutralPercent) {
+                sentiment = 'Right Wing';
+                color = '#d32f2f';
+                fillPercent = rightPercent;
+            }
+            
+            // Update gauge - position needle based on left vs right dominance
+            let needlePosition = 50; // Default to center (neutral)
+            if (leftPercent > rightPercent) {
+                needlePosition = 50 - (leftPercent / 2); // Move left
+            } else if (rightPercent > leftPercent) {
+                needlePosition = 50 + (rightPercent / 2); // Move right
+            }
+            
+            // Update gauge
+            politicalGauge.data.datasets[0].data = [fillPercent, 100 - fillPercent];
+            politicalGauge.data.datasets[0].backgroundColor = [color, '#f0f0f0'];
+            politicalGauge.update();
+            
+            // Update label
+            document.getElementById('gaugeLabel').textContent = sentiment;
+        }
+        
+        // Load paginated polarization examples
+        async function loadPolarizationExamples(classification, page = 1) {
+            try {
+                const url = `/api/polarization-examples?classification=${classification}&page=${page}&per_page=3${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const containerId = `${classification}Examples`;
+                const paginationId = `${classification}ExamplesPagination`;
+                
+                const container = document.getElementById(containerId);
+                const pagination = document.getElementById(paginationId);
+                
+                if (data.examples && data.examples.length > 0) {
+                    container.innerHTML = data.examples.map(example => `
+                        <div class="example-post ${classification}-wing">
+                            <div class="example-text">${example.text}</div>
+                            <div class="example-confidence">Confidence: ${(example.confidence * 100).toFixed(1)}%</div>
+                            <div class="example-keywords">Keywords: ${example.keywords.join(', ')}</div>
+                            <div class="example-author" onclick="openAuthorModal('${example.author_handle}')">
+                                @${example.author_handle} (${example.author_followers_count.toLocaleString()} followers)
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Update pagination
+                    updateExamplesPagination(pagination, data, classification);
+                } else {
+                    container.innerHTML = `<div class="no-results">No ${classification}-wing examples found</div>`;
+                    pagination.innerHTML = '';
+                }
+                
+            } catch (error) {
+                console.error(`Error loading ${classification} examples:`, error);
+            }
+        }
+        
+        // Update examples pagination
+        function updateExamplesPagination(pagination, data, classification) {
+            if (data.total_pages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button ${data.page === 1 ? 'disabled' : ''} onclick="loadPolarizationExamples('${classification}', ${data.page - 1})">←</button>`;
+            
+            // Page numbers
+            for (let i = Math.max(1, data.page - 1); i <= Math.min(data.total_pages, data.page + 1); i++) {
+                paginationHTML += `<button class="${i === data.page ? 'active' : ''}" onclick="loadPolarizationExamples('${classification}', ${i})">${i}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button ${data.page === data.total_pages ? 'disabled' : ''} onclick="loadPolarizationExamples('${classification}', ${data.page + 1})">→</button>`;
+            
+            pagination.innerHTML = paginationHTML;
         }
 
         // Search posts
@@ -763,6 +1233,7 @@
             updateFilterIndicator();
             searchPosts();
             loadTopAuthors();
+            loadPolarizationAnalysis();
         }
         
         // Set author sort method
@@ -785,6 +1256,7 @@
             updateFilterIndicator();
             searchPosts();
             loadTopAuthors();
+            loadPolarizationAnalysis();
         }
         
         // Update filter indicator
@@ -809,6 +1281,7 @@
             await loadDailyTrends();
             await searchPosts();
             await loadTopAuthors();
+            await loadPolarizationAnalysis();
             updateFilterIndicator();
         }
 

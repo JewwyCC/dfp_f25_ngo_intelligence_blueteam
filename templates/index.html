@@ -13,41 +13,67 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
+            font-weight: 400;
+            line-height: 1.6;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
         }
         
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
+            color: #ffffff;
+            padding: 60px 40px;
             text-align: center;
+            position: relative;
         }
         
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 3rem;
+            margin-bottom: 16px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 0;
         }
         
         .header p {
-            font-size: 1.2em;
+            font-size: 1.25rem;
             opacity: 0.9;
+            font-weight: 400;
+            margin: 0;
+        }
+        
+        /* Modern Color Palette */
+        :root {
+            --left-color: #3b82f6;      /* Blue */
+            --neutral-color: #10b981;   /* Emerald */
+            --right-color: #ef4444;     /* Red */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --border-color: #e2e8f0;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-orange: #f59e0b;
         }
         
         .search-section {
-            padding: 30px;
-            border-bottom: 2px solid #f0f0f0;
+            padding: 48px 40px;
+            background: var(--bg-primary);
         }
         
         .search-bar {
@@ -58,44 +84,61 @@
         
         .search-input {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            padding: 16px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
             font-size: 16px;
-            transition: border-color 0.3s;
+            font-family: inherit;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .search-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-secondary);
         }
         
         .search-btn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%);
+            color: #ffffff;
             border: none;
-            border-radius: 10px;
+            border-radius: 16px;
             font-size: 16px;
+            font-family: inherit;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
         
         .search-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
         }
         
         .stats-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+            padding: 24px;
+            border-radius: 20px;
             text-align: center;
-            color: #666;
+            color: var(--text-primary);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            font-family: inherit;
+            font-weight: 500;
+            margin-top: 24px;
         }
         
         .charts-section {
-            padding: 30px;
-            border-bottom: 2px solid #f0f0f0;
+            padding: 48px 40px;
+            background: var(--bg-primary);
         }
         
         .charts-grid {
@@ -106,23 +149,30 @@
         }
         
         .chart-container {
-            background: white;
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+        
+        .chart-container:hover {
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
         }
         
         .chart-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #333;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-primary);
             text-align: center;
+            letter-spacing: -0.01em;
         }
         
         .posts-section {
-            padding: 30px;
+            padding: 48px 40px;
+            background: var(--bg-primary);
         }
         
         .posts-header {
@@ -133,32 +183,36 @@
         }
         
         .posts-title {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
         }
         
         .posts-grid {
             display: grid;
-            gap: 20px;
+            gap: 24px;
             max-height: 600px;
             overflow-y: auto;
-            padding: 10px;
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--bg-secondary);
         }
         
         .post-card {
-            background: white;
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
-            padding: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
         
         .post-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border-color: rgba(139, 92, 246, 0.3);
         }
         
         .post-header {
@@ -169,35 +223,39 @@
         }
         
         .author-info {
-            font-weight: bold;
-            color: #667eea;
+            font-weight: 600;
+            color: var(--accent-purple);
         }
         
         .keyword-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8em;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
         }
         
         .post-text {
-            margin: 15px 0;
-            line-height: 1.6;
-            color: #333;
+            margin: 16px 0;
+            line-height: 1.7;
+            color: var(--text-primary);
+            font-size: 1rem;
         }
         
         .post-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9em;
-            color: #666;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 16px;
         }
         
         .followers-count {
-            font-weight: bold;
-            color: #667eea;
+            font-weight: 600;
+            color: var(--accent-purple);
         }
         
         .pagination {
@@ -208,22 +266,29 @@
         }
         
         .page-btn {
-            padding: 10px 15px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 5px;
+            padding: 12px 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
             cursor: pointer;
-            transition: background 0.2s;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
         
         .page-btn:hover {
-            background: #667eea;
-            color: white;
+            background: var(--accent-purple);
+            color: #ffffff;
+            border-color: var(--accent-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
         
         .page-btn.active {
-            background: #667eea;
-            color: white;
+            background: var(--accent-purple);
+            color: #ffffff;
+            border-color: var(--accent-purple);
         }
         
         .page-btn:disabled {
@@ -232,8 +297,8 @@
         }
         
         .authors-section {
-            padding: 30px;
-            border-top: 2px solid #f0f0f0;
+            padding: 48px 40px;
+            background: var(--bg-secondary);
         }
         
         .authors-header {
@@ -244,32 +309,36 @@
         }
         
         .authors-title {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
         }
         
         .authors-grid {
             display: grid;
-            gap: 20px;
+            gap: 24px;
             max-height: 400px;
             overflow-y: auto;
-            padding: 10px;
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--bg-primary);
         }
         
         .author-card {
-            background: white;
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
-            padding: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
         
         .author-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border-color: rgba(139, 92, 246, 0.3);
         }
         
         .author-card.clickable {
@@ -358,11 +427,12 @@
         
         /* Polarization Analysis Styles */
         .polarization-section {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--bg-primary);
+            border-radius: 24px;
+            padding: 48px 40px;
+            margin: 0;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
         }
         
         .polarization-header {
@@ -371,31 +441,37 @@
         }
         
         .polarization-title {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
         }
         
         .polarization-subtitle {
-            color: #666;
-            font-size: 1.1em;
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            font-weight: 400;
         }
         
         .polarization-chart-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 32px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
         }
         
         .polarization-gauge-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 32px;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
         }
         
         .gauge-wrapper {
@@ -747,11 +823,11 @@
                         label: 'Posts',
                         data: [],
                         backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(118, 75, 162, 0.8)',
-                            'rgba(255, 99, 132, 0.8)',
-                            'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 205, 86, 0.8)'
+                            'rgba(139, 92, 246, 0.8)',   // Purple - Food Insecurity
+                            'rgba(16, 185, 129, 0.8)',   // Emerald - Housing
+                            'rgba(239, 68, 68, 0.8)',    // Red - Homeless
+                            'rgba(59, 130, 246, 0.8)',   // Blue - Unemployment
+                            'rgba(245, 158, 11, 0.8)'    // Orange - Gender Inequality
                         ]
                     }]
                 },
@@ -802,21 +878,21 @@
                     datasets: [{
                         label: 'Left Wing',
                         data: [0],
-                        backgroundColor: '#1976d2',
-                        borderWidth: 1,
-                        borderColor: '#fff'
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderWidth: 0,
+                        borderColor: 'rgba(59, 130, 246, 1)'
                     }, {
                         label: 'Neutral',
                         data: [0],
-                        backgroundColor: '#7b1fa2',
-                        borderWidth: 1,
-                        borderColor: '#fff'
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderWidth: 0,
+                        borderColor: 'rgba(16, 185, 129, 1)'
                     }, {
                         label: 'Right Wing',
                         data: [0],
-                        backgroundColor: '#d32f2f',
-                        borderWidth: 1,
-                        borderColor: '#fff'
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderWidth: 0,
+                        borderColor: 'rgba(239, 68, 68, 1)'
                     }]
                 },
                 options: {
@@ -875,7 +951,7 @@
                 data: {
                     datasets: [{
                         data: [0, 100], // 0% filled, 100% empty
-                        backgroundColor: ['#7b1fa2', '#f0f0f0'],
+                        backgroundColor: ['rgba(139, 92, 246, 0.8)', 'rgba(226, 232, 240, 0.3)'],
                         borderWidth: 0,
                         cutout: '75%'
                     }]
@@ -921,11 +997,11 @@
                 const data = await response.json();
                 
                 const colors = [
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(118, 75, 162, 0.8)',
-                    'rgba(255, 99, 132, 0.8)',
-                    'rgba(54, 162, 235, 0.8)',
-                    'rgba(255, 205, 86, 0.8)'
+                    'rgba(139, 92, 246, 0.8)',   // Purple - Food Insecurity
+                    'rgba(16, 185, 129, 0.8)',   // Emerald - Housing
+                    'rgba(239, 68, 68, 0.8)',    // Red - Homeless
+                    'rgba(59, 130, 246, 0.8)',   // Blue - Unemployment
+                    'rgba(245, 158, 11, 0.8)'    // Orange - Gender Inequality
                 ];
                 
                 const datasets = Object.values(data.datasets).map((dataset, index) => ({
@@ -979,16 +1055,16 @@
             
             // Determine overall sentiment and position on gauge
             let sentiment = 'Neutral';
-            let color = '#7b1fa2';
+            let color = 'rgba(16, 185, 129, 0.8)';
             let fillPercent = neutralPercent;
             
             if (leftPercent > rightPercent && leftPercent > neutralPercent) {
                 sentiment = 'Left Wing';
-                color = '#1976d2';
+                color = 'rgba(59, 130, 246, 0.8)';
                 fillPercent = leftPercent;
             } else if (rightPercent > leftPercent && rightPercent > neutralPercent) {
                 sentiment = 'Right Wing';
-                color = '#d32f2f';
+                color = 'rgba(239, 68, 68, 0.8)';
                 fillPercent = rightPercent;
             }
             

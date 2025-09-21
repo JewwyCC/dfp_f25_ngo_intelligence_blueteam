@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky Social Justice Data Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .search-section {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stats-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .charts-section {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .posts-section {
+            padding: 30px;
+        }
+        
+        .posts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .posts-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .posts-grid {
+            display: grid;
+            gap: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+        }
+        
+        .post-card {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .author-info {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .keyword-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+        }
+        
+        .post-text {
+            margin: 15px 0;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .followers-count {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .page-btn {
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .page-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .authors-section {
+            padding: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .authors-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .authors-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .authors-grid {
+            display: grid;
+            gap: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+        }
+        
+        .author-card {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .author-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .author-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .author-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .author-handle {
+            color: #667eea;
+            font-size: 0.9em;
+        }
+        
+        .author-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        
+        .author-themes {
+            margin-top: 10px;
+        }
+        
+        .theme-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            color: #666;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦋 Bluesky Social Justice Data</h1>
+            <p>Explore collected social justice discussions with search, charts, and author analysis</p>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search tweets (wildcard matching)...">
+                <button onclick="searchPosts()" class="search-btn">Search</button>
+            </div>
+            <div class="stats-info" id="statsInfo">
+                Loading data...
+            </div>
+        </div>
+        
+        <div class="charts-section">
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">📊 Keyword Distribution</div>
+                    <canvas id="keywordChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">📈 Daily Trends</div>
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="posts-section">
+            <div class="posts-header">
+                <div class="posts-title">💬 Posts</div>
+                <div id="postsPagination"></div>
+            </div>
+            <div class="posts-grid" id="postsGrid">
+                <div class="loading">Loading posts...</div>
+            </div>
+        </div>
+        
+        <div class="authors-section">
+            <div class="authors-header">
+                <div class="authors-title">👥 Top Authors</div>
+                <div id="authorsPagination"></div>
+            </div>
+            <div class="authors-grid" id="authorsGrid">
+                <div class="loading">Loading authors...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentAuthorPage = 1;
+        let currentQuery = '';
+        let keywordChart, trendsChart;
+
+        // Initialize charts
+        function initCharts() {
+            // Keyword chart
+            const keywordCtx = document.getElementById('keywordChart').getContext('2d');
+            keywordChart = new Chart(keywordCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Posts',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 205, 86, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Trends chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load keyword statistics
+        async function loadKeywordStats() {
+            try {
+                const response = await fetch('/api/keyword-stats');
+                const data = await response.json();
+                
+                keywordChart.data.labels = data.labels;
+                keywordChart.data.datasets[0].data = data.data;
+                keywordChart.update();
+            } catch (error) {
+                console.error('Error loading keyword stats:', error);
+            }
+        }
+
+        // Load daily trends
+        async function loadDailyTrends() {
+            try {
+                const response = await fetch('/api/daily-trends');
+                const data = await response.json();
+                
+                const colors = [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(118, 75, 162, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 205, 86, 0.8)'
+                ];
+                
+                const datasets = Object.values(data.datasets).map((dataset, index) => ({
+                    label: dataset.label,
+                    data: dataset.data,
+                    borderColor: colors[index],
+                    backgroundColor: colors[index].replace('0.8', '0.2'),
+                    fill: false,
+                    tension: 0.1
+                }));
+                
+                trendsChart.data.labels = data.dates;
+                trendsChart.data.datasets = datasets;
+                trendsChart.update();
+            } catch (error) {
+                console.error('Error loading daily trends:', error);
+            }
+        }
+
+        // Search posts
+        async function searchPosts(page = 1) {
+            currentQuery = document.getElementById('searchInput').value;
+            currentPage = page;
+            
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(currentQuery)}&page=${page}&per_page=20`);
+                const data = await response.json();
+                
+                displayPosts(data);
+                updateStatsInfo(data);
+                updatePostsPagination(data);
+            } catch (error) {
+                console.error('Error searching posts:', error);
+                document.getElementById('postsGrid').innerHTML = '<div class="no-results">Error loading posts</div>';
+            }
+        }
+
+        // Display posts
+        function displayPosts(data) {
+            const postsGrid = document.getElementById('postsGrid');
+            
+            if (data.posts.length === 0) {
+                postsGrid.innerHTML = '<div class="no-results">No posts found</div>';
+                return;
+            }
+            
+            postsGrid.innerHTML = data.posts.map(post => `
+                <div class="post-card">
+                    <div class="post-header">
+                        <div class="author-info">@${post.author_handle || 'unknown'}</div>
+                        <div class="keyword-badge">${post.keyword_label || 'Unknown'}</div>
+                    </div>
+                    <div class="post-text">${post.text || 'No text available'}</div>
+                    <div class="post-meta">
+                        <div class="followers-count">👥 ${(post.author_followers_count || 0).toLocaleString()} followers</div>
+                        <div>${formatDate(post.created_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update stats info
+        function updateStatsInfo(data) {
+            const statsInfo = document.getElementById('statsInfo');
+            const queryText = currentQuery ? ` for "${currentQuery}"` : '';
+            statsInfo.textContent = `Showing ${data.posts.length} of ${data.total} posts${queryText}`;
+        }
+
+        // Update posts pagination
+        function updatePostsPagination(data) {
+            const pagination = document.getElementById('postsPagination');
+            if (data.total_pages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="searchPosts(${currentPage - 1})">←</button>`;
+            
+            // Page numbers
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(data.total_pages, currentPage + 2); i++) {
+                paginationHTML += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="searchPosts(${i})">${i}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button class="page-btn" ${currentPage === data.total_pages ? 'disabled' : ''} onclick="searchPosts(${currentPage + 1})">→</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Load top authors
+        async function loadTopAuthors(page = 1) {
+            currentAuthorPage = page;
+            
+            try {
+                const response = await fetch(`/api/top-authors?page=${page}&per_page=5`);
+                const data = await response.json();
+                
+                displayAuthors(data);
+                updateAuthorsPagination(data);
+            } catch (error) {
+                console.error('Error loading authors:', error);
+                document.getElementById('authorsGrid').innerHTML = '<div class="no-results">Error loading authors</div>';
+            }
+        }
+
+        // Display authors
+        function displayAuthors(data) {
+            const authorsGrid = document.getElementById('authorsGrid');
+            
+            if (data.authors.length === 0) {
+                authorsGrid.innerHTML = '<div class="no-results">No authors found</div>';
+                return;
+            }
+            
+            authorsGrid.innerHTML = data.authors.map(author => `
+                <div class="author-card">
+                    <div class="author-header">
+                        <div class="author-name">${author.display_name || 'Unknown'}</div>
+                        <div class="author-handle">@${author.handle}</div>
+                    </div>
+                    <div class="author-stats">
+                        <div class="followers-count">👥 ${author.followers_count.toLocaleString()} followers</div>
+                        <div>📝 ${author.total_posts} posts</div>
+                    </div>
+                    <div class="author-themes">
+                        <strong>Themes:</strong> 
+                        ${author.themes.map(theme => `<span class="theme-tag">${theme}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update authors pagination
+        function updateAuthorsPagination(data) {
+            const pagination = document.getElementById('authorsPagination');
+            if (data.total_pages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button class="page-btn" ${currentAuthorPage === 1 ? 'disabled' : ''} onclick="loadTopAuthors(${currentAuthorPage - 1})">←</button>`;
+            
+            // Page numbers
+            for (let i = Math.max(1, currentAuthorPage - 2); i <= Math.min(data.total_pages, currentAuthorPage + 2); i++) {
+                paginationHTML += `<button class="page-btn ${i === currentAuthorPage ? 'active' : ''}" onclick="loadTopAuthors(${i})">${i}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button class="page-btn" ${currentAuthorPage === data.total_pages ? 'disabled' : ''} onclick="loadTopAuthors(${currentAuthorPage + 1})">→</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown date';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch (error) {
+                return dateString;
+            }
+        }
+
+        // Initialize everything
+        async function init() {
+            initCharts();
+            await loadKeywordStats();
+            await loadDailyTrends();
+            await searchPosts();
+            await loadTopAuthors();
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPosts();
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

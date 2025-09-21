@@ -132,7 +132,7 @@ class PoliticalPolarizationAnalyzer:
             confidence = 0.0
         else:
             # Confidence based on how much the winning score dominates
-            confidence = min(max_score / total_score, 0.9)  # Cap at 90% to avoid 100%
+            confidence = min(max_score / total_score)  # Cap at 90% to avoid 100%
         
         # Classify based on highest score
         if left_score['total'] > right_score['total'] and left_score['total'] > neutral_score['total']:

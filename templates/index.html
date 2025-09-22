@@ -320,7 +320,7 @@
         
         .page-btn:hover {
             background: var(--accent-orange);
-            color: #0f1419;
+            color: #ffffff;
             border-color: var(--accent-orange);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(255, 167, 38, 0.3);
@@ -328,7 +328,7 @@
         
         .page-btn.active {
             background: var(--accent-orange);
-            color: #0f1419;
+            color: #ffffff;
             border-color: var(--accent-orange);
         }
         
@@ -470,7 +470,7 @@
         .sort-btn.active {
             border-color: var(--accent-orange);
             background: var(--accent-orange);
-            color: #0f1419;
+            color: #ffffff;
         }
         
         /* Polarization Analysis Styles */
@@ -657,27 +657,27 @@
         
         .example-confidence {
             font-size: 0.8em;
-            color: #666;
+            color: #cbd5e1;
             margin-top: 5px;
         }
         
         .example-keywords {
             font-size: 0.8em;
-            color: #888;
+            color: #94a3b8;
             margin-top: 5px;
             font-style: italic;
         }
         
         .example-author {
             font-size: 0.8em;
-            color: #007bff;
+            color: #60a5fa;
             margin-top: 5px;
             cursor: pointer;
             text-decoration: underline;
         }
         
         .example-author:hover {
-            color: #0056b3;
+            color: #93c5fd;
         }
         
         .author-header {
@@ -689,12 +689,12 @@
         
         .author-name {
             font-weight: bold;
-            color: #333;
+            color: #ffffff;
             font-size: 1.1em;
         }
         
         .author-handle {
-            color: #667eea;
+            color: #93c5fd;
             font-size: 0.9em;
         }
         
@@ -743,8 +743,8 @@
         
         <div class="search-section">
             <div class="search-bar">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search tweets (wildcard matching)...">
-                <button onclick="searchPosts()" class="search-btn">Search</button>
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search everything - posts, authors, charts, and analysis...">
+                <button onclick="performGlobalSearch()" class="search-btn">Search</button>
             </div>
             <div id="filterIndicator"></div>
             <div class="stats-info" id="statsInfo">
@@ -1093,6 +1093,21 @@
                 const response = await fetch(url);
                 const data = await response.json();
                 
+                console.log('Polarization data received:', data);
+                
+                // Check if charts are initialized
+                if (!polarizationChart || !politicalGauge) {
+                    console.error('Charts not initialized properly, attempting to reinitialize...');
+                    initCharts();
+                    // Try again after a short delay
+                    setTimeout(() => {
+                        if (polarizationChart && politicalGauge) {
+                            loadPolarizationAnalysis();
+                        }
+                    }, 1000);
+                    return;
+                }
+                
                 // Update horizontal stacked bar chart
                 polarizationChart.data.datasets[0].data = [data.classifications['Left Wing']]; // Left Wing
                 polarizationChart.data.datasets[1].data = [data.classifications['Neutral']];   // Neutral
@@ -1109,6 +1124,11 @@
                 
             } catch (error) {
                 console.error('Error loading polarization analysis:', error);
+                // Show error message in the polarization section
+                const polarizationContainer = document.querySelector('.polarization-chart-container');
+                if (polarizationContainer) {
+                    polarizationContainer.innerHTML = '<div class="no-results">Error loading polarization analysis</div>';
+                }
             }
         }
         
@@ -1209,23 +1229,51 @@
             pagination.innerHTML = paginationHTML;
         }
 
-        // Search posts
-        async function searchPosts(page = 1) {
-            currentQuery = document.getElementById('searchInput').value;
+        // Global search function - filters everything
+        async function performGlobalSearch(page = 1) {
+            const searchQuery = document.getElementById('searchInput').value;
+            currentQuery = searchQuery;
             currentPage = page;
             
+            // Show loading state
+            document.getElementById('postsGrid').innerHTML = '<div class="loading">Searching...</div>';
+            document.getElementById('authorsGrid').innerHTML = '<div class="loading">Loading authors...</div>';
+            
             try {
-                const url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${page}&per_page=20${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
-                const response = await fetch(url);
-                const data = await response.json();
+                // Search posts with global query
+                const postsUrl = `/api/search?q=${encodeURIComponent(searchQuery)}&page=${page}&per_page=20${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const postsResponse = await fetch(postsUrl);
+                const postsData = await postsResponse.json();
                 
-                displayPosts(data);
-                updateStatsInfo(data);
-                updatePostsPagination(data);
+                // Load authors with global query
+                await loadTopAuthors(1);
+                
+                // Load keyword stats with global query (if it affects the data)
+                await loadKeywordStats();
+                
+                // Load daily trends with global query
+                await loadDailyTrends();
+                
+                // Load polarization analysis with global query
+                await loadPolarizationAnalysis();
+                
+                // Display posts
+                displayPosts(postsData);
+                updateStatsInfo(postsData);
+                updatePostsPagination(postsData);
+                
+                // Update search indicator
+                updateSearchIndicator(searchQuery);
+                
             } catch (error) {
-                console.error('Error searching posts:', error);
-                document.getElementById('postsGrid').innerHTML = '<div class="no-results">Error loading posts</div>';
+                console.error('Error performing global search:', error);
+                document.getElementById('postsGrid').innerHTML = '<div class="no-results">Error loading search results</div>';
             }
+        }
+        
+        // Legacy function for backward compatibility
+        async function searchPosts(page = 1) {
+            await performGlobalSearch(page);
         }
 
         // Display posts
@@ -1323,7 +1371,7 @@
                         <strong>Themes:</strong> 
                         ${author.themes.map(theme => `<span class="theme-tag">${theme}</span>`).join('')}
                     </div>
-                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #cbd5e1;">
                         Click to view all posts →
                     </div>
                 </div>
@@ -1404,25 +1452,85 @@
             const indicator = document.getElementById('filterIndicator');
             if (currentKeywordFilter) {
                 indicator.innerHTML = `
-                    <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 20px; padding: 8px 16px; margin: 10px 0; display: inline-flex; align-items: center; gap: 10px;">
-                        <span>🔍 Filtered by: <strong>${currentKeywordFilter}</strong></span>
-                        <button onclick="clearKeywordFilter()" style="background: #f44336; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">×</button>
+                    <div style="background: var(--bg-secondary); border: 3px solid #000000; border-radius: 0px; padding: 8px 16px; margin: 10px 0; display: inline-flex; align-items: center; gap: 10px; box-shadow: 3px 3px 0px #000000;">
+                        <span style="color: #ffffff;">🔍 Filtered by: <strong style="color: #ff6b35;">${currentKeywordFilter}</strong></span>
+                        <button onclick="clearKeywordFilter()" style="background: #e74c3c; color: white; border: 2px solid #000000; border-radius: 0px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; font-weight: bold;">×</button>
                     </div>
                 `;
             } else {
                 indicator.innerHTML = '';
             }
         }
+        
+        // Update search indicator
+        function updateSearchIndicator(searchQuery) {
+            const indicator = document.getElementById('filterIndicator');
+            if (searchQuery && searchQuery.trim()) {
+                const existingFilter = currentKeywordFilter ? 
+                    `<span style="color: #ffffff;">🔍 Keyword: <strong style="color: #ff6b35;">${currentKeywordFilter}</strong> | </span>` : '';
+                
+                indicator.innerHTML = `
+                    <div style="background: var(--bg-secondary); border: 3px solid #000000; border-radius: 0px; padding: 8px 16px; margin: 10px 0; display: inline-flex; align-items: center; gap: 10px; box-shadow: 3px 3px 0px #000000;">
+                        <span style="color: #ffffff;">${existingFilter}🔎 Search: <strong style="color: #ffcc5c;">"${searchQuery}"</strong></span>
+                        <button onclick="clearSearch()" style="background: #e74c3c; color: white; border: 2px solid #000000; border-radius: 0px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; font-weight: bold;">×</button>
+                    </div>
+                `;
+            } else if (currentKeywordFilter) {
+                updateFilterIndicator();
+            } else {
+                indicator.innerHTML = '';
+            }
+        }
+        
+        // Clear search function
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentQuery = '';
+            currentPage = 1;
+            
+            // Reload everything without search
+            if (currentKeywordFilter) {
+                // Keep keyword filter but clear search
+                loadTopAuthors(1);
+                loadKeywordStats();
+                loadDailyTrends();
+                loadPolarizationAnalysis();
+                searchPosts(1);
+            } else {
+                // Clear everything
+                init();
+            }
+        }
 
-        // Initialize everything
+        // Initialize everything with performance optimization
         async function init() {
+            console.log('Initializing charts...');
             initCharts();
-            await loadKeywordStats();
-            await loadDailyTrends();
-            await searchPosts();
-            await loadTopAuthors();
-            await loadPolarizationAnalysis();
-            updateFilterIndicator();
+            
+            // Verify charts are created
+            console.log('Charts created:', {
+                keywordChart: !!keywordChart,
+                trendsChart: !!trendsChart,
+                polarizationChart: !!polarizationChart,
+                politicalGauge: !!politicalGauge
+            });
+            
+            // Load all data in parallel for better performance
+            const loadPromises = [
+                loadKeywordStats(),
+                loadDailyTrends(),
+                searchPosts(),
+                loadTopAuthors(),
+                loadPolarizationAnalysis()
+            ];
+            
+            try {
+                await Promise.all(loadPromises);
+                updateFilterIndicator();
+                console.log('All data loaded successfully');
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
         }
 
         // Search on Enter key

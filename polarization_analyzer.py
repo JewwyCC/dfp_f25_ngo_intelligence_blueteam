@@ -126,13 +126,13 @@ class PoliticalPolarizationAnalyzer:
         if total_score == 0:
             return PolarizationResult('neutral', 0.0, [], 'No political indicators found')
         
-        # Calculate confidence based on how dominant the winning score is
+# Calculate confidence based on how dominant the winning score is
         max_score = max(left_score['total'], right_score['total'], neutral_score['total'])
         if max_score == 0:
             confidence = 0.0
         else:
             # Confidence based on how much the winning score dominates
-            confidence = min(max_score / total_score)  # Cap at 90% to avoid 100%
+            confidence = max_score / total_score 
         
         # Classify based on highest score
         if left_score['total'] > right_score['total'] and left_score['total'] > neutral_score['total']:

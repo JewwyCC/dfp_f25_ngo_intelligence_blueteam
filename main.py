@@ -424,11 +424,11 @@ class SocialJusticeCollector:
         logger.info(f"  New unique posts: {new_posts}")
         logger.info(f"  Duplicates removed: {duplicate_posts}")
         logger.info(f"  Already existing: {existing_posts_found}")
-        logger.info(f"  Collection rate: {len(all_posts)/elapsed_time:.2f} posts/second")
+        logger.info(f"  Collection rate: {len(all_posts)/elapsed_time:.2f} posts/second" if elapsed_time > 0 else "  Collection rate: 0.00 posts/second")
         
         # Analyze location data
         location_posts = [p for p in final_posts if p.get('detected_location')]
-        logger.info(f"  Posts with location data: {len(location_posts)} ({len(location_posts)/len(final_posts)*100:.1f}%)")
+        logger.info(f"  Posts with location data: {len(location_posts)} ({len(location_posts)/len(final_posts)*100:.1f}%)" if len(final_posts) > 0 else "  Posts with location data: 0 (0.0%)")
         
         if location_posts:
             locations = [p['detected_location'] for p in location_posts]
@@ -478,14 +478,14 @@ class SocialJusticeCollector:
                 'new_unique_posts': new_posts,
                 'duplicates_removed': duplicate_posts,
                 'already_existing': existing_posts_found,
-                'collection_rate_per_second': (len(posts) + duplicate_posts + existing_posts_found) / elapsed_time
+                'collection_rate_per_second': (len(posts) + duplicate_posts + existing_posts_found) / elapsed_time if elapsed_time > 0 else 0
             },
             'data_stats': {
                 'posts_before_collection': existing_posts,
                 'posts_after_collection': final_total_posts,
                 'new_posts_added': new_posts,
                 'posts_with_location': len(location_posts),
-                'location_percentage': len(location_posts)/len(posts)*100 if posts else 0
+                'location_percentage': len(location_posts)/len(posts)*100 if posts and len(posts) > 0 else 0
             },
             'geographic_data': self._get_geographic_summary(posts),
             'keyword_performance': self._get_keyword_performance(posts)
@@ -550,12 +550,12 @@ class SocialJusticeCollector:
             f.write(f"- **New unique posts**: {new_posts:,} posts\n")
             f.write(f"- **Duplicates removed**: {duplicate_posts:,} posts\n")
             f.write(f"- **Already existing**: {existing_posts_found:,} posts\n")
-            f.write(f"- **Collection rate**: {(new_posts + duplicate_posts + existing_posts_found)/elapsed_time:.2f} posts/second\n\n")
+            f.write(f"- **Collection rate**: {(new_posts + duplicate_posts + existing_posts_found)/elapsed_time:.2f} posts/second\n\n" if elapsed_time > 0 else "- **Collection rate**: 0.00 posts/second\n\n")
             
             f.write("## 📊 **AFTER COLLECTION**\n\n")
             f.write(f"- **Total posts now**: {final_total_posts:,} posts\n")
             f.write(f"- **New posts added**: {new_posts:,} posts\n")
-            f.write(f"- **Posts with location**: {len(location_posts):,} posts ({len(location_posts)/new_posts*100:.1f}%)\n\n")
+            f.write(f"- **Posts with location**: {len(location_posts):,} posts ({len(location_posts)/new_posts*100:.1f}%)\n\n" if new_posts > 0 else "- **Posts with location**: 0 posts (0.0%)\n\n")
             
             if location_posts:
                 locations = [p['detected_location'] for p in location_posts]
@@ -568,8 +568,8 @@ class SocialJusticeCollector:
             
             f.write("## ✅ **SUCCESS METRICS**\n\n")
             f.write(f"- **Deduplication**: {duplicate_posts + existing_posts_found:,} duplicates prevented\n")
-            f.write(f"- **Data quality**: {len(location_posts)/new_posts*100:.1f}% location extraction\n")
-            f.write(f"- **Efficiency**: {new_posts/elapsed_time:.2f} new posts/second\n")
+            f.write(f"- **Data quality**: {len(location_posts)/new_posts*100:.1f}% location extraction\n" if new_posts > 0 else "- **Data quality**: 0.0% location extraction\n")
+            f.write(f"- **Efficiency**: {new_posts/elapsed_time:.2f} new posts/second\n" if elapsed_time > 0 else "- **Efficiency**: 0.00 new posts/second\n")
             f.write(f"- **API reliability**: 100% success rate\n\n")
             
             f.write("---\n\n")

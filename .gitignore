@@ -1,20 +1,13 @@
-# Credentials and sensitive data
-credentials.json
-config/credentials.json
+# Authentication files
 data/config/auth.json
-*.env
-.env
+data/config/auth_template.json
+*.json
+!requirements.json
 
-# Data files
-data/background/*.jsonl
-data/background/*.json
-data/background/*.log
-data/historical/*.jsonl
-data/historical/*.json
-data/merged/*.csv
-data/merged/*.json
-data/out/*.csv
-data/out/*.json
+# Data directories
+data/alltime/
+data/sessions/
+data/alltime_homeless/
 
 # Python
 __pycache__/
@@ -22,8 +15,25 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 venv/
+env/
 ENV/
 
 # IDE
@@ -38,4 +48,7 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,201 +1,180 @@
-# 🦋 DFP F25 Social Media Blue Team
-## Bluesky Social Justice Data Collector - Hybrid System
+# Bluesky Social Justice Data Collector
 
-**Comprehensive data collection with dual methods: real-time firehose + historical search API with deep pagination.**
+A Python tool for collecting and analyzing social justice discussions from Bluesky social media platform.
 
-## ⚡ Quick Start
+## Features
 
-### 🔧 Installation
+- **Keyword-based search** with customizable keyword lists
+- **Location metadata extraction** from posts and profiles
+- **Real-time data collection** with rate limiting
+- **Multiple output formats** (JSONL, CSV, JSON)
+- **System sleep prevention** during long collections
+- **Comprehensive data enhancement** with additional metadata
+
+## 🚀 Quick Start Demo
+
+### 1. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 🔐 Setup Credentials
-Create `data/config/auth.json`:
+### 2. Setup Authentication
+
+Create `data/config/auth.json` with your Bluesky credentials:
+
 ```json
 {
   "bluesky": {
-    "username": "your.email@example.com", 
-    "password": "your_password"
+    "username": "your_username.bsky.social",
+    "password": "your_app_password"
   }
 }
 ```
 
-### 🚀 Collection Methods
+### 3. Run Demo Collection
 
-**Three collection approaches:**
-- `firehose` - Real-time stream collection
-- `search` - Historical data with pagination
-- `both` - Historical first, then real-time (recommended)
+**🎯 EASIEST WAY - Interactive Demo**
+```bash
+python demo.py
+```
+*This will show you a menu with options like:*
+- Quick Test (1 minute)
+- Standard Demo (5 minutes) 
+- Extended Demo (15 minutes)
+- Custom Demo (your choice)
 
-**Parameters:**
-- `--method {firehose,search,both}` - Collection method
-- `--duration SECONDS` - Firehose duration in seconds
-- `--days-back DAYS` - Historical search days back
-- `--max-posts NUM` - Max posts per keyword for search
-- `--search-timeout SECONDS` - Time limit for search phase
-- `--total-time SECONDS` - Single time parameter (auto-splits: 75% search, 25% firehose)
-- `--session_name NAME` - Custom session name
+**⚡ Direct Commands**
+```bash
+# 🚀 Quick Test - 60 seconds with homelessness keywords
+python main.py --duration 60 --keywords homelessness
+
+# 📊 Standard Demo - 300 seconds with all keywords
+python main.py --duration 300 --keywords all
+
+# 🎯 Custom - Use your own keywords from keywords.txt
+python main.py --duration 600 --keywords custom
+
+# 🔄 Merge all session data into alltime_socmed
+python main.py --merge-data
+```
+
+### 4. View Results
 
 ```bash
-# Real-time collection (firehose)
-python bluesky_social_justice_collector.py --method firehose --duration 1800
+# Open Jupyter notebook for analysis
+jupyter notebook analysis_demo.ipynb
 
-# Historical collection (search API with pagination)
-python bluesky_social_justice_collector.py --method search --days-back 30 --max-posts 1000
-
-# Hybrid collection with separate time controls
-python bluesky_social_justice_collector.py --method both --duration 600 --days-back 7
-
-# Hybrid collection with single time parameter (recommended)
-python bluesky_social_justice_collector.py --method both --total-time 300 --days-back 7
-
-# Quick test
-python bluesky_social_justice_collector.py --method search --days-back 1 --max-posts 10
+# Or check the generated report
+ls data/alltime_socmed/COLLECTION_REPORT_*.md
 ```
 
-### 🔍 Search API Features
-- **Deep pagination** with cursor navigation
-- **Date range filtering** by post creation time
-- **Enhanced queries** (exact phrases, hashtags)
-- **Rate limiting** and error handling
-- **Resumable collection** with cursor persistence
+## Usage
 
-## 🎯 What It Collects
+### Command Line Options
 
-**Social Justice Topics:**
-- Food insecurity
-- Housing crisis  
-- Homelessness
-- Unemployment
-- Gender inequality
+```bash
+python main.py [OPTIONS]
 
-**Rich Author Data:**
-- Real follower counts 👥
-- Verification status ✅
-- Account age and activity
-- Influence scores
-- Profile descriptions
-
-**Why Follower Metrics Matter:**
-- Firehose captures posts within seconds of posting (engagement is typically zero)
-- Traditional metrics (likes, reposts) aren't available for fresh posts
-- Follower counts provide immediate influence assessment
-- Helps identify high-impact authors even on brand-new posts
-- Essential for understanding reach potential of social justice content
-
-**Content Analysis:**
-- Word/character counts
-- Hashtags and mentions
-- Media detection
-- Emotion scoring
-- URL extraction
-
-## 📁 Data Organization
-
-```
-data/
-├── sessions/
-│   ├── session_20250918_065442/    # Per-session data
-│   │   ├── housing_posts.jsonl
-│   │   ├── homeless_posts.jsonl
-│   │   ├── unemployment_posts.jsonl
-│   │   └── session_summary.json
-│   └── session_20250918_120000/    # Next session
-│
-└── alltime/                        # Cumulative datasets  
-    ├── housing_alltime.jsonl       # All housing posts ever
-    ├── housing_alltime.csv
-    ├── homeless_alltime.jsonl      # All homeless posts ever  
-    ├── homeless_alltime.csv
-    └── ...
+Options:
+  --method {search,firehose,both}  Collection method (default: search)
+  --duration INTEGER              Duration in minutes (default: 15)
+  --keywords TEXT                 Keywords: "all", "homelessness", "custom", or specific keyword
+  --no-sleep                      Prevent system sleep during collection
+  --help                          Show help message
 ```
 
-## 🔧 Setup
+### Keyword Options
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+- `homelessness` - Default homelessness keywords (20 terms)
+- `all` - All available keywords (200+ terms)
+- `custom` - Load from `keywords.txt` file
+- `specific_keyword` - Use a single keyword
 
-2. **Create credentials file:**
-   ```json
-   // data/config/auth.json
-   {
-     "bluesky": {
-       "username": "your.email@example.com",
-       "password": "your_password"
-     }
-   }
-   ```
+### Examples
 
-3. **Run collection:**
-   ```bash
-   # Hybrid collection with total time parameter
-   python bluesky_social_justice_collector.py --method both --total-time 1800 --days-back 7
-   ```
+```bash
+# 15-minute homelessness collection
+python main.py
 
-## 📊 Performance
+# 30-minute collection with all keywords
+python main.py --duration 30 --keywords all
 
-**Firehose Collection:**
-- Processing rate: ~20-25 posts/second
-- Relevance rate: ~0.1-1% (high-quality filtering)
-- Real-time monitoring of current conversations
+# Custom keywords from file
+python main.py --keywords custom --duration 45
 
-**Search API Collection:**
-- Collection rate: ~50-100 posts/minute
-- Historical data with systematic coverage
-- Enhanced query precision reduces noise
+# Single keyword search
+python main.py --keywords "housing crisis" --duration 10
 
-**Author Profiles:**
-- Real follower counts with authentication (crucial for fresh posts with zero engagement)
-- Influence scoring and verification status
-- Profile caching for efficiency
-- Immediate impact assessment for brand-new social justice content
+# Long collection with sleep prevention
+python main.py --duration 120 --keywords all --no-sleep
+```
 
-## 🎯 Perfect For
+## Output
 
-- **Academic research** on social movements
-- **Real-time monitoring** of social issues
-- **Author influence analysis** using follower metrics
-- **Trend detection** with fresh authenticated data
-- **Dataset building** for ML/analysis
+Data is saved to `data/alltime_socmed/` with timestamps:
 
-## 📈 Data Quality
+- `socmed_search_YYYYMMDD_HHMMSS.jsonl` - Raw data
+- `socmed_search_YYYYMMDD_HHMMSS.csv` - Spreadsheet format
+- `socmed_search_YYYYMMDD_HHMMSS_summary.json` - Collection summary
 
-### Session Data
-- **Fresh posts** from real-time firehose (captured within seconds)
-- **Author influence metrics** (follower counts, verification) - critical since engagement starts at zero
-- **Content analysis** (hashtags, media, emotions)
-- **Session organization** for temporal analysis
+## Configuration
 
-### Alltime Data  
-- **Cumulative datasets** across all sessions
-- **Automatic deduplication** (never collect same post twice)
-- **Historical growth** tracking
-- **Ready for analysis** in CSV and JSONL formats
+### Keywords
 
-### Why Real-time Author Metrics Matter
-- Posts captured via firehose are typically seconds old with zero likes/reposts
-- Follower counts provide the only immediate measure of potential reach
-- Essential for identifying influential voices in social justice conversations
-- Allows prioritization of high-impact content before viral spread
+Edit `keywords.txt` to customize search terms:
 
-## 🔍 Example Data
+```
+homeless
+homelessness
+housing crisis
+affordable housing
+# Add your keywords here
+```
+
+### Authentication
+
+Place your Bluesky credentials in `data/config/auth.json`:
 
 ```json
 {
-  "text": "Housing crisis getting worse, can't afford rent",
-  "author_handle": "activist.bsky.social",
-  "author_followers_count": 2408,
-  "author_influence_score": 34.2,
-  "keyword": "housing",
-  "session_name": "session_20250918_065442",
-  "emotion_score": 2,
-  "has_media": true
+  "bluesky": {
+    "username": "your_username.bsky.social",
+    "password": "your_app_password"
+  }
 }
 ```
 
----
+## Data Analysis
 
-**Hybrid system for comprehensive social justice data collection with full author influence metrics.**
+Use the Jupyter notebook for data analysis:
+
+```bash
+jupyter notebook analysis_demo.ipynb
+```
+
+## Project Structure
+
+```
+├── main.py                    # Main collection script
+├── keywords.txt              # Custom keywords file
+├── requirements.txt          # Python dependencies
+├── analysis_demo.ipynb      # Data analysis notebook
+├── data/
+│   ├── config/
+│   │   └── auth.json        # Authentication (gitignored)
+│   └── alltime_socmed/      # Collected data
+├── templates/
+│   └── index.html           # Web viewer template
+└── web_viewer.py            # Web viewer for data visualization
+```
+
+## Requirements
+
+- Python 3.8+
+- Bluesky account with app password
+- Required packages in `requirements.txt`
+
+## License
+
+DFP F25 Social Media Blue Team Project

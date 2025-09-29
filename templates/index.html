@@ -1044,7 +1044,7 @@
         // Load keyword statistics
         async function loadKeywordStats() {
             try {
-                const response = await fetch('/api/keyword-stats');
+                const response = await fetch('http://localhost:3000/api/keyword-stats');
                 const data = await response.json();
                 
                 keywordChart.data.labels = data.labels;
@@ -1058,7 +1058,7 @@
         // Load daily trends
         async function loadDailyTrends() {
             try {
-                const response = await fetch('/api/daily-trends');
+                const response = await fetch('http://localhost:3000/api/daily-trends');
                 const data = await response.json();
                 
                 const colors = [
@@ -1089,7 +1089,7 @@
         // Load polarization analysis
         async function loadPolarizationAnalysis() {
             try {
-                const url = `/api/polarization${currentKeywordFilter ? '?keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const url = `http://localhost:3000/api/polarization${currentKeywordFilter ? '?keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
@@ -1172,7 +1172,7 @@
         // Load paginated polarization examples
         async function loadPolarizationExamples(classification, page = 1) {
             try {
-                const url = `/api/polarization-examples?classification=${classification}&page=${page}&per_page=3${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const url = `http://localhost:3000/api/polarization-examples?classification=${classification}&page=${page}&per_page=3${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
@@ -1241,7 +1241,7 @@
             
             try {
                 // Search posts with global query
-                const postsUrl = `/api/search?q=${encodeURIComponent(searchQuery)}&page=${page}&per_page=20${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const postsUrl = `http://localhost:3000/api/search?q=${encodeURIComponent(searchQuery)}&page=${page}&per_page=20${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
                 const postsResponse = await fetch(postsUrl);
                 const postsData = await postsResponse.json();
                 
@@ -1336,7 +1336,7 @@
             currentAuthorPage = page;
             
             try {
-                const url = `/api/top-authors?page=${page}&per_page=5&sort_by=${currentAuthorSortBy}${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
+                const url = `http://localhost:3000/api/top-authors?page=${page}&per_page=5&sort_by=${currentAuthorSortBy}${currentKeywordFilter ? '&keyword=' + encodeURIComponent(currentKeywordFilter) : ''}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
@@ -1561,7 +1561,7 @@
             currentModalPage = page;
             
             try {
-                const response = await fetch(`/api/author-posts?handle=${encodeURIComponent(currentAuthorHandle)}&page=${page}&per_page=20`);
+                const response = await fetch(`http://localhost:3000/api/author-posts?handle=${encodeURIComponent(currentAuthorHandle)}&page=${page}&per_page=20`);
                 const data = await response.json();
                 
                 if (data.error) {

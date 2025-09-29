@@ -384,8 +384,8 @@ class ImprovedEDAAnalyzer:
         import pandas as pd
         from pathlib import Path
         
-        data_dir = Path("data/alltime_socmed")
-        csv_files = list(data_dir.glob("merged_alltime_*.csv"))
+        data_dir = Path("data/alltime")
+        csv_files = list(data_dir.glob("alltime_socmed*.csv"))
         if not csv_files:
             return ""
         

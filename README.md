@@ -1,15 +1,16 @@
-# Bluesky Social Justice Data Collector
+# Bluesky Homelessness Data Analysis
 
-A Python tool for collecting and analyzing social justice discussions from Bluesky social media platform.
+A comprehensive Python tool for collecting and analyzing homelessness discussions from Bluesky social media platform with advanced EDA capabilities.
 
 ## Features
 
-- **Keyword-based search** with customizable keyword lists
-- **Location metadata extraction** from posts and profiles
-- **Real-time data collection** with rate limiting
+- **Keyword-based search** with customizable keyword lists focused on homelessness
+- **Real-time data collection** with firehose and search methods
+- **Comprehensive EDA analysis** with interactive visualizations
+- **Geographic distribution** analysis with word clouds and world maps
 - **Multiple output formats** (JSONL, CSV, JSON)
 - **System sleep prevention** during long collections
-- **Comprehensive data enhancement** with additional metadata
+- **Interactive web dashboard** for data exploration
 
 ## 🚀 Quick Start Demo
 
@@ -59,7 +60,21 @@ python main.py --duration 600 --keywords custom
 python main.py --merge-data
 ```
 
-### 4. View Results
+### 4. Generate EDA Analysis
+
+```bash
+# Generate comprehensive EDA report
+python improved_eda.py
+```
+
+This creates `improved_eda_report.html` with:
+- 📊 Key metrics and statistics
+- 🌍 Geographic distribution (word clouds + world map)
+- 📈 Content analysis and engagement metrics
+- 👥 Author analysis and top posts feeds
+- 🔗 Clickable links to original posts
+
+### 5. View Results
 
 ```bash
 # Open Jupyter notebook for analysis
@@ -110,6 +125,28 @@ python main.py --keywords "housing crisis" --duration 10
 python main.py --duration 120 --keywords all --no-sleep
 ```
 
+## File Structure
+
+```
+dfp_f25_socmed_blueteam/
+├── main.py                    # Main data collector
+├── demo.py                    # Interactive demo script
+├── improved_eda.py            # EDA analysis generator
+├── analysis_demo.ipynb        # Jupyter notebook for analysis
+├── keywords.txt               # Customizable keyword list
+├── requirements.txt           # Python dependencies
+├── README.md                  # This file
+├── PRD.md                     # Product Requirements Document
+├── data/
+│   ├── config/
+│   │   └── auth.json          # Bluesky credentials
+│   ├── alltime_socmed/        # Merged data (CSV, JSONL)
+│   └── sessions/              # Individual collection sessions
+└── templates/
+    ├── index.html             # Web viewer template
+    └── eda_dashboard.html     # EDA dashboard template
+```
+
 ## Output
 
 Data is saved to `data/alltime_socmed/` with timestamps:
@@ -117,6 +154,7 @@ Data is saved to `data/alltime_socmed/` with timestamps:
 - `socmed_search_YYYYMMDD_HHMMSS.jsonl` - Raw data
 - `socmed_search_YYYYMMDD_HHMMSS.csv` - Spreadsheet format
 - `socmed_search_YYYYMMDD_HHMMSS_summary.json` - Collection summary
+- `improved_eda_report.html` - Comprehensive EDA analysis
 
 ## Configuration
 
@@ -136,20 +174,20 @@ affordable housing
 
 Place your Bluesky credentials in `data/config/auth.json`:
 
-```json
-{
-  "bluesky": {
+   ```json
+   {
+     "bluesky": {
     "username": "your_username.bsky.social",
     "password": "your_app_password"
-  }
-}
-```
+     }
+   }
+   ```
 
 ## Data Analysis
 
 Use the Jupyter notebook for data analysis:
 
-```bash
+   ```bash
 jupyter notebook analysis_demo.ipynb
 ```
 

@@ -650,6 +650,208 @@ class ImprovedEDAAnalyzer:
         
         return self._fig_to_html(fig)
     
+    def create_geolocation_analysis(self):
+        """Create geolocation cloud and world map for location mentions"""
+        if self.df.empty:
+            return "", ""
+        
+        try:
+            import re
+            from collections import Counter
+            
+            # Location patterns to search for
+            us_states = ['california', 'texas', 'florida', 'new york', 'washington', 'oregon', 'nevada', 'arizona', 'colorado', 'utah', 'illinois', 'pennsylvania', 'ohio', 'georgia', 'north carolina', 'michigan', 'new jersey', 'virginia', 'tennessee', 'indiana', 'missouri', 'maryland', 'wisconsin', 'minnesota', 'louisiana', 'alabama', 'kentucky', 'south carolina', 'oklahoma', 'connecticut', 'iowa', 'utah', 'nevada', 'arkansas', 'mississippi', 'kansas', 'new mexico', 'nebraska', 'west virginia', 'idaho', 'hawaii', 'new hampshire', 'maine', 'montana', 'rhode island', 'delaware', 'south dakota', 'north dakota', 'alaska', 'vermont', 'wyoming']
+            
+            cities = ['los angeles', 'san francisco', 'seattle', 'portland', 'denver', 'phoenix', 'las vegas', 'miami', 'chicago', 'boston', 'new york', 'austin', 'dallas', 'houston', 'atlanta', 'detroit', 'philadelphia', 'pittsburgh', 'cleveland', 'columbus', 'cincinnati', 'indianapolis', 'milwaukee', 'minneapolis', 'st paul', 'kansas city', 'st louis', 'nashville', 'memphis', 'birmingham', 'new orleans', 'jacksonville', 'tampa', 'orlando', 'miami', 'atlanta', 'charlotte', 'raleigh', 'richmond', 'norfolk', 'baltimore', 'washington', 'pittsburgh', 'philadelphia', 'newark', 'jersey city', 'buffalo', 'rochester', 'syracuse', 'albany', 'hartford', 'providence', 'worcester', 'springfield', 'bridgeport', 'new haven', 'stamford', 'waterbury', 'norwalk', 'danbury', 'bristol', 'meriden', 'west hartford', 'east hartford', 'hamden', 'milford', 'stratford', 'trumbull', 'fairfield', 'greenwich', 'stamford', 'norwalk', 'westport', 'darien', 'new canaan', 'ridgefield', 'wilton', 'redding', 'easton', 'weston', 'wilton', 'newtown', 'shelton', 'derby', 'ansonia', 'naugatuck', 'beacon falls', 'oxford', 'southbury', 'woodbury', 'bethlehem', 'roxbury', 'washington', 'bridgewater', 'sherman', 'kent', 'cornwall', 'sharon', 'canaan', 'north canaan', 'salisbury', 'lakeville', 'sharon', 'cornwall', 'canaan', 'north canaan', 'salisbury', 'lakeville', 'sharon', 'cornwall', 'canaan', 'north canaan', 'salisbury', 'lakeville']
+            
+            countries = ['usa', 'united states', 'america', 'canada', 'uk', 'united kingdom', 'australia', 'germany', 'france', 'spain', 'italy', 'netherlands', 'sweden', 'norway', 'denmark', 'finland', 'belgium', 'switzerland', 'austria', 'portugal', 'ireland', 'new zealand', 'japan', 'south korea', 'china', 'india', 'brazil', 'mexico', 'argentina', 'chile', 'colombia', 'peru', 'venezuela', 'ecuador', 'bolivia', 'paraguay', 'uruguay', 'guyana', 'suriname', 'french guiana']
+            
+            all_locations = us_states + cities + countries
+            
+            # Count location mentions
+            location_mentions = Counter()
+            for _, row in self.df.iterrows():
+                text = str(row['text']).lower()
+                for location in all_locations:
+                    if location in text:
+                        location_mentions[location] += 1
+            
+            # Get top locations (more locations for better cloud)
+            top_locations = dict(location_mentions.most_common(50))
+            
+            if not top_locations:
+                return "", ""
+            
+            # Create geolocation cloud
+            geolocation_cloud_html = self._create_location_cloud(top_locations)
+            
+            # Create world map
+            world_map_html = self._create_world_map(top_locations)
+            
+            return geolocation_cloud_html, world_map_html
+            
+        except Exception as e:
+            print(f"Geolocation analysis error: {e}")
+            return "", ""
+    
+    def _create_location_cloud(self, locations):
+        """Create a location cloud similar to word cloud"""
+        try:
+            from wordcloud import WordCloud
+            import matplotlib.pyplot as plt
+            from io import BytesIO
+            import base64
+            
+            # Create frequency dictionary for wordcloud
+            location_freq = {loc: count for loc, count in locations.items()}
+            
+            # Create location cloud (same size as word cloud)
+            wordcloud = WordCloud(
+                width=800, height=400,
+                background_color='black',
+                colormap='plasma',
+                max_words=100,
+                relative_scaling=0.5,
+                min_font_size=10,
+                max_font_size=100,
+                random_state=42
+            ).generate_from_frequencies(location_freq)
+            
+            # Convert to base64 (same size as word cloud)
+            img_buffer = BytesIO()
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.imshow(wordcloud, interpolation='bilinear')
+            ax.axis('off')
+            ax.set_title('Geolocation Cloud - Homelessness Posts', fontsize=16, fontweight='bold', color='white', pad=20)
+            plt.tight_layout()
+            plt.savefig(img_buffer, format='png', facecolor='#0a0a0a', bbox_inches='tight', dpi=150)
+            img_buffer.seek(0)
+            img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+            plt.close()
+            
+            return f'<div class="wordcloud-container"><img src="data:image/png;base64,{img_base64}" alt="Location Cloud" style="max-width: 100%; height: auto; border-radius: 8px;"></div>'
+            
+        except Exception as e:
+            print(f"Location cloud error: {e}")
+            return ""
+    
+    def _create_world_map(self, locations):
+        """Create a world map showing location mentions"""
+        try:
+            import plotly.graph_objects as go
+            
+            # Location coordinates (simplified mapping)
+            location_coords = {
+                'california': {'lat': 36.7783, 'lon': -119.4179, 'country': 'USA'},
+                'texas': {'lat': 31.9686, 'lon': -99.9018, 'country': 'USA'},
+                'florida': {'lat': 27.7663, 'lon': -81.6868, 'country': 'USA'},
+                'new york': {'lat': 42.1657, 'lon': -74.9481, 'country': 'USA'},
+                'washington': {'lat': 47.7511, 'lon': -120.7401, 'country': 'USA'},
+                'oregon': {'lat': 43.8041, 'lon': -120.5542, 'country': 'USA'},
+                'nevada': {'lat': 38.4199, 'lon': -117.1219, 'country': 'USA'},
+                'arizona': {'lat': 33.7298, 'lon': -111.4312, 'country': 'USA'},
+                'colorado': {'lat': 39.0598, 'lon': -105.3111, 'country': 'USA'},
+                'utah': {'lat': 40.1500, 'lon': -111.8624, 'country': 'USA'},
+                'seattle': {'lat': 47.6062, 'lon': -122.3321, 'country': 'USA'},
+                'los angeles': {'lat': 34.0522, 'lon': -117.2437, 'country': 'USA'},
+                'san francisco': {'lat': 37.7749, 'lon': -122.4194, 'country': 'USA'},
+                'chicago': {'lat': 41.8781, 'lon': -87.6298, 'country': 'USA'},
+                'boston': {'lat': 42.3601, 'lon': -71.0589, 'country': 'USA'},
+                'miami': {'lat': 25.7617, 'lon': -80.1918, 'country': 'USA'},
+                'houston': {'lat': 29.7604, 'lon': -95.3698, 'country': 'USA'},
+                'dallas': {'lat': 32.7767, 'lon': -96.7970, 'country': 'USA'},
+                'austin': {'lat': 30.2672, 'lon': -97.7431, 'country': 'USA'},
+                'portland': {'lat': 45.5152, 'lon': -122.6784, 'country': 'USA'},
+                'denver': {'lat': 39.7392, 'lon': -104.9903, 'country': 'USA'},
+                'phoenix': {'lat': 33.4484, 'lon': -112.0740, 'country': 'USA'},
+                'las vegas': {'lat': 36.1699, 'lon': -115.1398, 'country': 'USA'},
+                'usa': {'lat': 39.8283, 'lon': -98.5795, 'country': 'USA'},
+                'united states': {'lat': 39.8283, 'lon': -98.5795, 'country': 'USA'},
+                'america': {'lat': 39.8283, 'lon': -98.5795, 'country': 'USA'},
+                'canada': {'lat': 56.1304, 'lon': -106.3468, 'country': 'Canada'},
+                'uk': {'lat': 55.3781, 'lon': -3.4360, 'country': 'UK'},
+                'united kingdom': {'lat': 55.3781, 'lon': -3.4360, 'country': 'UK'},
+                'australia': {'lat': -25.2744, 'lon': 133.7751, 'country': 'Australia'},
+                'germany': {'lat': 51.1657, 'lon': 10.4515, 'country': 'Germany'},
+                'france': {'lat': 46.2276, 'lon': 2.2137, 'country': 'France'}
+            }
+            
+            # Prepare data for map
+            lats, lons, texts, sizes, colors = [], [], [], [], []
+            
+            # Get min and max counts for color scaling
+            counts = list(locations.values())
+            min_count = min(counts) if counts else 1
+            max_count = max(counts) if counts else 1
+            
+            for location, count in locations.items():
+                if location in location_coords:
+                    coords = location_coords[location]
+                    lats.append(coords['lat'])
+                    lons.append(coords['lon'])
+                    texts.append(f"{location.title()}<br>Mentions: {count}")
+                    # Smaller, more distinct bubble sizes
+                    sizes.append(min(max(count * 0.8, 5), 25))
+                    # Color based on mention count (normalized)
+                    colors.append(count)
+            
+            if not lats:
+                return ""
+            
+            # Create map
+            fig = go.Figure()
+            
+            # Add scatter plot
+            fig.add_trace(go.Scattergeo(
+                lat=lats,
+                lon=lons,
+                text=texts,
+                mode='markers',
+                marker=dict(
+                    size=sizes,
+                    color=colors,
+                    colorscale='Plasma',
+                    showscale=True,
+                    colorbar=dict(
+                        title="Mention Count",
+                        titleside="right",
+                        tickmode='linear',
+                        tick0=min_count,
+                        dtick=(max_count - min_count) / 5
+                    ),
+                    line=dict(width=2, color='white'),
+                    opacity=0.9,
+                    sizemode='diameter',
+                    sizemin=3
+                ),
+                hovertemplate='%{text}<extra></extra>'
+            ))
+            
+            # Update layout
+            fig.update_layout(
+                title="Geographic Distribution of Homelessness Discussions",
+                geo=dict(
+                    showframe=False,
+                    showcoastlines=True,
+                    projection_type='equirectangular',
+                    bgcolor='#0a0a0a',
+                    showland=True,
+                    landcolor='#1a1a1a',
+                    showocean=True,
+                    oceancolor='#0a0a0a'
+                ),
+                plot_bgcolor='#0a0a0a',
+                paper_bgcolor='#0a0a0a',
+                font=dict(color='white'),
+                height=500
+            )
+            
+            return fig.to_html(full_html=False, include_plotlyjs='cdn')
+            
+        except Exception as e:
+            print(f"World map error: {e}")
+            return ""
+    
     def create_top_posts_feed(self, sort_by='like_count', title="Top 10 Posts by Likes"):
         """Create top posts feed with clickable links"""
         if self.df.empty or sort_by not in self.df.columns:
@@ -744,6 +946,9 @@ class ImprovedEDAAnalyzer:
         engagement_html = self.create_engagement_analysis()
         wordcloud_html = self.create_wordcloud()
         detailed_features_html = self.create_detailed_content_features()
+        
+        # Generate geolocation analysis
+        geolocation_cloud_html, world_map_html = self.create_geolocation_analysis()
         
         # Generate different post feeds
         top_likes_html = self.create_top_posts_feed('like_count', "Top 10 Posts by Likes")
@@ -933,34 +1138,21 @@ class ImprovedEDAAnalyzer:
                 }}
                 
                 .keywords-grid {{
-                    display: grid;
-                    grid-template-columns: repeat(5, 1fr);
-                    gap: 10px;
-                    margin: 15px 0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                    margin: 15px auto;
                     max-width: 800px;
-                    margin-left: auto;
-                    margin-right: auto;
+                    align-items: center;
                 }}
                 
-                .keywords-row1 {{
-                    display: grid;
-                    grid-template-columns: repeat(5, 1fr);
+                .keywords-row1, .keywords-row2 {{
+                    display: flex;
                     gap: 10px;
-                    margin: 10px 0;
-                    max-width: 800px;
-                    margin-left: auto;
-                    margin-right: auto;
+                    justify-content: center;
+                    flex-wrap: wrap;
                 }}
                 
-                .keywords-row2 {{
-                    display: grid;
-                    grid-template-columns: repeat(5, 1fr);
-                    gap: 10px;
-                    margin: 10px 0;
-                    max-width: 800px;
-                    margin-left: auto;
-                    margin-right: auto;
-                }}
                 
                 .keyword-box {{
                     background: #111;
@@ -1099,10 +1291,55 @@ class ImprovedEDAAnalyzer:
                     </div>
                 </div>
                 
+                <!-- Keywords Searched -->
+                <div class="section">
+                    <h2>Keywords Searched</h2>
+                    <div class="keywords-section">
+                        <div class="keywords-title">Search Terms Used</div>
+                        <div class="keywords-grid">
+                            <div class="keywords-row1">
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=homelessness" target="_blank" class="keyword-link">homelessness</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=homeless" target="_blank" class="keyword-link">homeless</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=unhoused" target="_blank" class="keyword-link">unhoused</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=housing%20crisis" target="_blank" class="keyword-link">housing crisis</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=shelter" target="_blank" class="keyword-link">shelter</a></div>
+                            </div>
+                            <div class="keywords-row2">
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=street%20homeless" target="_blank" class="keyword-link">street homeless</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=rough%20sleeper" target="_blank" class="keyword-link">rough sleeper</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=tent%20city" target="_blank" class="keyword-link">tent city</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=homeless%20services" target="_blank" class="keyword-link">homeless services</a></div>
+                                <div class="keyword-box"><a href="https://bsky.app/search?q=end%20homelessness" target="_blank" class="keyword-link">end homelessness</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="section">
                     <h2>Period Data Pulled</h2>
                     <div class="chart-container">
                         {daily_trend_html}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Content Word Cloud</h2>
+                    <div class="wordcloud-container">
+                        {wordcloud_html}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Geolocation Cloud</h2>
+                    <div class="wordcloud-container">
+                        {geolocation_cloud_html}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>World Map - Geographic Distribution</h2>
+                    <div class="chart-container">
+                        {world_map_html}
                     </div>
                 </div>
                 
@@ -1121,13 +1358,6 @@ class ImprovedEDAAnalyzer:
                 </div>
                 
                 <div class="section">
-                    <h2>Author Analysis</h2>
-                    <div class="chart-container">
-                        {author_html}
-                    </div>
-                </div>
-                
-                <div class="section">
                     <h2>Engagement Analysis</h2>
                     <div class="chart-container">
                         {engagement_html}
@@ -1135,9 +1365,9 @@ class ImprovedEDAAnalyzer:
                 </div>
                 
                 <div class="section">
-                    <h2>Content Word Cloud</h2>
-                    <div class="wordcloud-container">
-                        {wordcloud_html}
+                    <h2>Author Analysis</h2>
+                    <div class="chart-container">
+                        {author_html}
                     </div>
                 </div>
                 
@@ -1164,45 +1394,6 @@ class ImprovedEDAAnalyzer:
                 
                 <div class="footer">
                     <p>Analysis completed | DFP F25 Social Media Blue Team</p>
-                    
-                    <div class="keywords-section">
-                        <div class="keywords-title">🔍 Keywords Searched</div>
-                        <div class="keywords-row1">
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=homelessness" target="_blank" class="keyword-link">homelessness</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=homeless" target="_blank" class="keyword-link">homeless</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=unhoused" target="_blank" class="keyword-link">unhoused</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=housing%20crisis" target="_blank" class="keyword-link">housing crisis</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=shelter" target="_blank" class="keyword-link">shelter</a>
-                            </div>
-                        </div>
-                        <div class="keywords-row2">
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=street%20homeless" target="_blank" class="keyword-link">street homeless</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=rough%20sleeper" target="_blank" class="keyword-link">rough sleeper</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=tent%20city" target="_blank" class="keyword-link">tent city</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=homeless%20services" target="_blank" class="keyword-link">homeless services</a>
-                            </div>
-                            <div class="keyword-box">
-                                <a href="https://bsky.app/search?q=end%20homelessness" target="_blank" class="keyword-link">end homelessness</a>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="data-source">
                         <em>Data collected from Bluesky social media platform focusing on homelessness-related content</em>
                     </div>

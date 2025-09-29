@@ -137,14 +137,11 @@ dfp_f25_socmed_blueteam/
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # This file
 ├── PRD.md                     # Product Requirements Document
-├── data/
-│   ├── config/
-│   │   └── auth.json          # Bluesky credentials
-│   ├── alltime_socmed/        # Merged data (CSV, JSONL)
-│   └── sessions/              # Individual collection sessions
-└── templates/
-    ├── index.html             # Web viewer template
-    └── eda_dashboard.html     # EDA dashboard template
+└── data/
+    ├── config/
+    │   └── auth.json          # Bluesky credentials
+    ├── alltime_socmed/        # Merged data (CSV, JSONL)
+    └── sessions/              # Individual collection sessions
 ```
 
 ## Output

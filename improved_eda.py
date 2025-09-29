@@ -40,7 +40,7 @@ plt.rcParams['ytick.color'] = '#ffffff'
 class ImprovedEDAAnalyzer:
     """Improved EDA analyzer for Bluesky homelessness data"""
     
-    def __init__(self, data_path="data/alltime_socmed/merged_alltime_20250928_221708.csv"):
+    def __init__(self, data_path="data/alltime/alltime_socmed.csv"):
         self.data_path = data_path
         self.df = None
         self.load_data()

@@ -67,7 +67,12 @@ class SocialJusticeCollector:
     """Main social justice data collector"""
     
     def __init__(self, method="search", duration=900, keywords="homelessness", prevent_sleep=True, date_from=None, date_to=None):
-        self.method = method
+        # If date filtering is requested, use firehose for better real-time data
+        if date_from or date_to:
+            logger.info("📅 Date filtering requested - switching to firehose method for real-time data")
+            self.method = "firehose"
+        else:
+            self.method = method
         self.duration = duration  # in seconds
         self.keywords = keywords
         self.prevent_sleep = prevent_sleep
@@ -122,6 +127,42 @@ class SocialJusticeCollector:
         else:
             # Treat as single keyword
             return [self.keywords]
+    
+    def _filter_posts_by_date(self, posts):
+        """Filter posts by date range"""
+        if not self.date_from and not self.date_to:
+            return posts
+        
+        from datetime import datetime, timezone
+        filtered_posts = []
+        
+        for post in posts:
+            post_date = post.get('created_at', '')
+            if not post_date:
+                continue
+                
+            try:
+                # Parse post date
+                post_dt = datetime.fromisoformat(post_date.replace('Z', '+00:00'))
+                
+                # Check date range
+                if self.date_from:
+                    from_dt = datetime.fromisoformat(self.date_from + 'T00:00:00+00:00')
+                    if post_dt < from_dt:
+                        continue
+                
+                if self.date_to:
+                    to_dt = datetime.fromisoformat(self.date_to + 'T23:59:59+00:00')
+                    if post_dt > to_dt:
+                        continue
+                
+                filtered_posts.append(post)
+                
+            except Exception as e:
+                logger.debug(f"Error parsing date {post_date}: {e}")
+                continue
+        
+        return filtered_posts
     
     def extract_location_metadata(self, post_text: str, author_description: str = None) -> tuple:
         """Extract location metadata from post text and author description"""
@@ -258,28 +299,42 @@ class SocialJusticeCollector:
         start_time = time.time()
         
         try:
-            # Use the collector's timeline method for real-time posts
-            timeline_posts = self.collector.get_timeline_posts(max_posts=100)
+            # Since firehose is complex, use search API for recent posts as fallback
+            logger.info("🔄 Using search API for recent posts (firehose fallback)")
             
-            # Filter posts that match our keywords
-            for post in timeline_posts:
-                post_text = post.get('text', '').lower()
+            # Search for recent posts with each keyword
+            for keyword in self.keyword_list[:5]:  # Limit to first 5 keywords for speed
+                if time.time() - start_time >= self.duration:
+                    break
+                    
+                logger.info(f"🔍 Searching recent posts for: {keyword}")
+                posts = self.collector.search_posts_with_pagination(
+                    keyword, keyword, max_posts=20
+                )
                 
-                # Check if post contains any of our keywords
-                matches_keyword = False
-                matched_keywords = []
-                for keyword in self.keyword_list:
-                    if keyword.lower() in post_text:
-                        matches_keyword = True
-                        matched_keywords.append(keyword)
-                
-                if matches_keyword:
-                    enhanced_post = self.enhance_post(post, matched_keywords[0])
-                    enhanced_post['is_recent'] = True  # Firehose posts are always recent
-                    enhanced_post['source'] = 'firehose'
+                for post in posts:
+                    if time.time() - start_time >= self.duration:
+                        break
+                        
+                    # Check if post is recent (within last 24 hours)
+                    post_date = post.get('created_at', '')
+                    if post_date:
+                        try:
+                            from datetime import datetime, timezone, timedelta
+                            post_dt = datetime.fromisoformat(post_date.replace('Z', '+00:00'))
+                            day_ago = datetime.now(timezone.utc) - timedelta(days=1)
+                            if post_dt < day_ago:
+                                continue  # Skip old posts
+                        except:
+                            pass
+                    
+                    # Enhance post with metadata
+                    enhanced_post = self.enhance_post(post, keyword)
+                    enhanced_post['is_recent'] = True  # Recent posts
+                    enhanced_post['source'] = 'firehose_fallback'
                     firehose_posts.append(enhanced_post)
             
-            logger.info(f"🌊 Firehose collected {len(firehose_posts)} relevant posts")
+            logger.info(f"🌊 Firehose collected {len(firehose_posts)} recent posts")
             return firehose_posts
             
         except Exception as e:
@@ -386,6 +441,12 @@ class SocialJusticeCollector:
             try:
                 # Use firehose for real-time posts
                 firehose_posts = self.collect_firehose_posts()
+                
+                # Apply date filtering if specified
+                if self.date_from or self.date_to:
+                    firehose_posts = self._filter_posts_by_date(firehose_posts)
+                    logger.info(f"📅 Date filtering applied: {len(firehose_posts)} posts match date criteria")
+                
                 all_posts.extend(firehose_posts)
                 logger.info(f"✅ Firehose phase completed: {len(firehose_posts)} posts collected")
             except Exception as e:

@@ -40,7 +40,7 @@ plt.rcParams['ytick.color'] = '#ffffff'
 class ImprovedEDAAnalyzer:
     """Improved EDA analyzer for Bluesky homelessness data"""
     
-    def __init__(self, data_path="data/alltime_socmed/merged_alltime_20250928_221708.csv"):
+    def __init__(self, data_path="data/alltime/alltime_socmed.csv"):
         self.data_path = data_path
         self.df = None
         self.load_data()
@@ -1292,6 +1292,32 @@ class ImprovedEDAAnalyzer:
                     box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
                 }}
                 
+                .help-text {{
+                    color: #888;
+                    font-size: 0.8em;
+                    margin-top: 5px;
+                    display: block;
+                }}
+                
+                .relevance-check {{
+                    margin-top: 10px;
+                    padding: 10px;
+                    border-radius: 4px;
+                    font-size: 0.9em;
+                }}
+                
+                .relevance-check.relevant {{
+                    background: #1a3a1a;
+                    border: 1px solid #00ff00;
+                    color: #00ff00;
+                }}
+                
+                .relevance-check.not-relevant {{
+                    background: #1a1a3a;
+                    border: 1px solid #6666ff;
+                    color: #6666ff;
+                }}
+                
                 .button-group {{
                     display: flex;
                     gap: 15px;
@@ -1323,7 +1349,8 @@ class ImprovedEDAAnalyzer:
                     transform: none;
                 }}
                 
-                .scraper-status {{
+                .scraper-status,
+                .refresh-status {{
                     background: #1a1a1a;
                     border: 1px solid #333;
                     border-radius: 8px;
@@ -1438,27 +1465,39 @@ class ImprovedEDAAnalyzer:
                         </div>
                         
                         <div class="control-group">
-                            <label for="dateFrom">From Date (optional):</label>
-                            <input type="date" id="dateFrom" placeholder="YYYY-MM-DD">
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="dateTo">To Date (optional):</label>
-                            <input type="date" id="dateTo" placeholder="YYYY-MM-DD">
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="keywords">Keywords:</label>
-                            <select id="keywords">
-                                <option value="homelessness" selected>Homelessness (default)</option>
-                                <option value="all">All keywords</option>
-                                <option value="custom">Custom from file</option>
-                            </select>
+                            <label for="customKeywords">Keywords (comma-separated):</label>
+                            <input type="text" id="customKeywords" placeholder="e.g., homeless, unhoused, housing crisis, tuna wisma" required>
+                            <small class="help-text">Enter any keywords separated by commas. You can use any language or terms.</small>
+                            <div id="relevanceCheck" class="relevance-check" style="display:none;"></div>
                         </div>
                         
                         <div class="button-group">
                             <button id="runScraper" class="run-button">🚀 Run Scraper</button>
                             <button id="refreshData" class="refresh-button" style="display:none;">🔄 Refresh Data</button>
+                        </div>
+                        
+                        <div id="refreshStatus" class="refresh-status" style="display:none;">
+                            <div class="status-header">
+                                <h3>🔄 Data Refresh Progress</h3>
+                                <div class="status-indicator" id="refreshIndicator">⏳ Starting...</div>
+                            </div>
+                            <div class="status-details">
+                                <div class="status-item">
+                                    <span class="label">Status:</span>
+                                    <span id="refreshText">Initializing...</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Progress:</span>
+                                    <span id="refreshProgress">0%</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Duration:</span>
+                                    <span id="refreshDuration">0s</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="refreshProgressFill"></div>
+                            </div>
                         </div>
                     </div>
                     
@@ -1606,13 +1645,82 @@ class ImprovedEDAAnalyzer:
                 let startTime = null;
                 let progressInterval = null;
                 
+                // Relevance checking for custom keywords
+                function checkKeywordRelevance(keywords) {{
+                    const homelessnessTerms = [
+                        'homeless', 'homelessness', 'unhoused', 'housing crisis', 'affordable housing',
+                        'homeless shelter', 'street homelessness', 'housing first', 'homeless veterans',
+                        'homeless families', 'homeless youth', 'chronic homelessness', 'temporary housing',
+                        'transitional housing', 'supportive housing', 'homeless services', 'homeless outreach',
+                        'homeless encampment', 'housing insecurity', 'homeless population', 'end homelessness',
+                        'rough sleeper', 'tent city', 'no home', 'houseless', 'precarious housing',
+                        'eviction', 'foreclosure', 'poverty', 'destitute', 'beggar', 'vagran', 'squatter',
+                        'migrant crisis', 'refugee crisis', 'displaced people', 'asylum seeker', 'tent encampment',
+                        'sleeping rough', 'food bank', 'soup kitchen', 'charity for homeless', 'homeless charity',
+                        'homeless aid', 'homeless support', 'homeless advocacy', 'homeless solutions',
+                        'homeless prevention', 'housing solutions', 'housing advocacy', 'housing support',
+                        'housing initiatives', 'housing programs', 'housing policy', 'housing justice',
+                        'housing rights', 'housing stability', 'housing affordability', 'housing equity',
+                        'housing for all', 'housing needs', 'housing challenges', 'housing crisis solutions'
+                    ];
+                    
+                    const keywordList = keywords.toLowerCase().split(',').map(k => k.trim()).filter(k => k);
+                    const relevantKeywords = [];
+                    const irrelevantKeywords = [];
+                    
+                    keywordList.forEach(keyword => {{
+                        const isRelevant = homelessnessTerms.some(term => 
+                            term.includes(keyword) || keyword.includes(term) ||
+                            term.split(' ').some(word => word.includes(keyword)) ||
+                            keyword.split(' ').some(word => word.includes(term))
+                        );
+                        
+                        if (isRelevant) {{
+                            relevantKeywords.push(keyword);
+                        }} else {{
+                            irrelevantKeywords.push(keyword);
+                        }}
+                    }});
+                    
+                    return {{ relevantKeywords, irrelevantKeywords, totalKeywords: keywordList.length }};
+                }}
+                
+                // Add event listener for custom keyword checking
+                document.getElementById('customKeywords').addEventListener('input', function() {{
+                    const keywords = this.value;
+                    const relevanceDiv = document.getElementById('relevanceCheck');
+                    
+                    if (keywords.trim()) {{
+                        const result = checkKeywordRelevance(keywords);
+                        relevanceDiv.style.display = 'block';
+                        
+                        if (result.relevantKeywords.length > 0) {{
+                            relevanceDiv.className = 'relevance-check relevant';
+                            relevanceDiv.innerHTML = `💡 <strong>Tip:</strong> ${{result.relevantKeywords.length}}/${{result.totalKeywords}} keywords are related to homelessness: ${{result.relevantKeywords.join(', ')}}`;
+                        }} else {{
+                            relevanceDiv.className = 'relevance-check not-relevant';
+                            relevanceDiv.innerHTML = `💡 <strong>Tip:</strong> For homelessness-related data, consider adding terms like: homeless, unhoused, housing crisis, affordable housing, etc.`;
+                        }}
+                        
+                        if (result.irrelevantKeywords.length > 0) {{
+                            relevanceDiv.innerHTML += `<br/>📝 Your keywords: ${{result.irrelevantKeywords.join(', ')}}`;
+                        }}
+                    }} else {{
+                        relevanceDiv.style.display = 'none';
+                    }}
+                }});
+                
                 document.getElementById('runScraper').addEventListener('click', async function() {{
                     if (scraperRunning) return;
                     
                     const duration = document.getElementById('duration').value;
-                    const dateFrom = document.getElementById('dateFrom').value;
-                    const dateTo = document.getElementById('dateTo').value;
-                    const keywords = document.getElementById('keywords').value;
+                    const customKeywords = document.getElementById('customKeywords').value;
+                    
+                    // Validate input
+                    if (!customKeywords.trim()) {{
+                        alert('Please enter some keywords to search for.');
+                        return;
+                    }}
                     
                     // Show status panel
                     document.getElementById('scraperStatus').style.display = 'block';
@@ -1641,9 +1749,7 @@ class ImprovedEDAAnalyzer:
                             }},
                             body: JSON.stringify({{
                                 duration: parseInt(duration),
-                                dateFrom: dateFrom || null,
-                                dateTo: dateTo || null,
-                                keywords: keywords
+                                keywords: customKeywords.trim()
                             }})
                         }});
                         
@@ -1705,21 +1811,88 @@ class ImprovedEDAAnalyzer:
                 }});
                 
                 document.getElementById('refreshData').addEventListener('click', async function() {{
-                    // Call refresh API and then reload
+                    // Show refresh status panel
+                    document.getElementById('refreshStatus').style.display = 'block';
+                    document.getElementById('refreshData').disabled = true;
+                    document.getElementById('refreshData').textContent = '⏳ Refreshing...';
+                    
+                    // Update status
+                    document.getElementById('refreshIndicator').textContent = '⏳ Starting...';
+                    document.getElementById('refreshText').textContent = 'Initializing refresh...';
+                    document.getElementById('refreshProgress').textContent = '0%';
+                    document.getElementById('refreshDuration').textContent = '0s';
+                    document.getElementById('refreshProgressFill').style.width = '0%';
+                    
+                    const startTime = Date.now();
+                    
+                    // Start progress tracking
+                    const progressInterval = setInterval(() => {{
+                        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                        document.getElementById('refreshDuration').textContent = elapsed + 's';
+                    }}, 1000);
+                    
                     try {{
                         const response = await fetch('/api/refresh-data', {{ method: 'POST' }});
                         if (response.ok) {{
-                            // Reload the page to show updated data
-                            window.location.reload();
+                            // Start polling for refresh status
+                            const statusInterval = setInterval(async () => {{
+                                try {{
+                                    const statusResponse = await fetch('/api/refresh-status');
+                                    const status = await statusResponse.json();
+                                    
+                                    if (status.running) {{
+                                        document.getElementById('refreshIndicator').textContent = '🔄 Refreshing...';
+                                        document.getElementById('refreshText').textContent = status.current_step || 'Processing...';
+                                        document.getElementById('refreshProgress').textContent = status.progress + '%';
+                                        document.getElementById('refreshProgressFill').style.width = status.progress + '%';
+                                    }} else {{
+                                        clearInterval(statusInterval);
+                                        clearInterval(progressInterval);
+                                        
+                                        if (status.error) {{
+                                            document.getElementById('refreshIndicator').textContent = '❌ Error';
+                                            document.getElementById('refreshText').textContent = 'Refresh failed: ' + status.error;
+                                        }} else {{
+                                            document.getElementById('refreshIndicator').textContent = '✅ Complete';
+                                            document.getElementById('refreshText').textContent = 'Refresh completed successfully!';
+                                            document.getElementById('refreshProgress').textContent = '100%';
+                                            document.getElementById('refreshProgressFill').style.width = '100%';
+                                            
+                                            // Reload the page to show updated data after a short delay
+                                            setTimeout(() => {{
+                                                window.location.reload();
+                                            }}, 2000);
+                                        }}
+                                        
+                                        // Reset button
+                                        document.getElementById('refreshData').disabled = false;
+                                        document.getElementById('refreshData').textContent = '🔄 Refresh Data';
+                                    }}
+                                }} catch (error) {{
+                                    console.error('Status check error:', error);
+                                    clearInterval(statusInterval);
+                                    clearInterval(progressInterval);
+                                }}
+                            }}, 1000); // Check every second
                         }} else {{
-                            console.error('Failed to refresh data');
-                            // Still reload anyway
-                            window.location.reload();
+                            clearInterval(progressInterval);
+                            console.error('Failed to start refresh');
+                            document.getElementById('refreshIndicator').textContent = '❌ Error';
+                            document.getElementById('refreshText').textContent = 'Failed to start refresh';
+                            
+                            // Reset button
+                            document.getElementById('refreshData').disabled = false;
+                            document.getElementById('refreshData').textContent = '🔄 Refresh Data';
                         }}
                     }} catch (error) {{
+                        clearInterval(progressInterval);
                         console.error('Refresh error:', error);
-                        // Still reload anyway
-                        window.location.reload();
+                        document.getElementById('refreshIndicator').textContent = '❌ Error';
+                        document.getElementById('refreshText').textContent = 'Refresh failed: ' + error.message;
+                        
+                        // Reset button
+                        document.getElementById('refreshData').disabled = false;
+                        document.getElementById('refreshData').textContent = '🔄 Refresh Data';
                     }}
                 }});
                 

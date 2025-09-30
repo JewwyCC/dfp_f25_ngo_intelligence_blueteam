@@ -1,16 +1,20 @@
-# Social Media NGO Research Project
+# NGO Intelligence Platform
 
-A multi-source data collection and analysis platform for NGO research, supporting Bluesky, Google Trends, News API, and Reddit.
+Multi-source data collection and analysis platform for NGO intelligence gathering on homelessness and social justice issues.
+
+**Current Focus**: Bluesky social media monitoring for homelessness discussions (156K+ posts collected)
+
+**Supported Data Sources**: Bluesky (active), Google Trends, News API, Reddit (ready for implementation)
 
 ## 📊 Data Sources
 
 ### [Bluesky](scripts/bluesky/) - Active ✅
-Collecting and analyzing homelessness discussions from Bluesky social media platform.
-- **Status**: Fully implemented
-- **Scripts**: [scripts/bluesky/](scripts/bluesky/)
-- **Data**: [data/bluesky/](data/bluesky/)
-- **Auth**: [auth/bluesky/](auth/bluesky/)
-- **Visualizations**: [viz/bluesky/](viz/bluesky/)
+Real-time monitoring and analysis of homelessness discussions on Bluesky social network.
+- **Status**: Fully implemented with 156,184 posts collected
+- **Scripts**: [scripts/bluesky/](scripts/bluesky/) - Collection, demo, and analysis tools
+- **Data**: [data/bluesky/](data/bluesky/) - 156K+ deduplicated posts
+- **Auth**: [auth/bluesky/config/](auth/bluesky/config/) - Secure credential storage
+- **Visualizations**: [viz/bluesky/](viz/bluesky/) - Interactive EDA reports
 
 ### Google Trends - Coming Soon 🚧
 *Awaiting implementation by team members*
@@ -35,19 +39,21 @@ Collecting and analyzing homelessness discussions from Bluesky social media plat
 
 ---
 
-## 🚀 Bluesky Module - Quick Start
+## 🚀 Quick Start: Bluesky Intelligence Module
 
-A comprehensive Python tool for collecting and analyzing homelessness discussions from Bluesky social media platform.
+**Current Status**: Operational with 156K+ posts analyzing homelessness discourse on Bluesky
 
-### Features
+Comprehensive Python toolkit for real-time social media intelligence gathering focused on homelessness and housing crisis discussions.
 
-- **Keyword-based search** with customizable keyword lists focused on homelessness
-- **Real-time data collection** with firehose and search methods
-- **Comprehensive EDA analysis** with interactive visualizations
-- **Geographic distribution** analysis with word clouds and world maps
-- **Multiple output formats** (JSONL, CSV, JSON)
-- **System sleep prevention** during long collections
-- **Interactive web dashboard** for data exploration
+### Intelligence Capabilities
+
+- 🎯 **Targeted Intelligence Collection**: 155+ keywords tracking homelessness, housing crisis, and social justice
+- 📡 **Real-time Monitoring**: Firehose and search-based collection methods
+- 📊 **Advanced Analytics**: Interactive EDA with geographic distribution, sentiment analysis, and engagement metrics
+- 🗺️ **Geographic Intelligence**: Location-based analysis with word clouds and world maps
+- 💾 **Flexible Outputs**: JSONL, CSV, JSON formats for downstream analysis
+- 🔄 **Session Management**: Automated deduplication and data merging
+- ⚡ **Production-Ready**: Sleep prevention, error handling, comprehensive logging
 
 ### 1. Install Dependencies
 
@@ -176,28 +182,35 @@ python main.py --duration 120 --keywords all --no-sleep
 ## Project Structure
 
 ```
-dfp_f25_socmed_blueteam/
+dfp_f25_ngo_intelligence_blueteam/
 ├── README.md                     # Main project README
 ├── requirements.txt              # Python dependencies
-├── PRD.md                        # Product Requirements Document
 ├── scripts/
-│   ├── bluesky/                  # Bluesky scripts
+│   ├── bluesky/                  # Bluesky intelligence module ✅
 │   │   ├── main.py               # Main data collector
-│   │   ├── demo.py               # Interactive demo script
+│   │   ├── demo.py               # Interactive demo
+│   │   ├── bluesky_social_justice_collector.py  # Core collector
+│   │   ├── homelessness_keywords.py  # Keyword module (155+ terms)
 │   │   ├── keywords.txt          # Customizable keyword list
-│   │   ├── homelessness_keywords.py  # Keyword module
-│   │   └── *.ipynb               # Analysis notebooks
-│   ├── google_trends/            # Google Trends scripts (placeholder)
-│   ├── news_api/                 # News API scripts (placeholder)
-│   └── reddit/                   # Reddit scripts (placeholder)
+│   │   ├── analysis_demo.ipynb   # Analysis notebook
+│   │   ├── PRD.md                # Product requirements
+│   │   └── PROJECT_SUMMARY.md    # Project summary
+│   ├── google_trends/            # Google Trends module 🚧
+│   │   └── README.md             # Setup instructions
+│   ├── news_api/                 # News API module 🚧
+│   │   └── README.md             # Setup instructions
+│   └── reddit/                   # Reddit module 🚧
+│       └── README.md             # Setup instructions
 ├── data/
-│   ├── bluesky/
-│   │   ├── alltime_socmed/       # Merged data (CSV, JSONL)
-│   │   ├── sessions/             # Individual collection sessions
-│   │   └── alltime/              # Historical data
-│   ├── google_trends/            # Google Trends data (placeholder)
-│   ├── news_api/                 # News API data (placeholder)
-│   └── reddit/                   # Reddit data (placeholder)
+│   ├── bluesky/                  # Bluesky data (156K posts) ✅
+│   │   ├── alltime_socmed/       # Merged data repository
+│   │   ├── sessions/             # Individual collection sessions (9 sessions)
+│   │   └── alltime/              # Deduplicated master dataset
+│   │       ├── alltime_socmed.csv      # 156,184 posts
+│   │       └── alltime_socmed.jsonl    # Raw JSON format
+│   ├── google_trends/            # Google Trends data 🚧
+│   ├── news_api/                 # News API data 🚧
+│   └── reddit/                   # Reddit data 🚧
 ├── auth/
 │   ├── bluesky/
 │   │   └── config/
@@ -206,16 +219,17 @@ dfp_f25_socmed_blueteam/
 │   ├── news_api/                 # News API auth (placeholder)
 │   └── reddit/                   # Reddit auth (placeholder)
 └── viz/
-    ├── bluesky/                  # Bluesky visualizations
-    │   ├── improved_eda.py       # EDA analysis generator
-    │   ├── interactive_eda.py    # Interactive EDA
-    │   ├── *.html                # Generated reports
+    ├── bluesky/                  # Bluesky visualizations ✅
+    │   ├── improved_eda.py       # Comprehensive EDA generator
+    │   ├── interactive_eda.py    # Interactive EDA with extras
+    │   ├── improved_eda_report.html     # Latest comprehensive report
+    │   ├── interactive_eda_report.html  # Latest interactive report
     │   └── README.md             # Usage instructions
-    ├── google_trends/            # Google Trends viz (placeholder)
+    ├── google_trends/            # Google Trends viz 🚧
     │   └── README.md
-    ├── news_api/                 # News API viz (placeholder)
+    ├── news_api/                 # News API viz 🚧
     │   └── README.md
-    └── reddit/                   # Reddit viz (placeholder)
+    └── reddit/                   # Reddit viz 🚧
         └── README.md
 ```
 
@@ -263,13 +277,33 @@ Place your Bluesky credentials in `auth/bluesky/config/auth.json`:
 
 ## Contributing
 
-This is a grad student team project. Each team member can contribute their own data source module:
+**Team Project**: DFP F25 NGO Intelligence Blue Team
 
-1. Create your module directories: `scripts/{source}/`, `data/{source}/`, `auth/{source}/`, `viz/{source}/`
-2. Implement your data collection and analysis scripts
-3. Update this README with your module information
-4. Submit a pull request
+Each team member can contribute their own intelligence source module:
 
-## License
+1. **Choose your source**: Google Trends, News API, or Reddit
+2. **Set up structure**: Use existing directory pattern (`scripts/{source}/`, `data/{source}/`, `auth/{source}/`, `viz/{source}/`)
+3. **Follow READMEs**: Each placeholder directory includes setup instructions
+4. **Develop independently**: Modular structure prevents merge conflicts
+5. **Submit PR**: Update main README with your module status
+6. **Document**: Add your findings to module-specific documentation
 
-DFP F25 Social Media Blue Team Project
+### Current Team Assignments
+- ✅ **Bluesky**: Implemented (156K posts)
+- 🚧 **Google Trends**: Available for assignment
+- 🚧 **News API**: Available for assignment
+- 🚧 **Reddit**: Available for assignment
+
+## Project Information
+
+- **Course**: DFP F25 (Digital Forensics & Privacy)
+- **Team**: NGO Intelligence Blue Team
+- **Focus**: Homelessness & Social Justice Intelligence
+- **Academic Year**: Fall 2025
+- **Institution**: Graduate Student Team Project
+
+---
+
+**Last Updated**: September 2025
+**Data Collection Period**: September 2024 - Present
+**Total Posts Analyzed**: 156,184 (Bluesky)

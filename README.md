@@ -296,11 +296,11 @@ Each team member can contribute their own intelligence source module:
 
 ## Project Information
 
-- **Course**: DFP F25 (Digital Forensics & Privacy)
+- **Course**: Data Focused Python (Fall 2025)
+- **Institution**: Carnegie Mellon University - Heinz College
 - **Team**: NGO Intelligence Blue Team
 - **Focus**: Homelessness & Social Justice Intelligence
-- **Academic Year**: Fall 2025
-- **Institution**: Graduate Student Team Project
+- **Project Type**: Graduate Student Team Project
 
 ---
 

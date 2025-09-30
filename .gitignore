@@ -1,13 +1,16 @@
 # Authentication files
-data/config/auth.json
-data/config/auth_template.json
+auth/*/config/auth.json
+auth/*/config/auth_template.json
+auth/*/*.json
 *.json
 !requirements.json
 
 # Data directories
-data/alltime/
-data/sessions/
-data/alltime_homeless/
+data/*/alltime/
+data/*/sessions/
+data/*/alltime_socmed/
+data/*/raw/
+data/*/processed/
 
 # Python
 __pycache__/

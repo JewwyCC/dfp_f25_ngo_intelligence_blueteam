@@ -101,11 +101,17 @@ python main.py --merge-data
 ### 4. Generate EDA Analysis
 
 ```bash
+# Navigate to Bluesky visualizations
 cd viz/bluesky
+
+# Generate comprehensive EDA report
 python improved_eda.py
+
+# Or generate interactive report
+python interactive_eda.py
 ```
 
-This creates `improved_eda_report.html` with:
+This creates reports with:
 - 📊 Key metrics and statistics
 - 🌍 Geographic distribution (word clouds + world map)
 - 📈 Content analysis and engagement metrics
@@ -200,13 +206,17 @@ dfp_f25_socmed_blueteam/
 │   ├── news_api/                 # News API auth (placeholder)
 │   └── reddit/                   # Reddit auth (placeholder)
 └── viz/
-    ├── bluesky/
+    ├── bluesky/                  # Bluesky visualizations
     │   ├── improved_eda.py       # EDA analysis generator
     │   ├── interactive_eda.py    # Interactive EDA
-    │   └── *.html                # Generated reports
+    │   ├── *.html                # Generated reports
+    │   └── README.md             # Usage instructions
     ├── google_trends/            # Google Trends viz (placeholder)
+    │   └── README.md
     ├── news_api/                 # News API viz (placeholder)
+    │   └── README.md
     └── reddit/                   # Reddit viz (placeholder)
+        └── README.md
 ```
 
 ## Output
@@ -216,7 +226,7 @@ Data is saved to `data/bluesky/alltime_socmed/` with timestamps:
 - `socmed_search_YYYYMMDD_HHMMSS.jsonl` - Raw data
 - `socmed_search_YYYYMMDD_HHMMSS.csv` - Spreadsheet format
 - `socmed_search_YYYYMMDD_HHMMSS_summary.json` - Collection summary
-- Visualizations in `viz/bluesky/improved_eda_report.html`
+- Visualizations in `viz/bluesky/*.html`
 
 ## Configuration
 

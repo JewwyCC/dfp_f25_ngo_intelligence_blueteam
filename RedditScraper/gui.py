@@ -6,7 +6,7 @@ import pandas as pd
 
 from .config import ISSUE_CONFIGS
 from .reddit_client import get_reddit_client
-from .data_collection import collect
+from .data_collection import collect, collect_by_search
 from .cleaning import clean
 from .analysis import extract_keywords, expand_keywords_with_variants, compute_post_sentiment, extract_important_terms, compute_term_sentiment, get_top_topic_keywords_by_frequency, aggregate_topic_keyword_sentiments
 from .curation import curate_sources
@@ -138,25 +138,15 @@ class AnalyzerApp:
             messagebox.showwarning("Missing", "Please select an issue.")
             return
         cfg = self.issue_configs[issue]
-        # Step 1: curation - probe and select 10 subs, 20 keywords
-        curated_subs, curated_kws, _ = curate_sources(
-            self.reddit,
-            cfg['subreddits'],
-            cfg['keywords'],
-            target_sub_count=10,
-            target_kw_count=20,
-            time_filter=self.time_var.get(),
-            probe_limit=15,
-        )
-        # Update UI to show curated choices
+        # Use configured subreddits and keywords directly (no curation)
+        subreddits = cfg['subreddits']
+        keywords = cfg['keywords']
+        # Update UI to show configured choices
         self.subreddit_text.delete(1.0, tk.END)
-        self.subreddit_text.insert(1.0, f"Curated Subreddits ({len(curated_subs)}):\n")
-        self.subreddit_text.insert(tk.END, ", ".join(curated_subs))
-        self.subreddit_text.insert(tk.END, f"\n\nCurated Keywords ({len(curated_kws)}):\n")
-        self.subreddit_text.insert(tk.END, ", ".join(curated_kws))
-
-        subreddits = curated_subs
-        keywords = curated_kws
+        self.subreddit_text.insert(1.0, f"Subreddits ({len(subreddits)}):\n")
+        self.subreddit_text.insert(tk.END, ", ".join(subreddits))
+        self.subreddit_text.insert(tk.END, f"\n\nKeywords ({len(keywords)}):\n")
+        self.subreddit_text.insert(tk.END, ", ".join(keywords))
         posts_per_sub = self.posts_var.get()
         time_filter = self.time_var.get()
         strategy = self.strategy_var.get()
@@ -164,7 +154,8 @@ class AnalyzerApp:
         self.status_label.config(text="Collecting data...")
         self.root.update_idletasks()
 
-        df = collect(self.reddit, subreddits, keywords, posts_per_sub, time_filter, strategy)
+        # Use search-based ingestion to fetch posts by keyword queries across selected subreddits
+        df = collect_by_search(self.reddit, subreddits, keywords, posts_per_sub, time_filter, strategy)
         if df.empty:
             messagebox.showerror("No Data", "No posts collected. Try adjusting the settings.")
             return

@@ -5,10 +5,55 @@ from wordcloud import WordCloud
 from matplotlib.colors import LinearSegmentedColormap
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
+from scipy.interpolate import make_interp_spline
+from scipy.ndimage import gaussian_filter1d
 
 
 def _time_bin(df: pd.DataFrame) -> pd.Series:
-    return df['created_utc'].dt.floor('D')
+    # Use weekly binning by finding the start of each week (Monday)
+    return df['created_utc'].dt.to_period('W').dt.start_time
+
+
+def _create_smooth_density_plot(ax, time_bins, values, color, alpha=0.3, label='', line_color=None):
+    """Create smooth, hill-like density plots using interpolation and smoothing."""
+    if len(time_bins) < 2:
+        return
+    
+    # Convert time bins to numeric for interpolation
+    time_numeric = np.array([tb.toordinal() for tb in time_bins])
+    values_array = np.array(values)
+    
+    # Create smooth interpolation
+    if len(time_numeric) >= 3:
+        # Use cubic spline interpolation for smooth curves
+        try:
+            # Create more points for smoother curves
+            time_smooth = np.linspace(time_numeric.min(), time_numeric.max(), 200)
+            spl = make_interp_spline(time_numeric, values_array, k=min(3, len(time_numeric)-1))
+            values_smooth = spl(time_smooth)
+        except:
+            # Fallback to linear interpolation if spline fails
+            time_smooth = np.linspace(time_numeric.min(), time_numeric.max(), 200)
+            values_smooth = np.interp(time_smooth, time_numeric, values_array)
+    else:
+        # For very few points, use simple interpolation
+        time_smooth = np.linspace(time_numeric.min(), time_numeric.max(), 200)
+        values_smooth = np.interp(time_smooth, time_numeric, values_array)
+    
+    # Apply Gaussian smoothing for hill-like structure
+    values_smooth = gaussian_filter1d(values_smooth, sigma=2)
+    
+    # Convert back to datetime for plotting
+    time_smooth_dt = [pd.Timestamp.fromordinal(int(t)) for t in time_smooth]
+    
+    # Create the smooth density plot
+    ax.fill_between(time_smooth_dt, values_smooth, alpha=alpha, color=color, label=label)
+    
+    # Add smooth line overlay
+    line_color = line_color or color
+    ax.plot(time_smooth_dt, values_smooth, color=line_color, linewidth=2, alpha=0.8)
+    
+    return time_smooth_dt, values_smooth
 
 
 def _fit_linear_trend(x_ord: np.ndarray, y: np.ndarray):
@@ -89,8 +134,8 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
     """
     fig.clear()
     # Create a larger figure with more space for each visualization
-    fig.set_size_inches(16, 20)  # Increased height for better spacing
-    gs = fig.add_gridspec(4, 1, hspace=0.4, wspace=0.3, height_ratios=[2, 2, 1.5, 1.5])
+    fig.set_size_inches(16, 18)  # Increased height for better spacing
+    gs = fig.add_gridspec(3, 1, hspace=0.6, wspace=0.3, height_ratios=[2.5, 1.5, 1.5])
 
     # Import the new analysis functions
     from .analysis import get_top_topic_keywords_by_frequency, aggregate_topic_keyword_sentiments
@@ -98,31 +143,25 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
     # Get top keywords with their sentiment data
     top_keywords = get_top_topic_keywords_by_frequency(df, topic='housing_crisis', top_n=30)
     
-    # 1) Housing Crisis Engagement Trends WITH outliers
+    # 1) Housing Crisis Engagement Trends (Main Analysis)
     ax1 = fig.add_subplot(gs[0, 0])
     
     if df.empty:
         ax1.text(0.5, 0.5, 'No data for engagement analysis', ha='center', va='center', transform=ax1.transAxes)
-        ax1.set_title('Housing Crisis Engagement Trends (With Outliers)', fontsize=12, fontweight='bold')
+        ax1.set_title('Housing Crisis Engagement Trends', fontsize=14, fontweight='bold')
         ax1.axis('off')
         
-        # Show empty engagement plot
+        # Show empty word cloud
         ax2 = fig.add_subplot(gs[1, 0])
-        ax2.text(0.5, 0.5, 'No data for engagement analysis', ha='center', va='center', transform=ax2.transAxes)
-        ax2.set_title('Engagement Over Time by Topic', fontsize=12, fontweight='bold')
+        ax2.text(0.5, 0.5, 'No keywords found for word cloud', ha='center', va='center', transform=ax2.transAxes)
+        ax2.set_title('Housing Crisis Keywords Word Cloud', fontsize=12, fontweight='bold')
         ax2.axis('off')
         
-        # Show empty word cloud
-        ax3 = fig.add_subplot(gs[2, 0])
-        ax3.text(0.5, 0.5, 'No keywords found for word cloud', ha='center', va='center', transform=ax3.transAxes)
-        ax3.set_title('Housing Crisis Keywords Word Cloud', fontsize=12, fontweight='bold')
-        ax3.axis('off')
-        
         # Show empty featured posts
-        ax4 = fig.add_subplot(gs[3, 0])
-        ax4.text(0.5, 0.5, 'No posts available for featured section', ha='center', va='center', transform=ax4.transAxes)
-        ax4.set_title('Featured Posts - Highest Engagement', fontsize=12, fontweight='bold')
-        ax4.axis('off')
+        ax3 = fig.add_subplot(gs[2, 0])
+        ax3.text(0.5, 0.5, 'No posts available for featured section', ha='center', va='center', transform=ax3.transAxes)
+        ax3.set_title('Featured Posts - Highest Engagement', fontsize=12, fontweight='bold')
+        ax3.axis('off')
         return
     else:
         # Create time bins
@@ -144,16 +183,14 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
             avg_engagements.append(tb_data['engagement'].mean() if len(tb_data) > 0 else 0)
             engagement_densities.append(tb_data['engagement'].sum())  # Total engagement density
         
-        # Plot overall post count trend
+        # Plot smooth density plots for both post count and engagement
         ax1_twin = ax1.twinx()
         
-        # Post count line (density)
-        ax1.plot(time_bins, post_counts, 'o-', color='#2E8B57', linewidth=3, markersize=8, 
-                 alpha=0.8, label='Post Count Trend', markeredgecolor='black', markeredgewidth=1)
-        
-        # Engagement density line
-        ax1_twin.plot(time_bins, engagement_densities, 's-', color='#FF6347', linewidth=3, markersize=8,
-                      alpha=0.8, label='Total Engagement Density', markeredgecolor='black', markeredgewidth=1)
+        # Post count smooth density (hill-like structure)
+        _create_smooth_density_plot(ax1, time_bins, post_counts, color='#2E8B57', alpha=0.3, label='Post Count Density')
+
+        # Engagement smooth density (hill-like structure)
+        _create_smooth_density_plot(ax1_twin, time_bins, engagement_densities, color='#FF6347', alpha=0.3, label='Total Engagement Density')
         
         # Add individual data points for visibility
         for i, (tb, count, engagement) in enumerate(zip(time_bins, post_counts, engagement_densities)):
@@ -165,123 +202,33 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
             ax1.scatter(tb, count, c=[color], s=100, alpha=0.7, edgecolors='black', linewidth=1)
             ax1_twin.scatter(tb, engagement, c=[color], s=100, alpha=0.7, edgecolors='black', linewidth=1)
         
-        # Fit overall trend curves
-        if len(time_bins) > 2:
-            x_ord = np.array([tb.toordinal() for tb in time_bins])
-            
-            # Post count trend
-            y_posts = np.array(post_counts)
-            z_posts, p_posts = _fit_curve_trend(x_ord, y_posts, degree=2)
-            if p_posts is not None:
-                x_line = np.linspace(x_ord.min(), x_ord.max(), 100)
-                y_line = p_posts(x_line)
-                x_dates = [pd.Timestamp.fromordinal(int(x)) for x in x_line]
-                ax1.plot(x_dates, y_line, color='#2E8B57', linewidth=4, alpha=0.9, linestyle='--')
-            
-            # Engagement density trend
-            y_engagement = np.array(engagement_densities)
-            z_engagement, p_engagement = _fit_curve_trend(x_ord, y_engagement, degree=2)
-            if p_engagement is not None:
-                x_line = np.linspace(x_ord.min(), x_ord.max(), 100)
-                y_line = p_engagement(x_line)
-                x_dates = [pd.Timestamp.fromordinal(int(x)) for x in x_line]
-                ax1_twin.plot(x_dates, y_line, color='#FF6347', linewidth=4, alpha=0.9, linestyle='--')
-        
-        ax1.set_title('Housing Crisis Engagement Trends (With Outliers)', fontsize=12, fontweight='bold')
-        ax1.set_xlabel('Time')
-        ax1.set_ylabel('Post Count', color='#2E8B57')
-        ax1_twin.set_ylabel('Total Engagement Density', color='#FF6347')
+        ax1.set_title('Housing Crisis Engagement Trends - Weekly Analysis', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('Time (Weekly Bins)', fontsize=12, fontweight='bold')
+        ax1.set_ylabel('Post Count (Weekly Aggregation)', color='#2E8B57', fontsize=11, fontweight='bold')
+        ax1_twin.set_ylabel('Total Engagement Density (Upvotes + Comments)', color='#FF6347', fontsize=11, fontweight='bold')
         ax1.grid(True, alpha=0.3)
         
-        # Add legend
+        # Add comprehensive legend with explanations
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax1_twin.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=8)
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9, framealpha=0.9)
+        
+        # Add detailed explanation text box outside the plot area
+        explanation_text = (
+            "📊 DATA EXPLANATION:\n"
+            "• Green Hills = Post Count Density (number of posts per week)\n"
+            "• Red Hills = Engagement Density (total upvotes + comments per week)\n"
+            "• Point Colors = Engagement intensity (darker red = higher engagement)\n"
+            "• Smooth curves created using cubic spline interpolation + Gaussian smoothing\n"
+            "• Weekly binning shows natural trends over time periods"
+        )
+        # Position explanation below the plot
+        ax1.text(0.5, -0.15, explanation_text, transform=ax1.transAxes, fontsize=9,
+                horizontalalignment='center', verticalalignment='top', 
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
 
-    # 2) Engagement over time with EDA and overall trend
+    # 2) Word cloud with sentiment-based red coloration
     ax2 = fig.add_subplot(gs[1, 0])
-    
-    # Classify posts by topic
-    df_sorted = df.sort_values('created_utc')
-    df_sorted['time_bin'] = _time_bin(df_sorted)
-    df_sorted['topic'] = df_sorted.apply(lambda row: _classify_post_topic(f"{row.get('title', '')} {row.get('selftext', '')}"), axis=1)
-    
-    # Calculate engagement (upvotes + comments)
-    df_sorted['engagement'] = df_sorted['score'] + df_sorted['num_comments']
-    
-    # EDA: Remove outliers from engagement data
-    df_clean = _remove_outliers_iqr(df_sorted, 'engagement')
-    if len(df_clean) < len(df_sorted) * 0.5:  # If too many outliers removed, use z-score method
-        df_clean = _remove_outliers_zscore(df_sorted, 'engagement', threshold=2.5)
-    
-    # Calculate overall trends
-    time_bins = sorted(df_clean['time_bin'].unique())
-    post_counts = []
-    avg_engagements = []
-    engagement_densities = []
-    
-    for tb in time_bins:
-        tb_data = df_clean[df_clean['time_bin'] == tb]
-        post_counts.append(len(tb_data))
-        avg_engagements.append(tb_data['engagement'].mean() if len(tb_data) > 0 else 0)
-        engagement_densities.append(tb_data['engagement'].sum())  # Total engagement density
-    
-    # Plot overall post count trend
-    ax2_twin = ax2.twinx()
-    
-    # Post count line (density)
-    ax2.plot(time_bins, post_counts, 'o-', color='#2E8B57', linewidth=3, markersize=8, 
-             alpha=0.8, label='Post Count Trend', markeredgecolor='black', markeredgewidth=1)
-    
-    # Engagement density line
-    ax2_twin.plot(time_bins, engagement_densities, 's-', color='#FF6347', linewidth=3, markersize=8,
-                  alpha=0.8, label='Total Engagement Density', markeredgecolor='black', markeredgewidth=1)
-    
-    # Add individual data points for visibility
-    for i, (tb, count, engagement) in enumerate(zip(time_bins, post_counts, engagement_densities)):
-        # Color intensity based on engagement density
-        intensity = min(1.0, engagement / max(engagement_densities) if max(engagement_densities) > 0 else 0)
-        color = plt.cm.Reds(intensity)
-        
-        # Plot individual points
-        ax2.scatter(tb, count, c=[color], s=100, alpha=0.7, edgecolors='black', linewidth=1)
-        ax2_twin.scatter(tb, engagement, c=[color], s=100, alpha=0.7, edgecolors='black', linewidth=1)
-    
-    # Fit overall trend curves
-    if len(time_bins) > 2:
-        x_ord = np.array([tb.toordinal() for tb in time_bins])
-        
-        # Post count trend
-        y_posts = np.array(post_counts)
-        z_posts, p_posts = _fit_curve_trend(x_ord, y_posts, degree=2)
-        if p_posts is not None:
-            x_line = np.linspace(x_ord.min(), x_ord.max(), 100)
-            y_line = p_posts(x_line)
-            x_dates = [pd.Timestamp.fromordinal(int(x)) for x in x_line]
-            ax2.plot(x_dates, y_line, color='#2E8B57', linewidth=4, alpha=0.9, linestyle='--')
-        
-        # Engagement density trend
-        y_engagement = np.array(engagement_densities)
-        z_engagement, p_engagement = _fit_curve_trend(x_ord, y_engagement, degree=2)
-        if p_engagement is not None:
-            x_line = np.linspace(x_ord.min(), x_ord.max(), 100)
-            y_line = p_engagement(x_line)
-            x_dates = [pd.Timestamp.fromordinal(int(x)) for x in x_line]
-            ax2_twin.plot(x_dates, y_line, color='#FF6347', linewidth=4, alpha=0.9, linestyle='--')
-    
-    ax2.set_title('Housing Crisis Engagement Trends (EDA - Outliers Removed)', fontsize=12, fontweight='bold')
-    ax2.set_xlabel('Time')
-    ax2.set_ylabel('Post Count', color='#2E8B57')
-    ax2_twin.set_ylabel('Total Engagement Density', color='#FF6347')
-    ax2.grid(True, alpha=0.3)
-    
-    # Add legend
-    lines1, labels1 = ax2.get_legend_handles_labels()
-    lines2, labels2 = ax2_twin.get_legend_handles_labels()
-    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=8)
-
-    # 3) Word cloud with sentiment-based red coloration
-    ax3 = fig.add_subplot(gs[2, 0])
     
     # Prepare word cloud data
     word_frequencies = {}
@@ -308,20 +255,20 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
             r, g, b = [int(255 * v) for v in rgba[:3]]
             return f"rgb({r}, {g}, {b})"
 
-        ax3.imshow(wc.recolor(color_func=color_func), interpolation='bilinear')
-        ax3.set_title('Housing Crisis Keywords Heatmap (Light Red=Positive, Dark Red=Negative)', fontsize=12, fontweight='bold')
-        ax3.axis('off')
+        ax2.imshow(wc.recolor(color_func=color_func), interpolation='bilinear')
+        ax2.set_title('Housing Crisis Keywords Heatmap (Light Red=Positive, Dark Red=Negative)', fontsize=12, fontweight='bold')
+        ax2.axis('off')
         
         # Add color bar explanation
-        ax3.text(0.02, 0.02, 'Heatmap Spectrum: Light Red = Positive Sentiment\nDark Red = Negative Sentiment', 
-                transform=ax3.transAxes, fontsize=8, bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+        ax2.text(0.02, 0.02, 'Heatmap Spectrum: Light Red = Positive Sentiment\nDark Red = Negative Sentiment', 
+                transform=ax2.transAxes, fontsize=8, bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
     else:
-        ax3.text(0.5, 0.5, 'No keywords found for word cloud', ha='center', va='center', transform=ax3.transAxes)
-        ax3.set_title('Housing Crisis Keywords Word Cloud', fontsize=12, fontweight='bold')
-        ax3.axis('off')
+        ax2.text(0.5, 0.5, 'No keywords found for word cloud', ha='center', va='center', transform=ax2.transAxes)
+        ax2.set_title('Housing Crisis Keywords Word Cloud', fontsize=12, fontweight='bold')
+        ax2.axis('off')
 
-    # 4) Featured posts section - top 3 highest engagement posts
-    ax4 = fig.add_subplot(gs[3, 0])
+    # 3) Featured posts section - top 3 highest engagement posts
+    ax3 = fig.add_subplot(gs[2, 0])
     
     if not df.empty:
         # Calculate engagement and apply EDA outlier removal
@@ -336,8 +283,8 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
         top_posts = df_clean_posts.nlargest(3, 'engagement')
         
         # Create featured posts display
-        ax4.axis('off')
-        ax4.set_title('Featured Posts - Top 3 Highest Engagement (Personal Stories)', fontsize=14, fontweight='bold')
+        ax3.axis('off')
+        ax3.set_title('Featured Posts - Top 3 Highest Engagement (Personal Stories)', fontsize=14, fontweight='bold')
         
         # Display each featured post with better spacing
         y_positions = [0.85, 0.5, 0.15]  # Better spacing for 3 posts
@@ -376,10 +323,10 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
             else:
                 color = '#000000'  # Lower engagement - black
             
-            ax4.text(0.02, y_pos, post_text, transform=ax4.transAxes, fontsize=10, 
+            ax3.text(0.02, y_pos, post_text, transform=ax3.transAxes, fontsize=10, 
                     verticalalignment='top', color=color, weight='bold' if engagement > 500 else 'normal',
                     bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor=color, linewidth=2))
     else:
-        ax4.text(0.5, 0.5, 'No posts available for featured section', ha='center', va='center', transform=ax4.transAxes)
-        ax4.set_title('Featured Posts - Highest Engagement', fontsize=12, fontweight='bold')
-        ax4.axis('off')
+        ax3.text(0.5, 0.5, 'No posts available for featured section', ha='center', va='center', transform=ax3.transAxes)
+        ax3.set_title('Featured Posts - Highest Engagement', fontsize=12, fontweight='bold')
+        ax3.axis('off')

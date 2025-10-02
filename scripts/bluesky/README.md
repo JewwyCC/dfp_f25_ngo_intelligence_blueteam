@@ -1,6 +1,6 @@
-# Bluesky Social Justice Data Collector
+# Bluesky Homelessness Data Collector
 
-A comprehensive Bluesky data collection tool for social justice topics including food insecurity, housing crisis, homelessness, unemployment, and gender inequality.
+A comprehensive Bluesky data collection tool **focused extensively on homelessness** and related housing insecurity issues. Tracks 12 distinct homelessness-related categories with extensive keyword variations for comprehensive data coverage.
 
 ## Features
 
@@ -72,16 +72,24 @@ python bluesky_social_justice_collector.py --method both --total-time 600
 python bluesky_social_justice_collector.py --method both --days-back 7 --duration 300
 ```
 
-## Keywords Tracked
+## Keywords Tracked - HOMELESSNESS FOCUS
 
-The collector monitors these social justice topics:
-- Food insecurity
-- Housing crisis
-- Homelessness
-- Unemployment
-- Gender inequality
+The collector extensively monitors **12 homelessness-related categories**:
 
-Each keyword has multiple search variations and regex patterns for comprehensive coverage.
+1. **Homelessness** - General homelessness discussions, crisis, epidemic
+2. **Homeless Individuals** - People experiencing homelessness
+3. **Unhoused** - Alternative terminology and unhoused community
+4. **Street Homelessness** - Rough sleeping, living on streets
+5. **Chronic Homelessness** - Long-term homelessness patterns
+6. **Housing Insecurity** - At-risk populations, unstable housing
+7. **Homeless Shelter** - Emergency shelters, transitional housing
+8. **Homeless Encampment** - Tent cities, encampment sweeps
+9. **Homeless Crisis** - Emergency situations and responses
+10. **Homeless Veterans** - Veteran-specific homelessness
+11. **Homeless Youth** - Youth and child homelessness
+12. **Homeless Families** - Family homelessness situations
+
+Each category includes **6-10 search query variations** and multiple regex patterns for comprehensive coverage (100+ total search queries).
 
 ## Output Structure
 

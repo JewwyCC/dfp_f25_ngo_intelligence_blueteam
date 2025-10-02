@@ -1,0 +1,11 @@
+{
+  "bluesky": {
+    "username": "YOUR_BLUESKY_HANDLE.bsky.social",
+    "password": "YOUR_APP_PASSWORD_HERE"
+  },
+  "instructions": {
+    "note": "This is a template file. Copy this to auth.json and fill in your credentials.",
+    "security": "NEVER commit auth.json to git. It should be in .gitignore",
+    "app_password": "Generate an app password at: https://bsky.app/settings/app-passwords"
+  }
+}

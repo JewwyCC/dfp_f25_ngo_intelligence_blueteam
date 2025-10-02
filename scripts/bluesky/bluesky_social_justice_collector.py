@@ -62,6 +62,7 @@ class CollectionConfig:
     search_timeout_seconds: Optional[int] = None  # Time limit for search API phase
     total_time_seconds: Optional[int] = None  # Single time parameter for both phases
     search_proportion: float = 0.75  # 75% search, 25% firehose
+    setup_signals: bool = True  # Whether to setup signal handlers (False for GUI threads)
 
 
 class BlueskySocialJusticeCollector:
@@ -195,10 +196,11 @@ class BlueskySocialJusticeCollector:
         
         # Load existing data for deduplication
         self.load_existing_uris()
-        
-        # Setup signal handlers
-        signal.signal(signal.SIGINT, self.shutdown_handler)
-        signal.signal(signal.SIGTERM, self.shutdown_handler)
+
+        # Setup signal handlers (only in main thread)
+        if config.setup_signals:
+            signal.signal(signal.SIGINT, self.shutdown_handler)
+            signal.signal(signal.SIGTERM, self.shutdown_handler)
         
         print(f"🚀 Bluesky Social Justice Collector")
         print(f"   Session: {self.session_name}")

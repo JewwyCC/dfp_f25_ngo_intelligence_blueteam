@@ -43,6 +43,10 @@ PYTRENDS_CONFIG = {
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Output viz directory (repo-level: <repo>/dfp_f25_.../viz/google_trends)
+VIZ_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(SCRIPT_DIR)), 'viz', 'google_trends')
+os.makedirs(VIZ_OUTPUT_DIR, exist_ok=True)
+
 # File paths (relative to script directory)
 DATA_FILES = {
     'keyword_theme': os.path.join(SCRIPT_DIR, 'data python files', 'keyword_theme.xlsx'),
@@ -248,7 +252,7 @@ class GoogleTrendsAnalyzer:
         
         print("✓ Historical data extraction completed")
 
-    def plot_theme_trends(self, norm_df, base_keyword, title):
+    def plot_theme_trends(self, norm_df, base_keyword, title, viz_name=None):
         """Plot theme trends over time"""
         if norm_df is None or norm_df.empty:
             print(f"No data available for {title}")
@@ -263,7 +267,6 @@ class GoogleTrendsAnalyzer:
             if theme not in trend_by_theme:
                 trend_by_theme[theme] = []
             trend_by_theme[theme].append(norm_df[keyword])
-        
         plt.figure(figsize=(14,8))
         for theme, series_list in trend_by_theme.items():
             # Average across all keywords in theme
@@ -274,7 +277,14 @@ class GoogleTrendsAnalyzer:
         plt.ylabel('Normalized Search Interest')
         plt.legend()
         plt.tight_layout()
-        plt.show()
+        # Save the figure to VIZ_OUTPUT_DIR; include viz_name if provided
+        current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name_prefix = viz_name if viz_name else 'googletrends_timeseries'
+        filename = f"{name_prefix}_timeseries_{current_datetime}.png"
+        filepath = os.path.join(VIZ_OUTPUT_DIR, filename)
+        plt.savefig(filepath, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"✓ Time series saved: {filepath}")
 
     def compute_theme_scores(self, norm_df, theme_kw_map, base_keyword=None):
         """Compute theme scores for the last year"""
@@ -314,7 +324,7 @@ class GoogleTrendsAnalyzer:
             return {k: 0 for k in theme_scores}
         return {k: (v / total) * 100 for k, v in theme_scores.items()}
 
-    def plot_grouped_horizontal_bar(self, theme_scores_a, theme_scores_b, group_a_label, group_b_label):
+    def plot_grouped_horizontal_bar(self, theme_scores_a, theme_scores_b, group_a_label, group_b_label, viz_name=None):
         """Plot grouped horizontal bar chart"""
         themes = list(theme_scores_a.keys())
         scores_a = [theme_scores_a[theme] for theme in themes]
@@ -341,9 +351,16 @@ class GoogleTrendsAnalyzer:
             ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2, f'{bar.get_width():.1f}%', va='center', color=bar.get_facecolor())
 
         plt.tight_layout()
-        plt.show()
+        # Save grouped bar chart
+        current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name_prefix = viz_name if viz_name else 'googletrends_themecomparison'
+        filename = f"{name_prefix}_themecomparison_{current_datetime}.png"
+        filepath = os.path.join(VIZ_OUTPUT_DIR, filename)
+        plt.savefig(filepath, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"✓ Theme comparison saved: {filepath}")
 
-    def plot_seasonality_by_theme(self, df, theme_kw_map, region_name, freq='W', period=52, exclude_cols=['isPartial', 'date']):
+    def plot_seasonality_by_theme(self, df, theme_kw_map, region_name, freq='W', period=52, exclude_cols=['isPartial', 'date'], viz_name=None):
         """Plot seasonal decomposition for each theme"""
         if df is None or df.empty:
             print(f"No data available for seasonality analysis: {region_name}")
@@ -399,7 +416,15 @@ class GoogleTrendsAnalyzer:
             plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
             plt.legend()
             plt.tight_layout()
-            plt.show()
+            # Save seasonal plot
+            current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+            safe_theme = theme.replace(' ', '_')
+            name_prefix = viz_name if viz_name else 'googletrends_seasonal'
+            filename = f"{name_prefix}_seasonal_{safe_theme}_{current_datetime}.png"
+            filepath = os.path.join(VIZ_OUTPUT_DIR, filename)
+            plt.savefig(filepath, dpi=150, bbox_inches='tight')
+            plt.close()
+            print(f"✓ Seasonal plot saved: {filepath}")
 
     def extract_help_data(self):
         """Extract help vs need help data by state"""
@@ -518,9 +543,10 @@ class GoogleTrendsAnalyzer:
             ).add_to(m)
             # Save map instead of displaying (since we're in a script)
             current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-            map_file = os.path.join(SCRIPT_DIR, f'googletrends_map_{theme}_{current_datetime}.html')
+            filename = f"choropleth_{theme}_{current_datetime}.html"
+            map_file = os.path.join(VIZ_OUTPUT_DIR, filename)
             m.save(map_file)
-            print(f"✓ Choropleth map saved for theme: {theme}")
+            print(f"✓ Choropleth map saved for theme: {theme} -> {map_file}")
 
     def run_historical_analysis(self, zipcode='90001'):
         """Run complete historical analysis workflow"""
@@ -537,12 +563,12 @@ class GoogleTrendsAnalyzer:
         
         if self.national_norm is not None and not self.national_norm.empty:
             # Plot national trends
-            self.plot_theme_trends(self.national_norm, self.base_keyword, 'National Theme Search Interest Over Time')
+            self.plot_theme_trends(self.national_norm, self.base_keyword, 'National Theme Search Interest Over Time', viz_name='national')
             self.update_viz_status('historical_timeline_national')
             
             # Plot state trends
             state_abbr = self.get_state(zipcode)
-            self.plot_theme_trends(self.state_norm, self.base_keyword, f'{state_abbr} Theme Search Interest Over Time')
+            self.plot_theme_trends(self.state_norm, self.base_keyword, f'{state_abbr} Theme Search Interest Over Time', viz_name=state_abbr)
             self.update_viz_status('historical_timeline_state')
             
             # Theme comparison
@@ -554,14 +580,14 @@ class GoogleTrendsAnalyzer:
             state_theme_scores = self.normalize_theme_scores(state_theme_scores_raw)
             
             # Plot comparison
-            self.plot_grouped_horizontal_bar(national_theme_scores, state_theme_scores, "National", "State")
+            self.plot_grouped_horizontal_bar(national_theme_scores, state_theme_scores, "National", "State", viz_name='theme_comp')
             self.update_viz_status('theme_comparison_chart')
             
             # Seasonality analysis
-            self.plot_seasonality_by_theme(self.national_norm, self.theme_kw_map, region_name='National')
+            self.plot_seasonality_by_theme(self.national_norm, self.theme_kw_map, region_name='National', viz_name='national')
             self.update_viz_status('seasonality_national')
             
-            self.plot_seasonality_by_theme(self.state_norm, self.theme_kw_map, region_name='State')
+            self.plot_seasonality_by_theme(self.state_norm, self.theme_kw_map, region_name='State', viz_name='state')
             self.update_viz_status('seasonality_state')
         
         print("=== Historical Analysis Complete ===")
@@ -590,6 +616,14 @@ class GoogleTrendsAnalyzer:
 
     def export_status(self):
         """Export status for frontend integration"""
+        # Recompute overall readiness from the current viz_status to ensure
+        # this uses the same internal state that update_viz_status modifies.
+        viz_keys = [k for k in self.viz_status.keys() if k != 'data_source_overall']
+        all_complete = all(self.viz_status[k] for k in viz_keys)
+        # Keep the internal state consistent
+        self.viz_status['data_source_overall'] = all_complete
+
+        # Now get a snapshot of the loading status
         status = self.get_loading_status()
         current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
         status_file = os.path.join(SCRIPT_DIR, f'googletrends_status_{current_datetime}.json')
@@ -597,6 +631,21 @@ class GoogleTrendsAnalyzer:
             json.dump(status, f, indent=2)
         
         print(f"✓ Status exported to: {status_file}")
+        # Also print the full status dictionary to console for quick verification
+        try:
+            print("Current status:")
+            print(json.dumps(status, indent=2))
+        except Exception:
+            # Fallback: print raw dict if JSON serialization fails for any reason
+            print(status)
+
+        # Also print a single-line boolean for quick, machine-friendly checks
+        try:
+            print(status['overall_ready'])
+        except Exception:
+            # If key missing for any reason, fallback to printing False
+            print(False)
+
         return status
 
     def run_complete_analysis(self, zipcode='90001'):

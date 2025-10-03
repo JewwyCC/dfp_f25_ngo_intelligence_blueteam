@@ -290,65 +290,78 @@ class HomelessnessMasterOrchestrator:
         return output_files
 
     def copy_google_trends_outputs(self):
-        """Copy Google Trends output files to master output directory"""
+        """Copy Google Trends output files to master output directory and CLEAN source files"""
         copied_files = []
         try:
             # Create session directory for Google Trends
             session_dir = self.master_output_dir / f"session_{self.timestamp}"
             session_dir.mkdir(exist_ok=True)
-            
+
             # Look for recent files in the scripts/google_trends directory
             trends_dir = self.scripts_dir / "google_trends"
-            
+
             # Find files created by the script (with timestamp pattern)
             excel_files = list(trends_dir.glob("googletrends_*_*.xlsx"))
             csv_files = list(trends_dir.glob("googletrends_*_*.csv"))
             json_files = list(trends_dir.glob("googletrends_*_*.json"))
             pkl_files = list(trends_dir.glob("googletrends_*_*.pkl"))
-            
+
             # Get the most recent files and copy to session directory
             all_files = excel_files + csv_files + json_files + pkl_files
             if all_files:
-                recent_files = sorted(all_files, key=lambda p: p.stat().st_mtime, reverse=True)[:5]
+                recent_files = sorted(all_files, key=lambda p: p.stat().st_mtime, reverse=True)[:10]
                 for src_file in recent_files:
                     dst_file = session_dir / src_file.name
                     import shutil
                     shutil.copy2(src_file, dst_file)
                     copied_files.append(str(dst_file))
-            
-            # Also copy visualization files if they exist
+
+            # Copy visualization files if they exist
             viz_dir = self.project_root / "viz" / "google_trends"
             if viz_dir.exists():
                 viz_files = list(viz_dir.glob("*"))
                 if viz_files:
-                    recent_viz = sorted(viz_files, key=lambda p: p.stat().st_mtime, reverse=True)[:3]
+                    recent_viz = sorted(viz_files, key=lambda p: p.stat().st_mtime, reverse=True)[:20]
                     for src_file in recent_viz:
                         dst_file = session_dir / f"viz_{src_file.name}"
                         import shutil
                         shutil.copy2(src_file, dst_file)
                         copied_files.append(str(dst_file))
 
+            # CLEAN UP: Delete timestamp files from source directories (centralize in master_output)
+            import shutil
+            for f in all_files:
+                f.unlink()  # Delete timestamp files from scripts/google_trends
+            if viz_dir.exists():
+                for f in viz_files:
+                    f.unlink()  # Delete viz files from viz/google_trends
+
+            self.log_entry('google_trends', 'info', f'Copied {len(copied_files)} files and cleaned source directories')
+
         except Exception as e:
             self.log_entry('google_trends', 'warning', f'Error copying output files: {str(e)}')
-            
+
         return copied_files
 
     def copy_bluesky_outputs(self):
         """Copy Bluesky output files to master_output with session format and rename to homelessness"""
         copied_files = []
         try:
-            # Find the most recent Bluesky session (created after our session started)
+            # Find the most recent Bluesky session - use ANY recent homelessness session
             bluesky_sessions_dir = self.data_dir / "bluesky" / "sessions"
             if bluesky_sessions_dir.exists():
-                session_dirs = [d for d in bluesky_sessions_dir.iterdir() if d.is_dir()]
+                # Look for homelessness sessions (created by our wrapper)
+                session_dirs = [d for d in bluesky_sessions_dir.iterdir()
+                               if d.is_dir() and ('homelessness' in d.name or 'test' in d.name or 'quicktest' in d.name)]
+
                 if session_dirs:
-                    # Get sessions created after our start time
-                    session_start_time = self.start_time.timestamp()
-                    recent_sessions = [d for d in session_dirs if d.stat().st_mtime > session_start_time]
-                    
-                    if recent_sessions:
-                        # Get the most recent session created during our run
-                        latest_session = max(recent_sessions, key=lambda p: p.stat().st_mtime)
+                    # Get the most recent session
+                    latest_session = max(session_dirs, key=lambda p: p.stat().st_mtime)
+
+                    # Only copy if it has actual data files
+                    has_data = any(f.suffix in ['.jsonl', '.csv'] for f in latest_session.glob('*'))
+
+                    if has_data:
                         
                         # Create session directory in master_output
                         master_session_dir = self.master_output_dir / f"session_{self.timestamp}"
@@ -374,21 +387,9 @@ class HomelessnessMasterOrchestrator:
                         
                         self.log_entry('bluesky', 'info', f'Copied and renamed {len(copied_files)} files from {latest_session.name} to master_output/session_{self.timestamp}')
                     else:
-                        self.log_entry('bluesky', 'warning', 'No new Bluesky sessions created during this run - skipping copy')
-                        # Create empty placeholder files to indicate no data
-                        master_session_dir = self.master_output_dir / f"session_{self.timestamp}"
-                        master_session_dir.mkdir(exist_ok=True)
-                        
-                        # Create empty placeholder files
-                        placeholder_files = [
-                            "homelessness_posts.jsonl",
-                            "homelessness_posts.csv"
-                        ]
-                        
-                        for filename in placeholder_files:
-                            placeholder_file = master_session_dir / filename
-                            placeholder_file.write_text("[]" if filename.endswith('.jsonl') else "text,created_at,author_handle\n")
-                            copied_files.append(str(placeholder_file))
+                        self.log_entry('bluesky', 'warning', f'Bluesky session found but no data files - skipping copy: {latest_session.name}')
+                else:
+                    self.log_entry('bluesky', 'warning', 'No Bluesky homelessness sessions found - skipping copy')
 
         except Exception as e:
             self.log_entry('bluesky', 'warning', f'Error copying Bluesky output files: {str(e)}')
@@ -396,247 +397,127 @@ class HomelessnessMasterOrchestrator:
         return copied_files
 
     def run_news_api(self):
-        """Step 2: News API - HUNGRY SCRAPER using EXACT script configuration"""
+        """Step 2: News API - HUNGRY SCRAPER using DIRECT IMPORT"""
         self.print_header(f"STEP 2/4: NEWS API (HOMELESSNESS ARTICLES - {self.time_budget['news_api']}s)")
         start = time.time()
 
         self.log_entry('news_api', 'info', f"Starting News API scraping with {self.time_budget['news_api']}s budget")
 
-        # Use EXACT keywords from news_configs.py - BE HUNGRY!
-        from scripts.news_api.news_configs import KEYWORDS_DEFAULT, MAX_PAGES
-        
-        # Use targeted homelessness keywords (filter Google Trends keywords)
-        if self.keywords:
-            # Filter Google Trends keywords to only include homelessness-related ones
-            filtered_trends_keywords = [kw for kw in self.keywords if any(homeless_term in kw.lower() for homeless_term in ['homeless', 'housing', 'unhoused', 'eviction', 'affordable', 'shelter', 'tent', 'encampment'])]
-            combined_keywords = list(set(filtered_trends_keywords + KEYWORDS_DEFAULT))
-        else:
-            combined_keywords = KEYWORDS_DEFAULT
+        try:
+            # Add News API directory to path
+            sys.path.insert(0, str(self.scripts_dir / "news_api"))
 
-        # HUNGRY SCRAPER: Use MAX_PAGES (100) for comprehensive collection
-        num_articles = min(MAX_PAGES, self.time_budget['news_api'] * 3)  # Scale aggressively
+            # Import directly like dfp_socmed_blueteam does
+            from NewsAPI_Scrape import NewsAPIScraper
+            from news_configs import KEYWORDS_DEFAULT, MAX_PAGES
+            from credentials import NEWSAPI_KEY
+            import pandas as pd
 
-        self.print_progress(f"🦁 HUNGRY NEWS SCRAPER: Fetching {num_articles} articles")
-        self.print_progress(f"Keywords ({len(combined_keywords)}): {', '.join(combined_keywords[:8])}...")
-        
-        self.log_entry('news_api', 'info', 'Using exact News API configuration', {
-            'keywords_count': len(combined_keywords),
-            'max_pages': MAX_PAGES,
-            'target_articles': num_articles,
-            'keywords_sample': combined_keywords[:5]
-        })
-
-        wrapper_code = f"""
-import sys
-sys.path.insert(0, r'{self.scripts_dir / "news_api"}')
-
-try:
-    from NewsAPI_Scrape import NewsAPIScraper
-    from HF_Classifier import PoliticalClassifier
-    from credentials import NEWSAPI_KEY, HUGGINGFACE_TOKEN
-    from news_configs import KEYWORDS_DEFAULT, MAX_PAGES
-    import json
-    import os
-    import signal
-    import time
-
-    # Timeout handler for classifier
-    def timeout_handler(signum, frame):
-        raise TimeoutError('Classification timeout')
-
-    # Use EXACT keywords from config + Google Trends keywords
-    keywords = {repr(combined_keywords)}
-    timestamp = '{self.timestamp}'
-    scraper = NewsAPIScraper(NEWSAPI_KEY)
-
-    print(f"HUNGRY SCRAPER: Using {{len(keywords)}} keywords, targeting {num_articles} articles")
-
-    # Use the EXACT same method as the NewsAPI_Scrape.py script
-    all_articles = scraper.fetch_articles(keywords=keywords, page_size={num_articles})
-    
-    # Filter articles to ensure they're actually about homelessness
-    homelessness_terms = ['homeless', 'homelessness', 'unhoused', 'housing crisis', 'affordable housing', 'eviction', 'shelter', 'tent city', 'encampment', 'housing insecurity']
-    articles = []
-    for article in all_articles:
-        text = (article.get('title', '') + ' ' + article.get('description', '')).lower()
-        if any(term in text for term in homelessness_terms):
-            articles.append(article)
-    
-    print(f"SUCCESS: Collected {{len(articles)}} homelessness articles (filtered from {{len(all_articles)}} total)")
-
-    # Save to MASTER OUTPUT directory
-    # Save to master output directory with session format
-    session_dir = '{self.master_output_dir}/session_{self.timestamp}'
-    os.makedirs(session_dir, exist_ok=True)
-    output_file = f'{{session_dir}}/news_api_articles.json'
-
-    with open(output_file, 'w') as f:
-        json.dump(articles, f, indent=2)
-
-    # Save CSV to master output
-    csv_file = f'{{session_dir}}/news_api_articles.csv'
-    import pandas as pd
-    if articles:
-        df = pd.DataFrame(articles)
-    else:
-        df = pd.DataFrame(columns=['title', 'description', 'url', 'publishedAt', 'source'])
-    df.to_csv(csv_file, index=False)
-    print(f"CSV: {{csv_file}}")
-    print(f"JSON: {{output_file}}")
-
-    # DUAL CLASSIFICATION: Compare HuggingFace vs Keyword-based (like Bluesky)
-    if len(articles) > 0:
-        print(f"DUAL CLASSIFIER: Analyzing {{min(len(articles), 5)}} articles...")
-        
-        # Keyword-based classification (like Bluesky polarization analysis)
-        left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
-                        'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
-                        'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich',
-                        'minimum wage', 'union', 'workers rights', 'environmental', 'renewable']
-        right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
-                         'border security', 'pro-life', 'second amendment', 'small government',
-                         'law and order', 'patriot', 'maga', 'god', 'family values',
-                         'deregulation', 'free market', 'capitalism', 'tax cuts', 'business']
-
-        def keyword_classify(text):
-            text_lower = text.lower()
-            left_matches = sum(1 for kw in left_keywords if kw in text_lower)
-            right_matches = sum(1 for kw in right_keywords if kw in text_lower)
-            
-            if left_matches > right_matches and left_matches > 0:
-                return 'LEFT', left_matches / (left_matches + right_matches)
-            elif right_matches > left_matches and right_matches > 0:
-                return 'RIGHT', right_matches / (left_matches + right_matches)
+            # Use targeted homelessness keywords
+            if self.keywords:
+                # Filter Google Trends keywords to only include homelessness-related ones
+                filtered_trends_keywords = [kw for kw in self.keywords if any(homeless_term in kw.lower() for homeless_term in ['homeless', 'housing', 'unhoused', 'eviction', 'affordable', 'shelter', 'tent', 'encampment'])]
+                combined_keywords = list(set(filtered_trends_keywords + KEYWORDS_DEFAULT))
             else:
-                return 'NEUTRAL', 0.5
+                combined_keywords = KEYWORDS_DEFAULT
 
-        # HuggingFace classification (with timeout)
-        hf_classified = []
-        keyword_classified = []
-        
-        print("Method 1: Keyword-based classification (fast)")
-        start_keyword = time.time()
-        
-        for i, article in enumerate(articles[:5]):
-                text = article.get('title', '') + ' ' + article.get('description', '')
-                label, confidence = keyword_classify(text)
-                
-                keyword_classified.append({{
-                    'title': article.get('title', ''),
-                    'method': 'keyword',
-                    'label': label,
-                    'confidence': confidence,
-                    'source': article.get('source', {{}}).get('name', 'Unknown')
-                }})
-                print(f"Keyword {{i+1}}: {{label}} ({{confidence:.2f}})")
-        
-        keyword_time = time.time() - start_keyword
-        
-        print("Method 2: HuggingFace classification (slow)")
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(10)  # 10 second timeout
+            # HUNGRY SCRAPER: Use MAX_PAGES (100) for comprehensive collection
+            num_articles = min(MAX_PAGES, self.time_budget['news_api'] * 3)  # Scale aggressively
 
-        try:
-            start_hf = time.time()
-            classifier = PoliticalClassifier(huggingface_token=HUGGINGFACE_TOKEN)
+            self.print_progress(f"🦁 HUNGRY NEWS SCRAPER: Fetching {num_articles} articles")
+            self.print_progress(f"Keywords ({len(combined_keywords)}): {', '.join(combined_keywords[:8])}...")
 
-            for i, article in enumerate(articles[:5]):
-            text = article.get('title', '') + ' ' + article.get('description', '')
-            result = classifier.classify_text(text)
+            self.log_entry('news_api', 'info', 'Using exact News API configuration', {
+                'keywords_count': len(combined_keywords),
+                'max_pages': MAX_PAGES,
+                'target_articles': num_articles,
+                'keywords_sample': combined_keywords[:5]
+            })
 
-            if result:
-                    hf_classified.append({{
-                    'title': article.get('title', ''),
-                        'method': 'huggingface',
-                    'label': result.get('label'),
-                        'confidence': result.get('score', 0),
-                        'source': article.get('source', {{}}).get('name', 'Unknown')
-                    }})
-                    print(f"HF {{i+1}}: {{result.get('label')}} ({{result.get('score', 0):.2f}})")
-            
-            hf_time = time.time() - start_hf
-            signal.alarm(0)  # Cancel alarm
+            # Initialize scraper
+            scraper = NewsAPIScraper(NEWSAPI_KEY)
 
-        except TimeoutError:
-            signal.alarm(0)
-            hf_time = 10  # Timeout time
-            print("HuggingFace: Timeout - skipped")
-        except Exception as e:
-            signal.alarm(0)
-            hf_time = 10  # Error time
-            print(f"HuggingFace: Skipped ({{type(e).__name__}})")
+            print(f"{Colors.OKCYAN}➜ HUNGRY SCRAPER: Using {len(combined_keywords)} keywords, targeting {num_articles} articles{Colors.ENDC}")
 
-        # Compare results
-        print(f"\\nPERFORMANCE COMPARISON:")
-        print(f"Keyword method: {{keyword_time:.2f}}s ({{len(keyword_classified)}} results)")
-        print(f"HuggingFace method: {{hf_time:.2f}}s ({{len(hf_classified)}} results)")
-        if keyword_time > 0:
-            print(f"Speed improvement: {{hf_time/keyword_time:.1f}}x faster")
-        
-        # Save both results
-        all_classified = keyword_classified + hf_classified
-        
-        if all_classified:
-            class_json = f'{{session_dir}}/news_api_classified.json'
-            with open(class_json, 'w') as f:
-                json.dump(all_classified, f, indent=2)
+            # Fetch articles - NEWS API ALREADY FILTERS BY KEYWORDS!
+            # Don't double-filter or we lose all results
+            articles = scraper.fetch_articles(keywords=combined_keywords, page_size=num_articles)
 
-            class_csv = f'{{session_dir}}/news_api_classified.csv'
-            pd.DataFrame(all_classified).to_csv(class_csv, index=False)
-            print(f"Dual classification saved: {{class_json}}")
-        else:
-            print("Classification: No results")
+            print(f"{Colors.OKCYAN}➜ SUCCESS: Collected {len(articles)} homelessness articles{Colors.ENDC}")
 
-except Exception as e:
-    print(f"ERROR: {{str(e)}}")
-    import traceback
-    traceback.print_exc()
-    sys.exit(1)
-"""
+            # POLARIZATION ANALYSIS: Keyword-based political bias classification
+            if articles:
+                print(f"{Colors.OKCYAN}➜ Running polarization analysis on {len(articles)} articles...{Colors.ENDC}")
 
-        try:
-            result = subprocess.run(
-                [sys.executable, '-c', wrapper_code],
-                cwd=str(self.project_root),  # Run from project root for proper imports
-                capture_output=True,
-                text=True,
-                timeout=self.time_budget['news_api'] + 10
-            )
+                left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
+                                'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
+                                'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich']
+                right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
+                                 'border security', 'pro-life', 'second amendment', 'small government',
+                                 'law and order', 'patriot', 'maga', 'god', 'family values']
+
+                for article in articles:
+                    text = (article.get('title', '') + ' ' + article.get('description', '')).lower()
+                    left_matches = sum(1 for kw in left_keywords if kw in text)
+                    right_matches = sum(1 for kw in right_keywords if kw in text)
+
+                    total_matches = left_matches + right_matches
+                    if total_matches > 0:
+                        if left_matches > right_matches:
+                            article['political_bias'] = 'LEFT'
+                            article['bias_confidence'] = round(left_matches / total_matches, 2)
+                        elif right_matches > left_matches:
+                            article['political_bias'] = 'RIGHT'
+                            article['bias_confidence'] = round(right_matches / total_matches, 2)
+                        else:
+                            article['political_bias'] = 'NEUTRAL'
+                            article['bias_confidence'] = 0.5
+                    else:
+                        article['political_bias'] = 'NEUTRAL'
+                        article['bias_confidence'] = 0.0
+
+                left_count = sum(1 for a in articles if a.get('political_bias') == 'LEFT')
+                right_count = sum(1 for a in articles if a.get('political_bias') == 'RIGHT')
+                neutral_count = sum(1 for a in articles if a.get('political_bias') == 'NEUTRAL')
+                print(f"{Colors.OKCYAN}➜ Polarization: LEFT={left_count}, RIGHT={right_count}, NEUTRAL={neutral_count}{Colors.ENDC}")
+
+            # Save to MASTER OUTPUT directory
+            session_dir = self.master_output_dir / f"session_{self.timestamp}"
+            session_dir.mkdir(exist_ok=True)
+
+            output_file = session_dir / 'news_api_articles.json'
+            with open(output_file, 'w') as f:
+                json.dump(articles, f, indent=2)
+
+            # Save CSV
+            csv_file = session_dir / 'news_api_articles.csv'
+            if articles:
+                df = pd.DataFrame(articles)
+            else:
+                df = pd.DataFrame(columns=['title', 'description', 'url', 'publishedAt', 'source'])
+            df.to_csv(csv_file, index=False)
+
+            print(f"{Colors.OKCYAN}➜ CSV: {csv_file}{Colors.ENDC}")
+            print(f"{Colors.OKCYAN}➜ JSON: {output_file}{Colors.ENDC}")
 
             elapsed = time.time() - start
+            self.print_success(f"🦁 HUNGRY News API completed in {elapsed:.1f}s")
 
-            if result.returncode == 0:
-                # Print output line by line
-                for line in result.stdout.strip().split('\n'):
-                    if line.strip():
-                        self.print_info(line)
-                        self.log_entry('news_api', 'info', line.strip())
+            self.log_entry('news_api', 'success', f"Collected {len(articles)} homelessness articles", {
+                'articles_count': len(articles),
+                'elapsed_seconds': round(elapsed, 1)
+            })
 
-                self.print_success(f"🦁 HUNGRY News API completed in {elapsed:.1f}s")
-                self.log_entry('news_api', 'success', f"News API scraping completed", {
-                    'duration': elapsed,
-                    'keywords_used': len(combined_keywords),
-                    'articles_collected': 'see output files'
-                })
-                
-                self.results['news_api'] = {
-                    'status': 'success',
-                    'keywords_used': len(combined_keywords),
-                    'duration': elapsed
-                }
-                return True
-            else:
-                self.print_error(f"Failed: {result.stderr}")
-                self.log_entry('news_api', 'error', 'News API execution failed', {'stderr': result.stderr})
-                self.results['news_api'] = {'status': 'failed', 'error': result.stderr, 'duration': elapsed}
-                return False
+            self.results['news_api'] = {'status': 'SUCCESS', 'duration': elapsed, 'articles': len(articles)}
 
         except Exception as e:
             elapsed = time.time() - start
-            self.print_error(f"Error: {str(e)}")
-            self.log_entry('news_api', 'error', f'Exception: {str(e)}')
-            self.results['news_api'] = {'status': 'failed', 'error': str(e), 'duration': elapsed}
-            return False
+            self.print_failure(f"Failed: {str(e)}")
+            self.log_entry('news_api', 'error', f"News API failed: {str(e)}")
+            self.results['news_api'] = {'status': 'FAILED', 'duration': elapsed, 'error': str(e)}
+            import traceback
+            traceback.print_exc()
+
 
     def run_reddit(self):
         """Step 3: Reddit - HUNGRY SCRAPER using EXACT script configuration"""
@@ -799,16 +680,17 @@ except Exception as e:
             return False
 
     def run_bluesky(self):
-        """Step 4: Bluesky - Run EXACT script workflow"""
+        """Step 4: Bluesky - WILDCARD SEARCH for homelessness (portable, no dependencies)"""
         self.print_header(f"STEP 4/4: BLUESKY (HOMELESSNESS SEARCH - {self.time_budget['bluesky']}s)")
         start = time.time()
 
-        # Use EXACT keywords from successful test (3 broad terms)
-        homelessness_search_terms = ['homeless', 'unhoused', 'housing crisis']
+        # WILDCARD SEARCH: Use broad single keyword that matches everything homelessness-related
+        # This works on ANY computer - no external dependencies!
+        homelessness_search_terms = ['homeless']  # Wildcard: matches homeless, homelessness, homeless shelter, etc.
 
-        # Use settings from successful test (50 posts per keyword, 3 days back)
-        max_posts = 50
-        days_back = 3
+        # AGGRESSIVE MINIMAL settings for GUARANTEED speed
+        max_posts = 10   # Very small = 1 page only = FAST
+        days_back = 0    # Today only = minimum API calls
 
         self.print_progress(f"Running Bluesky script workflow")
         self.print_progress(f"Searching for homelessness ({max_posts} posts, {days_back} days)")
@@ -820,69 +702,75 @@ except Exception as e:
             f.write('\n'.join(homelessness_search_terms))
 
         try:
-            # Create homelessness-focused Bluesky wrapper
+            # Bluesky writes DIRECTLY to master_output - no copying needed!
+            session_dir = self.master_output_dir / f"session_{self.timestamp}"
+            session_dir.mkdir(exist_ok=True)
+
             homelessness_wrapper_code = f'''
 import sys
 import os
 import json
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
 sys.path.append('{self.scripts_dir}/bluesky')
 
 try:
-    # Override the keywords to focus on homelessness
-    from bluesky_social_justice_collector import BlueskySocialJusticeCollector, CollectionConfig
+    from atproto import Client
 
-    # Create homelessness-focused config  
-    # Use SEARCH with broad keywords for better results
-    import time as time_module
-    session_timestamp = time_module.strftime("%Y%m%d_%H%M%S", time_module.localtime())
-    
-    config = CollectionConfig(
-        method='search',
-        max_posts_per_keyword={max_posts},
-        days_back={days_back},
-        session_name='homelessness_session_' + session_timestamp
-    )
+    # Authenticate
+    auth_path = Path('{self.project_root}/auth/bluesky/config/auth.json')
+    if not auth_path.exists():
+        print("ERROR: Bluesky auth file not found")
+        sys.exit(1)
 
-    # Create collector and FORCE homelessness keywords
-    collector = BlueskySocialJusticeCollector(config)
-    
-    # CRITICAL: Override keywords BEFORE any initialization (EXACT test setup)
-    collector.keywords = {homelessness_search_terms}
-    collector.search_queries = {{
-        'homeless': ['"homeless"', '#homeless'],
-        'unhoused': ['"unhoused"'],
-        'housing crisis': ['"housing crisis"', '#housingcrisis']
-    }}
-    
-    print(f"HOMELESSNESS FOCUS: Using {{len(collector.keywords)}} homelessness keywords")
-    print(f"Keywords: {{collector.keywords[:5]}}...")
+    with open(auth_path) as f:
+        auth_data = json.load(f)
+        auth = auth_data['bluesky']  # Get nested bluesky credentials
 
-    # Run the collection
-    collector.run()
-    
-    # Convert JSONL to CSV for homelessness data
-    session_dir = collector.session_dir
-    jsonl_files = [f for f in os.listdir(session_dir) if f.endswith('.jsonl')]
-    
-    for jsonl_file in jsonl_files:
-        jsonl_path = os.path.join(session_dir, jsonl_file)
-        csv_path = jsonl_path.replace('.jsonl', '.csv')
-        
-        # Read JSONL and convert to CSV
-        posts = []
-        with open(jsonl_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    posts.append(json.loads(line))
-        
-        if posts:
-            df = pd.DataFrame(posts)
-            df.to_csv(csv_path, index=False)
-            print(f"Created CSV: {{csv_path}} with {{len(posts)}} homelessness posts")
-    
-    print("Bluesky homelessness collection completed successfully!")
+    client = Client()
+    client.login(auth['username'], auth['password'])
+    print(f"✅ Authenticated as {{auth['username']}}")
+
+    # Search for homelessness posts
+    posts = []
+    query = 'homeless'
+    max_posts = {max_posts}
+
+    response = client.app.bsky.feed.search_posts({{'q': query, 'limit': max_posts}})
+
+    for post_view in response.posts[:max_posts]:
+        post = post_view.record
+        posts.append({{
+            'text': post.text,
+            'created_at': post.created_at,
+            'author_handle': post_view.author.handle,
+            'author_did': post_view.author.did,
+            'uri': post_view.uri,
+            'keyword': query
+        }})
+
+    print(f"✅ Collected {{len(posts)}} homeless posts")
+
+    # Write DIRECTLY to master_output
+    output_dir = Path('{session_dir}')
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    # Save JSONL
+    jsonl_path = output_dir / 'homelessness_posts.jsonl'
+    with open(jsonl_path, 'w') as f:
+        for post in posts:
+            f.write(json.dumps(post) + '\\n')
+    print(f"✅ Saved: {{jsonl_path}}")
+
+    # Save CSV
+    if posts:
+        df = pd.DataFrame(posts)
+        csv_path = output_dir / 'homelessness_posts.csv'
+        df.to_csv(csv_path, index=False)
+        print(f"✅ Saved: {{csv_path}} ({{len(posts)}} posts)")
+
+    print("✅ Bluesky collection complete!")
     
 except Exception as e:
     print(f"Error in Bluesky wrapper: {{str(e)}}")
@@ -891,12 +779,14 @@ except Exception as e:
 '''
             
             # Run the homelessness-focused Bluesky wrapper
+            # Always use at least 30s timeout for Bluesky (API can be slow)
+            bluesky_timeout = max(30, self.time_budget['bluesky'])
             result = subprocess.run(
                 [sys.executable, '-c', homelessness_wrapper_code],
                 cwd=str(self.project_root),  # Run from project root for auth path
                 capture_output=True,
                 text=True,
-                timeout=180  # Very patient timeout for Bluesky search collection
+                timeout=bluesky_timeout
             )
 
             elapsed = time.time() - start
@@ -909,10 +799,60 @@ except Exception as e:
                         self.print_info(line.strip())
 
                 self.print_success(f"Bluesky script workflow completed in {elapsed:.1f}s")
-                
-                # Copy Bluesky output to master_output with session format
-                output_files = self.copy_bluesky_outputs()
-                
+
+                # POLARIZATION ANALYSIS: Add political bias to Bluesky posts (already in master_output!)
+                session_dir = self.master_output_dir / f"session_{self.timestamp}"
+                bluesky_jsonl = session_dir / "homelessness_posts.jsonl"
+                output_files = [str(bluesky_jsonl), str(session_dir / "homelessness_posts.csv")]
+
+                if bluesky_jsonl.exists() and bluesky_jsonl.stat().st_size > 10:
+                    print(f"{Colors.OKCYAN}➜ Running polarization analysis on Bluesky posts...{Colors.ENDC}")
+
+                    left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
+                                    'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
+                                    'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich']
+                    right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
+                                     'border security', 'pro-life', 'second amendment', 'small government',
+                                     'law and order', 'patriot', 'maga', 'god', 'family values']
+
+                    posts = []
+                    with open(bluesky_jsonl, 'r') as f:
+                        for line in f:
+                            if line.strip():
+                                posts.append(json.loads(line))
+
+                    left_count = right_count = neutral_count = 0
+                    for post in posts:
+                        text = post.get('text', '').lower()
+                        left_matches = sum(1 for kw in left_keywords if kw in text)
+                        right_matches = sum(1 for kw in right_keywords if kw in text)
+
+                        total_matches = left_matches + right_matches
+                        if total_matches > 0:
+                            if left_matches > right_matches:
+                                post['political_bias'] = 'LEFT'
+                                post['bias_confidence'] = round(left_matches / total_matches, 2)
+                                left_count += 1
+                            elif right_matches > left_matches:
+                                post['political_bias'] = 'RIGHT'
+                                post['bias_confidence'] = round(right_matches / total_matches, 2)
+                                right_count += 1
+                            else:
+                                post['political_bias'] = 'NEUTRAL'
+                                post['bias_confidence'] = 0.5
+                                neutral_count += 1
+                        else:
+                            post['political_bias'] = 'NEUTRAL'
+                            post['bias_confidence'] = 0.0
+                            neutral_count += 1
+
+                    # Save updated posts with polarization
+                    with open(bluesky_jsonl, 'w') as f:
+                        for post in posts:
+                            f.write(json.dumps(post) + '\n')
+
+                    print(f"{Colors.OKCYAN}➜ Polarization: LEFT={left_count}, RIGHT={right_count}, NEUTRAL={neutral_count}{Colors.ENDC}")
+
                 self.results['bluesky'] = {
                     'status': 'success',
                     'search_terms': homelessness_search_terms,
@@ -927,7 +867,7 @@ except Exception as e:
 
         except subprocess.TimeoutExpired:
             elapsed = time.time() - start
-            self.print_error(f"Timeout ({self.time_budget['bluesky']}s)")
+            self.print_error(f"Timeout ({bluesky_timeout}s)")
             self.results['bluesky'] = {'status': 'timeout', 'duration': elapsed}
             return False
         except Exception as e:

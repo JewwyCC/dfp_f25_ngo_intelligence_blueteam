@@ -40,12 +40,15 @@ PYTRENDS_CONFIG = {
     'tz': 360
 }
 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # File paths (relative to script directory)
 DATA_FILES = {
-    'keyword_theme': 'data python files/keyword_theme.xlsx',
-    'help_keywords': 'data python files/help keywords.xlsx',
-    'uszips': 'data python files/uszips.csv',
-    'shapefile': 'data python files/ne_110m_admin_1_states_provinces/ne_110m_admin_1_states_provinces.shp'
+    'keyword_theme': os.path.join(SCRIPT_DIR, 'data python files', 'keyword_theme.xlsx'),
+    'help_keywords': os.path.join(SCRIPT_DIR, 'data python files', 'help keywords.xlsx'),
+    'uszips': os.path.join(SCRIPT_DIR, 'data python files', 'uszips.csv'),
+    'shapefile': os.path.join(SCRIPT_DIR, 'data python files', 'ne_110m_admin_1_states_provinces', 'ne_110m_admin_1_states_provinces.shp')
 }
 
 # US States list
@@ -186,7 +189,8 @@ class GoogleTrendsAnalyzer:
                 print("Homelessness related queries:", top_queries)
                 df = pd.DataFrame(top_queries, columns=["Query"])
                 current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
-                df.to_excel(f"googletrends_keywords_{current_datetime}.xlsx", index=False)
+                keywords_file = os.path.join(SCRIPT_DIR, f"googletrends_keywords_{current_datetime}.xlsx")
+                df.to_excel(keywords_file, index=False)
                 return top_queries
             else:
                 print("No related queries found for 'homelessness'.")
@@ -237,8 +241,10 @@ class GoogleTrendsAnalyzer:
         
         # Save data
         current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.national_norm.to_excel(f'googletrends_national_{current_datetime}.xlsx', index=False)
-        self.state_norm.to_excel(f'googletrends_state_{current_datetime}.xlsx', index=False)
+        national_file = os.path.join(SCRIPT_DIR, f'googletrends_national_{current_datetime}.xlsx')
+        state_file = os.path.join(SCRIPT_DIR, f'googletrends_state_{current_datetime}.xlsx')
+        self.national_norm.to_excel(national_file, index=False)
+        self.state_norm.to_excel(state_file, index=False)
         
         print("✓ Historical data extraction completed")
 
@@ -427,7 +433,8 @@ class GoogleTrendsAnalyzer:
         
         # Save results
         current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-        with open(f'googletrends_mapdata_{current_datetime}.pkl', 'wb') as f:
+        mapdata_file = os.path.join(SCRIPT_DIR, f'googletrends_mapdata_{current_datetime}.pkl')
+        with open(mapdata_file, 'wb') as f:
             pickle.dump(results, f)
         
         # Convert to CSV
@@ -439,7 +446,8 @@ class GoogleTrendsAnalyzer:
                     for state, value in series.items():
                         rows.append({'Theme': theme, 'Keyword': keyword, 'State': state, 'Value': value})
         df = pd.DataFrame(rows)
-        df.to_csv(f'googletrends_help_{current_datetime}.csv', index=False)
+        help_file = os.path.join(SCRIPT_DIR, f'googletrends_help_{current_datetime}.csv')
+        df.to_csv(help_file, index=False)
         
         print("✓ Help data extraction completed")
 
@@ -510,7 +518,8 @@ class GoogleTrendsAnalyzer:
             ).add_to(m)
             # Save map instead of displaying (since we're in a script)
             current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-            m.save(f'googletrends_map_{theme}_{current_datetime}.html')
+            map_file = os.path.join(SCRIPT_DIR, f'googletrends_map_{theme}_{current_datetime}.html')
+            m.save(map_file)
             print(f"✓ Choropleth map saved for theme: {theme}")
 
     def run_historical_analysis(self, zipcode='90001'):
@@ -583,10 +592,11 @@ class GoogleTrendsAnalyzer:
         """Export status for frontend integration"""
         status = self.get_loading_status()
         current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-        with open(f'googletrends_status_{current_datetime}.json', 'w') as f:
+        status_file = os.path.join(SCRIPT_DIR, f'googletrends_status_{current_datetime}.json')
+        with open(status_file, 'w') as f:
             json.dump(status, f, indent=2)
         
-        print(f"✓ Status exported to: googletrends_status_{current_datetime}.json")
+        print(f"✓ Status exported to: {status_file}")
         return status
 
     def run_complete_analysis(self, zipcode='90001'):

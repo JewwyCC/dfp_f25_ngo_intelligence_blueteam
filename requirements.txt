@@ -14,5 +14,10 @@ jupyter>=1.0.0           # Jupyter notebook support
 # Web interface
 flask>=2.3.0             # Web framework for data viewer
 
+# NGO Dashboard dependencies
+streamlit>=1.28.0        # Modern web dashboard framework
+plotly>=5.15.0           # Interactive visualizations
+numpy>=1.24.0            # Numerical computing
+
 # Development and testing
 pytest>=7.0.0            # Testing framework (optional)

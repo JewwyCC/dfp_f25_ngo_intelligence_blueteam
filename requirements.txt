@@ -40,15 +40,15 @@ ipython>=7.0.0           # Interactive Python
 flask>=2.3.0             # Web framework for data viewer
 tkinter                  # GUI library (usually built-in)
 
-# ============================================
-# ADDITIONAL UTILITIES
-# ============================================
-wordcloud>=1.8.0         # Word cloud generation for visualizations
-python-dotenv>=0.19.0    # Environment variable management (optional)
+# Web interface
+flask>=2.3.0             # Web framework for data viewer
 
-# ============================================
-# DEVELOPMENT & TESTING
-# ============================================
+# NGO Dashboard dependencies
+streamlit>=1.28.0        # Modern web dashboard framework
+plotly>=5.15.0           # Interactive visualizations
+numpy>=1.24.0            # Numerical computing
+
+# Development and testing
 pytest>=7.0.0            # Testing framework (optional)
 
 # ============================================

@@ -62,7 +62,6 @@ class CollectionConfig:
     search_timeout_seconds: Optional[int] = None  # Time limit for search API phase
     total_time_seconds: Optional[int] = None  # Single time parameter for both phases
     search_proportion: float = 0.75  # 75% search, 25% firehose
-    setup_signals: bool = True  # Whether to setup signal handlers (False for GUI threads)
 
 
 class BlueskySocialJusticeCollector:
@@ -89,131 +88,62 @@ class BlueskySocialJusticeCollector:
         os.makedirs(self.alltime_dir, exist_ok=True)
         os.makedirs("../../auth/bluesky/config", exist_ok=True)
         
-        # Keywords - FOCUSED ON HOMELESSNESS
-        # Extensive homelessness-related terms for comprehensive data collection
+        # Keywords for social justice topics
         self.keywords = [
-            "homelessness", "homeless individuals", "unhoused",
-            "street homelessness", "chronic homelessness", "housing insecurity",
-            "homeless shelter", "homeless encampment", "homeless crisis",
-            "homeless veterans", "homeless youth", "homeless families"
+            "food insecurity", "housing", "homeless", 
+            "unemployment", "gender inequality"
         ]
-
-        # Enhanced search queries for native search API - HOMELESSNESS FOCUS
+        
+        # Enhanced search queries for native search API (Option A)
         self.search_queries = {
-            "homelessness": [
-                '"homelessness"', '"homeless"', '#homelessness', '#homeless',
-                '"homeless crisis"', '"homeless epidemic"', '"homeless population"',
-                '"end homelessness"', '"homelessness services"', '"homelessness solutions"'
+            "food insecurity": [
+                '"food insecurity"', '"food insecure"', '#foodinsecurity',
+                '"hunger crisis"', '"food desert"', '"SNAP benefits"',
+                '"food bank"', '"food pantry"', '"EBT"', '"WIC"'
             ],
-            "homeless individuals": [
-                '"homeless individuals"', '"homeless people"', '"homeless person"',
-                '"people experiencing homelessness"', '"homeless men"', '"homeless women"',
-                '"individual homelessness"', '"homeless adult"'
+            "housing": [
+                '"housing crisis"', '"affordable housing"', '#housingcrisis',
+                '"rent crisis"', '"housing shortage"', '"eviction"',
+                '"housing costs"', '"rent burden"', '"gentrification"'
             ],
-            "unhoused": [
-                '"unhoused"', '"unhoused people"', '"unhoused individuals"',
-                '"unhoused community"', '"unhoused population"', '#unhoused',
-                '"houseless"', '"without housing"'
+            "homeless": [
+                '"homeless"', '"homelessness"', '#homeless',
+                '"unhoused"', '"rough sleeping"', '"encampment"',
+                '"shelter"', '"street sleeping"', '"housing first"'
             ],
-            "street homelessness": [
-                '"street homelessness"', '"living on streets"', '"sleeping on streets"',
-                '"rough sleeping"', '"street sleeping"', '"sidewalk sleeping"',
-                '"living outdoors"', '"sleeping rough"'
+            "unemployment": [
+                '"unemployment"', '"unemployed"', '#unemployment',
+                '"job loss"', '"layoffs"', '"jobless"',
+                '"unemployment benefits"', '"fired"', '"laid off"'
             ],
-            "chronic homelessness": [
-                '"chronic homelessness"', '"chronically homeless"', '"long-term homelessness"',
-                '"long term homeless"', '"persistent homelessness"', '"extended homelessness"'
-            ],
-            "housing insecurity": [
-                '"housing insecurity"', '"housing insecure"', '"insecure housing"',
-                '"at risk of homelessness"', '"risk of homelessness"', '"housing instability"',
-                '"unstable housing"', '"precarious housing"'
-            ],
-            "homeless shelter": [
-                '"homeless shelter"', '"homeless shelters"', '"emergency shelter"',
-                '"transitional housing"', '"shelter system"', '"shelter beds"',
-                '"night shelter"', '"warming center"', '"day shelter"'
-            ],
-            "homeless encampment": [
-                '"homeless encampment"', '"homeless encampments"', '"homeless camp"',
-                '"tent city"', '"tent cities"', '"encampment sweeps"',
-                '"encampment removal"', '"homeless tents"', '"tent encampment"'
-            ],
-            "homeless crisis": [
-                '"homeless crisis"', '"homelessness crisis"', '"housing crisis"',
-                '"homeless emergency"', '"homelessness emergency"', '"housing emergency"'
-            ],
-            "homeless veterans": [
-                '"homeless veterans"', '"homeless veteran"', '"veteran homelessness"',
-                '"vets experiencing homelessness"', '"homeless military"', '#homelessveterans'
-            ],
-            "homeless youth": [
-                '"homeless youth"', '"youth homelessness"', '"homeless teens"',
-                '"homeless children"', '"homeless kids"', '"runaway youth"',
-                '"unaccompanied youth"', '"homeless young adults"'
-            ],
-            "homeless families": [
-                '"homeless families"', '"family homelessness"', '"homeless parents"',
-                '"homeless with children"', '"families experiencing homelessness"',
-                '"family shelter"', '"homeless households"'
+            "gender inequality": [
+                '"gender inequality"', '"gender gap"', '#gendergap',
+                '"pay gap"', '"wage gap"', '"gender discrimination"',
+                '"equal pay"', '"workplace inequality"', '"glass ceiling"'
             ]
         }
-
-        # Enhanced regex patterns - HOMELESSNESS FOCUS
+        
+        # Enhanced regex patterns for better filtering
         self.regex_patterns = {
-            "homelessness": [
-                r"\bhomeless(ness)?\b", r"\bhomeless\s*crisis\b", r"\bhomeless\s*epidemic\b",
-                r"\bhomeless\s*population\b", r"\bend\s*homelessness\b"
+            "food insecurity": [
+                r"\bfood\s*insecurit(y|ies)\b", r"\bhungry\b", r"\bhunger\b", 
+                r"\bstarv(ing|ation)\b", r"\bfood\s*bank\b", r"\bSNAP\b", r"\bEBT\b"
             ],
-            "homeless individuals": [
-                r"\bhomeless\s*individual(s)?\b", r"\bhomeless\s*people\b", r"\bhomeless\s*person\b",
-                r"\bpeople\s*experiencing\s*homelessness\b", r"\bhomeless\s*(men|women|adult)\b"
+            "housing": [
+                r"\bhousing\s*crisis\b", r"\baffordable\s*housing\b", r"\brent\s*crisis\b",
+                r"\bhousing\s*shortage\b", r"\beviction\b", r"\blandlord\b", r"\btenant\b"
             ],
-            "unhoused": [
-                r"\bunhous(ed|ing)\b", r"\bunhoused\s*(people|individuals|community|population)\b",
-                r"\bhouseless\b", r"\bwithout\s*housing\b"
+            "homeless": [
+                r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b", r"\bshelter\b",
+                r"\brough\s*sleep", r"\bstreet.*sleep", r"\bencampment\b"
             ],
-            "street homelessness": [
-                r"\bstreet\s*homeless(ness)?\b", r"\bliving\s*on\s*streets?\b", r"\bsleeping\s*on\s*streets?\b",
-                r"\brough\s*sleep(ing)?\b", r"\bstreet\s*sleep(ing)?\b", r"\bsidewalk\s*sleep(ing)?\b",
-                r"\bliving\s*outdoors\b", r"\bsleeping\s*rough\b"
+            "unemployment": [
+                r"\bunemploy(ed|ment)\b", r"\bjob\s*loss\b", r"\bjobless\b",
+                r"\blayoffs?\b", r"\blaid\s*off\b", r"\bfired\b", r"\bunemployment\s*benefits?\b"
             ],
-            "chronic homelessness": [
-                r"\bchronic(ally)?\s*homeless(ness)?\b", r"\blong[-\s]*term\s*homeless(ness)?\b",
-                r"\bpersistent\s*homeless(ness)?\b", r"\bextended\s*homeless(ness)?\b"
-            ],
-            "housing insecurity": [
-                r"\bhousing\s*insecurit(y|ies)\b", r"\bhousing\s*insecure\b", r"\binsecure\s*housing\b",
-                r"\bat\s*risk\s*of\s*homeless(ness)?\b", r"\brisk\s*of\s*homeless(ness)?\b",
-                r"\bhousing\s*instabilit(y|ies)\b", r"\bunstable\s*housing\b", r"\bprecarious\s*housing\b"
-            ],
-            "homeless shelter": [
-                r"\bhomeless\s*shelter(s)?\b", r"\bemergency\s*shelter(s)?\b",
-                r"\btransitional\s*housing\b", r"\bshelter\s*system\b", r"\bshelter\s*bed(s)?\b",
-                r"\bnight\s*shelter(s)?\b", r"\bwarming\s*center(s)?\b", r"\bday\s*shelter(s)?\b"
-            ],
-            "homeless encampment": [
-                r"\bhomeless\s*encampment(s)?\b", r"\bhomeless\s*camp(s)?\b",
-                r"\btent\s*cit(y|ies)\b", r"\bencampment\s*sweep(s)?\b",
-                r"\bencampment\s*removal(s)?\b", r"\bhomeless\s*tent(s)?\b", r"\btent\s*encampment(s)?\b"
-            ],
-            "homeless crisis": [
-                r"\bhomeless(ness)?\s*crisis\b", r"\bhousing\s*crisis\b",
-                r"\bhomeless(ness)?\s*emergency\b", r"\bhousing\s*emergency\b"
-            ],
-            "homeless veterans": [
-                r"\bhomeless\s*veteran(s)?\b", r"\bveteran\s*homeless(ness)?\b",
-                r"\bvet(s)?\s*experiencing\s*homeless(ness)?\b", r"\bhomeless\s*military\b"
-            ],
-            "homeless youth": [
-                r"\bhomeless\s*youth\b", r"\byouth\s*homeless(ness)?\b", r"\bhomeless\s*teen(s)?\b",
-                r"\bhomeless\s*(children|kids)\b", r"\brunaway\s*youth\b",
-                r"\bunaccompanied\s*youth\b", r"\bhomeless\s*young\s*adult(s)?\b"
-            ],
-            "homeless families": [
-                r"\bhomeless\s*famil(y|ies)\b", r"\bfamily\s*homeless(ness)?\b", r"\bhomeless\s*parent(s)?\b",
-                r"\bhomeless\s*with\s*children\b", r"\bfamil(y|ies)\s*experiencing\s*homeless(ness)?\b",
-                r"\bfamily\s*shelter(s)?\b", r"\bhomeless\s*household(s)?\b"
+            "gender inequality": [
+                r"\bgender\s*inequalit(y|ies)\b", r"\bgender\s*gap\b", r"\bpay\s*gap\b",
+                r"\bwage\s*gap\b", r"\bgender\s*discrimination\b", r"\bequal\s*pay\b"
             ]
         }
         
@@ -265,11 +195,10 @@ class BlueskySocialJusticeCollector:
         
         # Load existing data for deduplication
         self.load_existing_uris()
-
-        # Setup signal handlers (only in main thread)
-        if config.setup_signals:
-            signal.signal(signal.SIGINT, self.shutdown_handler)
-            signal.signal(signal.SIGTERM, self.shutdown_handler)
+        
+        # Setup signal handlers
+        signal.signal(signal.SIGINT, self.shutdown_handler)
+        signal.signal(signal.SIGTERM, self.shutdown_handler)
         
         print(f"🚀 Bluesky Social Justice Collector")
         print(f"   Session: {self.session_name}")

@@ -5,6 +5,11 @@ auth/*/*.json
 *.json
 !requirements.json
 
+# Credentials - NEVER COMMIT
+**/credentials.py
+credentials.py
+scripts/news_api/credentials.py
+
 # Data directories
 data/*/alltime/
 data/*/sessions/

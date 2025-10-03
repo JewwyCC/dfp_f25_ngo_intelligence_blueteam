@@ -732,7 +732,7 @@ try:
     client.login(auth['username'], auth['password'])
     print(f"✅ Authenticated as {{auth['username']}}")
 
-    # Search for homelessness posts
+    # Search for homelessness posts with FULL metadata
     posts = []
     query = 'homeless'
     max_posts = {max_posts}
@@ -741,13 +741,69 @@ try:
 
     for post_view in response.posts[:max_posts]:
         post = post_view.record
+        author = post_view.author
+
+        # Get full author profile
+        try:
+            profile = client.get_profile(author.did)
+            followers = profile.followers_count or 0
+            following = profile.follows_count or 0
+            posts_count = profile.posts_count or 0
+        except:
+            followers = getattr(author, 'followers_count', 0)
+            following = getattr(author, 'following_count', 0)
+            posts_count = 0
+
+        # Extract content features
+        text = post.text
+        words = text.split()
+        hashtags = [w for w in words if w.startswith('#')]
+        mentions = [w for w in words if w.startswith('@')]
+        urls = [w for w in words if w.startswith('http')]
+
+        # Engagement metrics
+        like_count = getattr(post_view, 'like_count', 0) or 0
+        repost_count = getattr(post_view, 'repost_count', 0) or 0
+        reply_count = getattr(post_view, 'reply_count', 0) or 0
+
         posts.append({{
-            'text': post.text,
-            'created_at': post.created_at,
-            'author_handle': post_view.author.handle,
-            'author_did': post_view.author.did,
+            # Basic post data
             'uri': post_view.uri,
-            'keyword': query
+            'cid': str(post_view.cid) if hasattr(post_view, 'cid') else '',
+            'text': text,
+            'created_at': post.created_at,
+            'keyword': query,
+            'lang': post.langs[0] if hasattr(post, 'langs') and post.langs else 'en',
+
+            # Author info
+            'author_handle': author.handle,
+            'author_did': author.did,
+            'author_display_name': getattr(author, 'display_name', ''),
+            'author_description': getattr(author, 'description', ''),
+            'author_avatar': getattr(author, 'avatar', ''),
+
+            # Author metrics
+            'author_followers_count': followers,
+            'author_following_count': following,
+            'author_posts_count': posts_count,
+            'author_verified': getattr(author, 'verified', False),
+
+            # Engagement metrics
+            'like_count': like_count,
+            'repost_count': repost_count,
+            'reply_count': reply_count,
+            'total_engagement': like_count + repost_count + reply_count,
+
+            # Content features
+            'word_count': len(words),
+            'char_count': len(text),
+            'hashtag_count': len(hashtags),
+            'mention_count': len(mentions),
+            'url_count': len(urls),
+            'hashtags': ','.join(hashtags) if hashtags else '',
+            'mentions': ','.join(mentions) if mentions else '',
+            'has_media': hasattr(post, 'embed') and post.embed is not None,
+            'is_reply': hasattr(post, 'reply') and post.reply is not None
         }})
 
     print(f"✅ Collected {{len(posts)}} homeless posts")

@@ -1,15 +1,44 @@
-# Bluesky Social Justice Data Collector Dependencies
-# DFP F25 Social Media Blue Team
+# NGO Intelligence Platform - Homelessness Research
+# Combined dependencies for all data sources
+# DFP F25 - Carnegie Mellon University
 
-# Core data collection
+# ============================================
+# BLUESKY SCRAPER DEPENDENCIES
+# ============================================
 atproto>=0.0.38          # Bluesky AT Protocol client
 pandas>=2.0.0            # Data manipulation and CSV export
 requests>=2.31.0         # HTTP requests for API calls
 
-# Analysis and visualization (for Jupyter notebook)
+# ============================================
+# REDDIT SCRAPER DEPENDENCIES
+# ============================================
+praw>=7.7.0              # Reddit API wrapper
+
+# ============================================
+# GOOGLE TRENDS DEPENDENCIES
+# ============================================
+pytrends==4.9.2          # Google Trends API
+urllib3==1.26.18         # HTTP library (specific version for pytrends)
+openpyxl>=3.0.0          # Excel file support
+folium>=0.12.0           # Interactive maps
+geopandas>=0.10.0        # Geographic data processing
+us>=2.0.0                # US state utilities
+statsmodels>=0.13.0      # Statistical models and time series
+
+# ============================================
+# SHARED ANALYSIS & VISUALIZATION
+# ============================================
 matplotlib>=3.5.0        # Plotting and visualization
 seaborn>=0.11.0          # Statistical visualization
+numpy>=1.21.0            # Numerical computing
 jupyter>=1.0.0           # Jupyter notebook support
+ipython>=7.0.0           # Interactive Python
+
+# ============================================
+# WEB INTERFACES & GUI
+# ============================================
+flask>=2.3.0             # Web framework for data viewer
+tkinter                  # GUI library (usually built-in)
 
 # Web interface
 flask>=2.3.0             # Web framework for data viewer
@@ -21,3 +50,17 @@ numpy>=1.24.0            # Numerical computing
 
 # Development and testing
 pytest>=7.0.0            # Testing framework (optional)
+
+# ============================================
+# INSTALLATION NOTES
+# ============================================
+# Install all dependencies:
+#   pip install -r requirements.txt
+#
+# Or install by component:
+#   Bluesky only:  pip install atproto pandas requests matplotlib
+#   Reddit only:   pip install praw pandas matplotlib
+#   Trends only:   pip install -r scripts/google_trends/requirements-googletrends.txt
+#
+# Note: tkinter is usually included with Python
+#       If missing on Linux: sudo apt-get install python3-tk

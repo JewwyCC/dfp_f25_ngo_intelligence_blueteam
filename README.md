@@ -58,7 +58,41 @@ Comprehensive Python toolkit for real-time social media intelligence gathering f
 ### 1. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Add your Bluesky credentials
+cp auth/bluesky/config/auth_template.json auth/bluesky/config/auth.json
+
+# Collect data
+cd scripts/bluesky
+python bluesky_social_justice_collector.py --method search --days-back 7 --max-posts 500
+
+# Or use GUI
+python gui.py
+```
+
+**Documentation:** [scripts/bluesky/README.md](scripts/bluesky/README.md)
+
+---
+
+### 2. [Reddit](RedditScraper/) - ✅ OPERATIONAL
+
+**Status:** Fully working with homelessness configuration
+
+**Features:**
+- 9 homelessness-focused subreddits monitored
+- 31 homelessness keywords tracked
+- Interactive GUI interface
+- Data collection, analysis, and visualization modules
+- **Authentication already configured**
+
+**Subreddits Monitored:**
+- r/homeless, r/housing, r/eviction
+- r/affordablehousing, r/rent, r/shelter
+- r/housingcrisis, r/povertyfinance, r/urbancarliving
+
+**Quick Start:**
+```bash
+cd RedditScraper
+python gui.py
 ```
 
 ### 2. Setup Authentication
@@ -106,6 +140,7 @@ python main.py --merge-data
 
 ### 4. Generate EDA Analysis
 
+1. **Clone and navigate:**
 ```bash
 # Navigate to Bluesky visualizations
 cd viz/bluesky

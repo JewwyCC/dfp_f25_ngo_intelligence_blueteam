@@ -88,62 +88,224 @@ class BlueskySocialJusticeCollector:
         os.makedirs(self.alltime_dir, exist_ok=True)
         os.makedirs("../../auth/bluesky/config", exist_ok=True)
         
-        # Keywords for social justice topics
+        # Keywords for homelessness research
         self.keywords = [
-            "food insecurity", "housing", "homeless", 
-            "unemployment", "gender inequality"
+            "homeless", "homelessness", "unhoused", "housing crisis", "affordable housing",
+            "homeless shelter", "street homelessness", "housing first", "homeless veterans",
+            "homeless families", "homeless youth", "chronic homelessness", "temporary housing",
+            "transitional housing", "supportive housing", "homeless services", "homeless outreach",
+            "homeless encampment", "housing insecurity", "homeless population", "rough sleeper",
+            "tent city", "homeless camp", "housing assistance", "homeless prevention"
         ]
         
-        # Enhanced search queries for native search API (Option A)
+        # Enhanced search queries for homelessness research
         self.search_queries = {
-            "food insecurity": [
-                '"food insecurity"', '"food insecure"', '#foodinsecurity',
-                '"hunger crisis"', '"food desert"', '"SNAP benefits"',
-                '"food bank"', '"food pantry"', '"EBT"', '"WIC"'
-            ],
-            "housing": [
-                '"housing crisis"', '"affordable housing"', '#housingcrisis',
-                '"rent crisis"', '"housing shortage"', '"eviction"',
-                '"housing costs"', '"rent burden"', '"gentrification"'
-            ],
             "homeless": [
                 '"homeless"', '"homelessness"', '#homeless',
                 '"unhoused"', '"rough sleeping"', '"encampment"',
                 '"shelter"', '"street sleeping"', '"housing first"'
             ],
-            "unemployment": [
-                '"unemployment"', '"unemployed"', '#unemployment',
-                '"job loss"', '"layoffs"', '"jobless"',
-                '"unemployment benefits"', '"fired"', '"laid off"'
+            "homelessness": [
+                '"homelessness"', '"homeless"', '#homelessness',
+                '"unhoused"', '"rough sleeping"', '"encampment"',
+                '"shelter"', '"street sleeping"', '"housing first"'
             ],
-            "gender inequality": [
-                '"gender inequality"', '"gender gap"', '#gendergap',
-                '"pay gap"', '"wage gap"', '"gender discrimination"',
-                '"equal pay"', '"workplace inequality"', '"glass ceiling"'
+            "unhoused": [
+                '"unhoused"', '"homeless"', '"rough sleeping"',
+                '"encampment"', '"shelter"', '"street sleeping"'
+            ],
+            "housing crisis": [
+                '"housing crisis"', '"affordable housing"', '#housingcrisis',
+                '"rent crisis"', '"housing shortage"', '"eviction"',
+                '"housing costs"', '"rent burden"', '"gentrification"'
+            ],
+            "affordable housing": [
+                '"affordable housing"', '"housing crisis"', '"rent crisis"',
+                '"housing shortage"', '"eviction"', '"housing costs"'
+            ],
+            "homeless shelter": [
+                '"homeless shelter"', '"shelter"', '"homeless"',
+                '"unhoused"', '"street sleeping"', '"encampment"'
+            ],
+            "street homelessness": [
+                '"street homelessness"', '"street sleeping"', '"homeless"',
+                '"unhoused"', '"rough sleeping"', '"encampment"'
+            ],
+            "housing first": [
+                '"housing first"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless veterans": [
+                '"homeless veterans"', '"veterans"', '"homeless"',
+                '"unhoused"', '"shelter"', '"encampment"'
+            ],
+            "homeless families": [
+                '"homeless families"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless youth": [
+                '"homeless youth"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "chronic homelessness": [
+                '"chronic homelessness"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "temporary housing": [
+                '"temporary housing"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "transitional housing": [
+                '"transitional housing"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "supportive housing": [
+                '"supportive housing"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless services": [
+                '"homeless services"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless outreach": [
+                '"homeless outreach"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless encampment": [
+                '"homeless encampment"', '"encampment"', '"homeless"',
+                '"unhoused"', '"street sleeping"', '"rough sleeping"'
+            ],
+            "housing insecurity": [
+                '"housing insecurity"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless population": [
+                '"homeless population"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "rough sleeper": [
+                '"rough sleeper"', '"rough sleeping"', '"homeless"',
+                '"unhoused"', '"street sleeping"', '"encampment"'
+            ],
+            "tent city": [
+                '"tent city"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless camp": [
+                '"homeless camp"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "housing assistance": [
+                '"housing assistance"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
+            ],
+            "homeless prevention": [
+                '"homeless prevention"', '"homeless"', '"unhoused"',
+                '"shelter"', '"encampment"', '"street sleeping"'
             ]
         }
         
-        # Enhanced regex patterns for better filtering
+        # Enhanced regex patterns for homelessness research
         self.regex_patterns = {
-            "food insecurity": [
-                r"\bfood\s*insecurit(y|ies)\b", r"\bhungry\b", r"\bhunger\b", 
-                r"\bstarv(ing|ation)\b", r"\bfood\s*bank\b", r"\bSNAP\b", r"\bEBT\b"
-            ],
-            "housing": [
-                r"\bhousing\s*crisis\b", r"\baffordable\s*housing\b", r"\brent\s*crisis\b",
-                r"\bhousing\s*shortage\b", r"\beviction\b", r"\blandlord\b", r"\btenant\b"
-            ],
             "homeless": [
                 r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b", r"\bshelter\b",
                 r"\brough\s*sleep", r"\bstreet.*sleep", r"\bencampment\b"
             ],
-            "unemployment": [
-                r"\bunemploy(ed|ment)\b", r"\bjob\s*loss\b", r"\bjobless\b",
-                r"\blayoffs?\b", r"\blaid\s*off\b", r"\bfired\b", r"\bunemployment\s*benefits?\b"
+            "homelessness": [
+                r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b", r"\bshelter\b",
+                r"\brough\s*sleep", r"\bstreet.*sleep", r"\bencampment\b"
             ],
-            "gender inequality": [
-                r"\bgender\s*inequalit(y|ies)\b", r"\bgender\s*gap\b", r"\bpay\s*gap\b",
-                r"\bwage\s*gap\b", r"\bgender\s*discrimination\b", r"\bequal\s*pay\b"
+            "unhoused": [
+                r"\bunhous(ed|ing)\b", r"\bhomeless(ness)?\b", r"\bshelter\b",
+                r"\brough\s*sleep", r"\bstreet.*sleep", r"\bencampment\b"
+            ],
+            "housing crisis": [
+                r"\bhousing\s*crisis\b", r"\baffordable\s*housing\b", r"\brent\s*crisis\b",
+                r"\bhousing\s*shortage\b", r"\beviction\b", r"\blandlord\b", r"\btenant\b"
+            ],
+            "affordable housing": [
+                r"\baffordable\s*housing\b", r"\bhousing\s*crisis\b", r"\brent\s*crisis\b",
+                r"\bhousing\s*shortage\b", r"\beviction\b", r"\blandlord\b", r"\btenant\b"
+            ],
+            "homeless shelter": [
+                r"\bhomeless\s*shelter\b", r"\bshelter\b", r"\bhomeless(ness)?\b",
+                r"\bunhous(ed|ing)\b", r"\bstreet.*sleep", r"\bencampment\b"
+            ],
+            "street homelessness": [
+                r"\bstreet\s*homeless(ness)?\b", r"\bstreet.*sleep", r"\bhomeless(ness)?\b",
+                r"\bunhous(ed|ing)\b", r"\brough\s*sleep", r"\bencampment\b"
+            ],
+            "housing first": [
+                r"\bhousing\s*first\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless veterans": [
+                r"\bhomeless\s*veterans?\b", r"\bveterans?\b", r"\bhomeless(ness)?\b",
+                r"\bunhous(ed|ing)\b", r"\bshelter\b", r"\bencampment\b"
+            ],
+            "homeless families": [
+                r"\bhomeless\s*famil(ies|y)\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless youth": [
+                r"\bhomeless\s*youth\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "chronic homelessness": [
+                r"\bchronic\s*homeless(ness)?\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "temporary housing": [
+                r"\btemporary\s*housing\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "transitional housing": [
+                r"\btransitional\s*housing\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "supportive housing": [
+                r"\bsupportive\s*housing\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless services": [
+                r"\bhomeless\s*services?\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless outreach": [
+                r"\bhomeless\s*outreach\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless encampment": [
+                r"\bhomeless\s*encampment\b", r"\bencampment\b", r"\bhomeless(ness)?\b",
+                r"\bunhous(ed|ing)\b", r"\bstreet.*sleep", r"\brough\s*sleep"
+            ],
+            "housing insecurity": [
+                r"\bhousing\s*insecurit(y|ies)\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless population": [
+                r"\bhomeless\s*population\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "rough sleeper": [
+                r"\brough\s*sleeper\b", r"\brough\s*sleep", r"\bhomeless(ness)?\b",
+                r"\bunhous(ed|ing)\b", r"\bstreet.*sleep", r"\bencampment\b"
+            ],
+            "tent city": [
+                r"\btent\s*city\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless camp": [
+                r"\bhomeless\s*camp\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "housing assistance": [
+                r"\bhousing\s*assistance\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
+            ],
+            "homeless prevention": [
+                r"\bhomeless\s*prevention\b", r"\bhomeless(ness)?\b", r"\bunhous(ed|ing)\b",
+                r"\bshelter\b", r"\bencampment\b", r"\bstreet.*sleep"
             ]
         }
         
@@ -210,8 +372,21 @@ class BlueskySocialJusticeCollector:
     def load_credentials(self) -> Dict[str, str]:
         """Load Bluesky credentials from secure file"""
         try:
-            credentials_file = "../../auth/bluesky/config/auth.json"
-            if os.path.exists(credentials_file):
+            # Try multiple paths to find credentials (works from different directories)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            possible_paths = [
+                "../../auth/bluesky/config/auth.json",  # From scripts/bluesky
+                "auth/bluesky/config/auth.json",  # From project root
+                os.path.join(script_dir, "../../auth/bluesky/config/auth.json"),  # Absolute from script
+            ]
+            
+            credentials_file = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    credentials_file = path
+                    break
+            
+            if credentials_file and os.path.exists(credentials_file):
                 with open(credentials_file, 'r', encoding='utf-8') as f:
                     creds = json.load(f)
                 
@@ -531,10 +706,63 @@ class BlueskySocialJusticeCollector:
                     f.write(json.dumps(post, ensure_ascii=False) + '\n')
                     saved_count += 1
             
+            # Add polarization analysis to posts
+            posts_with_polarization = self.add_polarization_analysis(posts)
+            
+            # Save CSV version with polarization
+            session_csv = os.path.join(self.session_dir, f"{keyword_safe}_posts.csv")
+            try:
+                df = pd.DataFrame(posts_with_polarization)
+                df.to_csv(session_csv, index=False, encoding='utf-8')
+            except Exception as e:
+                print(f"   ⚠️  Error saving CSV for {keyword}: {e}")
+            
             self.stats['keyword_matches'][keyword] += len(posts)
         
         self.post_buffer.clear()
         return saved_count
+    
+    def add_polarization_analysis(self, posts):
+        """Add polarization analysis to posts (like Bluesky visualization)"""
+        # Political keywords (same as gui_viz.py)
+        left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
+                        'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
+                        'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich',
+                        'minimum wage', 'union', 'workers rights', 'environmental', 'renewable']
+        right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
+                         'border security', 'pro-life', 'second amendment', 'small government',
+                         'law and order', 'patriot', 'maga', 'god', 'family values',
+                         'deregulation', 'free market', 'capitalism', 'tax cuts', 'business']
+        
+        posts_with_polarization = []
+        for post in posts:
+            post_copy = post.copy()
+            text = post.get('text', '').lower()
+            
+            # Count keyword matches
+            left_matches = sum(1 for kw in left_keywords if kw in text)
+            right_matches = sum(1 for kw in right_keywords if kw in text)
+            
+            # Determine political leaning
+            if left_matches > right_matches and left_matches > 0:
+                post_copy['political_leaning'] = 'LEFT'
+                post_copy['polarization_confidence'] = left_matches / (left_matches + right_matches)
+                post_copy['left_keywords_count'] = left_matches
+                post_copy['right_keywords_count'] = right_matches
+            elif right_matches > left_matches and right_matches > 0:
+                post_copy['political_leaning'] = 'RIGHT'
+                post_copy['polarization_confidence'] = right_matches / (left_matches + right_matches)
+                post_copy['left_keywords_count'] = left_matches
+                post_copy['right_keywords_count'] = right_matches
+            else:
+                post_copy['political_leaning'] = 'NEUTRAL'
+                post_copy['polarization_confidence'] = 0.5
+                post_copy['left_keywords_count'] = left_matches
+                post_copy['right_keywords_count'] = right_matches
+            
+            posts_with_polarization.append(post_copy)
+        
+        return posts_with_polarization
     
     def update_alltime_data(self):
         """Update alltime files with new session data - FIXED APPEND"""
@@ -611,10 +839,12 @@ class BlueskySocialJusticeCollector:
                     for post in alltime_posts:
                         f.write(json.dumps(post, ensure_ascii=False) + '\n')
                 
-                # Save alltime CSV
+                # Save alltime CSV with polarization analysis
                 alltime_csv = os.path.join(self.alltime_dir, f"{keyword_safe}_alltime.csv")
                 try:
-                    df = pd.DataFrame(alltime_posts)
+                    # Add polarization analysis to alltime posts
+                    posts_with_polarization = self.add_polarization_analysis(alltime_posts)
+                    df = pd.DataFrame(posts_with_polarization)
                     df.to_csv(alltime_csv, index=False, encoding='utf-8')
                 except Exception as e:
                     print(f"   ⚠️  Error saving CSV for {keyword}: {e}")

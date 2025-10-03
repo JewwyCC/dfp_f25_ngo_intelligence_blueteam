@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import tkinter as tk
-from RedditScraper.gui import AnalyzerApp
+from gui import AnalyzerApp
 from tkinter import ttk
 
 

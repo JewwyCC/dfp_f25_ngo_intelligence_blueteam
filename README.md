@@ -2,334 +2,357 @@
 
 Multi-source data collection and analysis platform for NGO intelligence gathering on homelessness and social justice issues.
 
-**Current Focus**: Bluesky social media monitoring for homelessness discussions (156K+ posts collected)
+**Project**: Data Focused Python (DFP) Fall 2025 - Carnegie Mellon University Heinz College
+**Focus**: Homelessness & Housing Crisis Intelligence
 
-**Supported Data Sources**: Bluesky (active), Google Trends, News API, Reddit (ready for implementation)
+---
+
+## 🎯 Master Scraper - Sequential Data Collection
+
+**NEW**: Automated sequential data collection from all sources with keyword propagation and political bias classification.
+
+### Quick Start
+
+```bash
+# Install all dependencies
+pip install -r requirements.txt
+
+# Configure credentials (see Authentication section below)
+
+# Run fast test (completes in ~25 seconds)
+python3 master_scraper_fast.py
+
+# Run full collection (can take 30-60 minutes)
+python3 master_scraper.py
+```
+
+### How It Works
+
+The master scraper executes modules **sequentially** in this order:
+
+1. **Google Trends** → Extracts keywords and zipcodes from trend data
+2. **News API** → Searches news articles using Google Trends keywords + Political bias classification
+3. **Reddit** → Collects posts from subreddits using keywords
+4. **Bluesky** → Searches social media posts using keywords
+
+**Features:**
+- ✅ Sequential execution with real-time progress output
+- ✅ Keyword propagation from Google Trends to all modules
+- ✅ Political bias classification (HuggingFace) with 10-second timeout
+- ✅ Completion signals for each module
+- ✅ Summary report generation (JSON)
+- ✅ Colored terminal output
+- ✅ Error handling and graceful failure recovery
+
+**Output:**
+```
+data/
+├── google_trends/        # Trend analysis data
+├── news_api/
+│   ├── news_articles_fast.json      # Collected articles
+│   └── classified_fast.json         # Political bias classification
+├── reddit/               # Reddit posts (CSV)
+└── bluesky/              # Bluesky posts (JSONL/CSV)
+```
+
+---
 
 ## 📊 Data Sources
 
-### [Bluesky](scripts/bluesky/) - Active ✅
-Real-time monitoring and analysis of homelessness discussions on Bluesky social network.
-- **Status**: Fully implemented with 156,184 posts collected
-- **Scripts**: [scripts/bluesky/](scripts/bluesky/) - Collection, demo, and analysis tools
-- **Data**: [data/bluesky/](data/bluesky/) - 156K+ deduplicated posts
-- **Auth**: [auth/bluesky/config/](auth/bluesky/config/) - Secure credential storage
-- **Visualizations**: [viz/bluesky/](viz/bluesky/) - Interactive EDA reports
+### 1. Google Trends ✅
+Keyword extraction and trend analysis
+- **Status**: Operational
+- **Function**: Provides keywords for downstream modules
+- **Output**: Keywords, zipcodes, trend data
 
-### Google Trends - Coming Soon 🚧
-*Awaiting implementation by team members*
-- **Scripts**: [scripts/google_trends/](scripts/google_trends/)
-- **Data**: [data/google_trends/](data/google_trends/)
-- **Auth**: [auth/google_trends/](auth/google_trends/)
-- **Visualizations**: [viz/google_trends/](viz/google_trends/)
-
-### News API - Coming Soon 🚧
-*Awaiting implementation by team members*
+### 2. News API ✅
+News article collection with political bias classification
+- **Status**: Operational with HuggingFace classifier
+- **Features**:
+  - Collects articles from 40+ US news sources
+  - Political bias classification (Left/Center/Right)
+  - 10-second timeout for classification
 - **Scripts**: [scripts/news_api/](scripts/news_api/)
-- **Data**: [data/news_api/](data/news_api/)
-- **Auth**: [auth/news_api/](auth/news_api/)
-- **Visualizations**: [viz/news_api/](viz/news_api/)
+  - `NewsAPI_Scrape.py` - Article collection
+  - `HF_Classifier.py` - Political bias classifier
+  - `Viz.py` - Visualization tools
 
-### Reddit - Coming Soon 🚧
-*Awaiting implementation by team members*
+### 3. Reddit ✅
+Subreddit monitoring for homelessness discussions
+- **Status**: Operational
+- **Subreddits**: r/homeless, r/housing, r/eviction, r/affordablehousing, r/rent, r/shelter, r/housingcrisis, r/povertyfinance, r/urbancarliving
+- **Keywords**: 31 homelessness-related terms
 - **Scripts**: [scripts/reddit/](scripts/reddit/)
-- **Data**: [data/reddit/](data/reddit/)
-- **Auth**: [auth/reddit/](auth/reddit/)
-- **Visualizations**: [viz/reddit/](viz/reddit/)
+  - `data_collection.py` - Post collection
+  - `analysis.py` - Data analysis
+  - `visualization.py` - Charts and graphs
+  - `gui.py` - Interactive interface
+
+### 4. Bluesky ✅
+Real-time social media monitoring
+- **Status**: Operational with 156K+ posts collected
+- **Features**:
+  - Dual collection: Firehose (real-time) + Search API (historical)
+  - 155+ homelessness keywords
+  - Geographic analysis and sentiment tracking
+- **Scripts**: [scripts/bluesky/](scripts/bluesky/)
+  - `bluesky_social_justice_collector.py` - Main collector
+  - `demo.py` - Interactive demo
+  - `main.py` - Quick collection script
+- **Data**: [data/bluesky/](data/bluesky/) - 156K+ posts
 
 ---
 
-## 🚀 Quick Start: Bluesky Intelligence Module
+## 🚀 Installation
 
-**Current Status**: Operational with 156K+ posts analyzing homelessness discourse on Bluesky
-
-Comprehensive Python toolkit for real-time social media intelligence gathering focused on homelessness and housing crisis discussions.
-
-### Intelligence Capabilities
-
-- 🎯 **Targeted Intelligence Collection**: 155+ keywords tracking homelessness, housing crisis, and social justice
-- 📡 **Real-time Monitoring**: Firehose and search-based collection methods
-- 📊 **Advanced Analytics**: Interactive EDA with geographic distribution, sentiment analysis, and engagement metrics
-- 🗺️ **Geographic Intelligence**: Location-based analysis with word clouds and world maps
-- 💾 **Flexible Outputs**: JSONL, CSV, JSON formats for downstream analysis
-- 🔄 **Session Management**: Automated deduplication and data merging
-- ⚡ **Production-Ready**: Sleep prevention, error handling, comprehensive logging
-
-### 1. Install Dependencies
+### 1. Clone Repository
 
 ```bash
-# Add your Bluesky credentials
-cp auth/bluesky/config/auth_template.json auth/bluesky/config/auth.json
-
-# Collect data
-cd scripts/bluesky
-python bluesky_social_justice_collector.py --method search --days-back 7 --max-posts 500
-
-# Or use GUI
-python gui.py
+git clone <repository-url>
+cd dfp_ngo_module
 ```
 
-**Documentation:** [scripts/bluesky/README.md](scripts/bluesky/README.md)
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+**Key Dependencies:**
+- `atproto` - Bluesky API client
+- `praw` - Reddit API wrapper
+- `newsapi-python` - News API client
+- `pytrends` - Google Trends API
+- `pandas` - Data manipulation
+- `transformers` - HuggingFace (optional for local classification)
+
+### 3. Authentication Setup
+
+#### Bluesky
+```bash
+# Create auth file
+cat > auth/bluesky/config/auth.json << EOF
+{
+  "bluesky": {
+    "username": "your_email@example.com",
+    "password": "your_app_password"
+  }
+}
+EOF
+```
+
+#### News API
+```bash
+# Edit credentials file (NEVER COMMIT THIS)
+# File is gitignored
+cat > scripts/news_api/credentials.py << EOF
+NEWSAPI_KEY = 'your_newsapi_key'
+HUGGINGFACE_TOKEN = 'your_huggingface_token'
+EOF
+```
+
+#### Reddit
+Already configured in `scripts/reddit/config.py`
+
+#### Google Trends
+No authentication required
 
 ---
 
-### 2. [Reddit](RedditScraper/) - ✅ OPERATIONAL
+## 📖 Usage
 
-**Status:** Fully working with homelessness configuration
+### Master Scraper (Recommended)
+
+**Fast Test Mode** (~25 seconds):
+```bash
+python3 master_scraper_fast.py
+```
+- Extracts 15 keywords from Google Trends
+- Collects 10 news articles with political classification
+- Searches 2 subreddits
+- Collects 50 Bluesky posts (1 day history)
+
+**Full Collection Mode** (30-60 minutes):
+```bash
+python3 master_scraper.py
+```
+- Full Google Trends analysis
+- 100+ news articles with classification
+- 1000+ Reddit posts
+- 1000+ Bluesky posts (30 days history)
+
+### Individual Modules
+
+#### Google Trends
+```bash
+cd scripts/google_trends
+python3 googletrends.py
+```
+
+#### News API
+```bash
+cd scripts/news_api
+python3 NewsAPI_Scrape.py
+```
+
+#### Reddit
+```bash
+cd scripts/reddit
+python3 gui.py  # Interactive GUI
+# OR
+python3 data_collection.py  # Command line
+```
+
+#### Bluesky
+```bash
+cd scripts/bluesky
+python3 demo.py  # Interactive demo
+# OR
+python3 bluesky_social_justice_collector.py --method search --days-back 7 --max-posts 500
+```
+
+---
+
+## 📁 Project Structure
+
+```
+dfp_ngo_module/
+├── master_scraper.py              # Full production scraper
+├── master_scraper_fast.py         # Fast test scraper (~25s)
+├── requirements.txt               # All dependencies
+├── README.md                      # This file
+│
+├── scripts/                       # Data collection scripts
+│   ├── bluesky/                   # Bluesky module
+│   ├── news_api/                  # News API + Classifier
+│   ├── reddit/                    # Reddit module
+│   └── google_trends/             # Google Trends module
+│
+├── data/                          # Collected data
+│   ├── bluesky/                   # 156K+ posts
+│   ├── news_api/                  # News articles + classifications
+│   ├── reddit/                    # Reddit posts
+│   └── google_trends/             # Trend data
+│
+├── auth/                          # Authentication (gitignored)
+│   ├── bluesky/config/auth.json
+│   └── news_api/credentials.py
+│
+└── viz/                           # Visualizations
+    ├── bluesky/                   # EDA reports
+    ├── news_api/                  # News visualizations
+    └── reddit/                    # Reddit charts
+```
+
+---
+
+## 🔒 Security
+
+**Important**: Never commit credentials to git!
+
+Files automatically gitignored:
+- `auth/*/config/auth.json`
+- `scripts/news_api/credentials.py`
+- `**/credentials.py`
+- `*.json` (except requirements.json)
+
+---
+
+## 📊 Data Collection Capabilities
+
+### Master Scraper Fast Mode (~25 seconds)
+- Google Trends: 15 keywords extracted
+- News API: 10 articles + 1 classified
+- Reddit: 20 posts from 2 subreddits
+- Bluesky: 50 posts (1 day)
+
+### Master Scraper Full Mode (~30-60 minutes)
+- Google Trends: Full analysis (national + state-level)
+- News API: 100 articles + batch classification
+- Reddit: 1000 posts from 9 subreddits
+- Bluesky: 1000 posts (30 days)
+
+---
+
+## 🧪 Testing
+
+Run component test:
+```bash
+python3 master_scraper_test.py
+```
+
+This verifies:
+- ✅ All scripts exist
+- ✅ Data directories created
+- ✅ Credentials configured
+- ✅ Authentication working
+
+---
+
+## 📈 Political Bias Classification
+
+The News API module includes political bias classification using HuggingFace's `politicalBiasBERT` model.
 
 **Features:**
-- 9 homelessness-focused subreddits monitored
-- 31 homelessness keywords tracked
-- Interactive GUI interface
-- Data collection, analysis, and visualization modules
-- **Authentication already configured**
+- Classifies articles as: LEFT, CENTER-LEFT, CENTER, CENTER-RIGHT, RIGHT
+- 10-second timeout to prevent blocking
+- Confidence scores for each classification
+- Automatic fallback on timeout/error
 
-**Subreddits Monitored:**
-- r/homeless, r/housing, r/eviction
-- r/affordablehousing, r/rent, r/shelter
-- r/housingcrisis, r/povertyfinance, r/urbancarliving
-
-**Quick Start:**
-```bash
-cd RedditScraper
-python gui.py
-```
-
-### 2. Setup Authentication
-
-Create `auth/bluesky/config/auth.json` with your Bluesky credentials:
-
+**Output Example:**
 ```json
-{
-  "bluesky": {
-    "username": "your_username.bsky.social",
-    "password": "your_app_password"
+[
+  {
+    "title": "Article Title Here",
+    "label": "LEFT",
+    "confidence": 0.74
   }
-}
+]
 ```
 
-### 3. Run Demo Collection
+---
 
-**🎯 EASIEST WAY - Interactive Demo**
-```bash
-cd scripts/bluesky
-python demo.py
-```
-*This will show you a menu with options like:*
-- Quick Test (1 minute)
-- Standard Demo (5 minutes)
-- Extended Demo (15 minutes)
-- Custom Demo (your choice)
-
-**⚡ Direct Commands**
-```bash
-cd scripts/bluesky
-
-# 🚀 Quick Test - 60 seconds with homelessness keywords
-python main.py --duration 60 --keywords homelessness
-
-# 📊 Standard Demo - 300 seconds with all keywords
-python main.py --duration 300 --keywords all
-
-# 🎯 Custom - Use your own keywords from keywords.txt
-python main.py --duration 600 --keywords custom
-
-# 🔄 Merge all session data into alltime_socmed
-python main.py --merge-data
-```
-
-### 4. Generate EDA Analysis
-
-1. **Clone and navigate:**
-```bash
-# Navigate to Bluesky visualizations
-cd viz/bluesky
-
-# Generate comprehensive EDA report
-python improved_eda.py
-
-# Or generate interactive report
-python interactive_eda.py
-```
-
-This creates reports with:
-- 📊 Key metrics and statistics
-- 🌍 Geographic distribution (word clouds + world map)
-- 📈 Content analysis and engagement metrics
-- 👥 Author analysis and top posts feeds
-- 🔗 Clickable links to original posts
-
-### 5. View Results
-
-```bash
-# Open Jupyter notebook for analysis
-cd scripts/bluesky
-jupyter notebook analysis_demo.ipynb
-
-# Or check the generated report
-ls ../../data/bluesky/alltime_socmed/COLLECTION_REPORT_*.md
-```
-
-## Usage
-
-### Command Line Options
-
-```bash
-cd scripts/bluesky
-python main.py [OPTIONS]
-
-Options:
-  --method {search,firehose,both}  Collection method (default: search)
-  --duration INTEGER              Duration in minutes (default: 15)
-  --keywords TEXT                 Keywords: "all", "homelessness", "custom", or specific keyword
-  --no-sleep                      Prevent system sleep during collection
-  --help                          Show help message
-```
-
-### Keyword Options
-
-- `homelessness` - Default homelessness keywords (20 terms)
-- `all` - All available keywords (200+ terms)
-- `custom` - Load from `keywords.txt` file
-- `specific_keyword` - Use a single keyword
-
-### Examples
-
-```bash
-cd scripts/bluesky
-
-# 15-minute homelessness collection
-python main.py
-
-# 30-minute collection with all keywords
-python main.py --duration 30 --keywords all
-
-# Custom keywords from file
-python main.py --keywords custom --duration 45
-
-# Single keyword search
-python main.py --keywords "housing crisis" --duration 10
-
-# Long collection with sleep prevention
-python main.py --duration 120 --keywords all --no-sleep
-```
-
-## Project Structure
-
-```
-dfp_f25_ngo_intelligence_blueteam/
-├── README.md                     # Main project README
-├── requirements.txt              # Python dependencies
-├── scripts/
-│   ├── bluesky/                  # Bluesky intelligence module ✅
-│   │   ├── main.py               # Main data collector
-│   │   ├── demo.py               # Interactive demo
-│   │   ├── bluesky_social_justice_collector.py  # Core collector
-│   │   ├── homelessness_keywords.py  # Keyword module (155+ terms)
-│   │   ├── keywords.txt          # Customizable keyword list
-│   │   ├── analysis_demo.ipynb   # Analysis notebook
-│   │   ├── PRD.md                # Product requirements
-│   │   └── PROJECT_SUMMARY.md    # Project summary
-│   ├── google_trends/            # Google Trends module 🚧
-│   │   └── README.md             # Setup instructions
-│   ├── news_api/                 # News API module 🚧
-│   │   └── README.md             # Setup instructions
-│   └── reddit/                   # Reddit module 🚧
-│       └── README.md             # Setup instructions
-├── data/
-│   ├── bluesky/                  # Bluesky data (156K posts) ✅
-│   │   ├── alltime_socmed/       # Merged data repository
-│   │   ├── sessions/             # Individual collection sessions (9 sessions)
-│   │   └── alltime/              # Deduplicated master dataset
-│   │       ├── alltime_socmed.csv      # 156,184 posts
-│   │       └── alltime_socmed.jsonl    # Raw JSON format
-│   ├── google_trends/            # Google Trends data 🚧
-│   ├── news_api/                 # News API data 🚧
-│   └── reddit/                   # Reddit data 🚧
-├── auth/
-│   ├── bluesky/
-│   │   └── config/
-│   │       └── auth.json         # Bluesky credentials (gitignored)
-│   ├── google_trends/            # Google Trends auth (placeholder)
-│   ├── news_api/                 # News API auth (placeholder)
-│   └── reddit/                   # Reddit auth (placeholder)
-└── viz/
-    ├── bluesky/                  # Bluesky visualizations ✅
-    │   ├── improved_eda.py       # Comprehensive EDA generator
-    │   ├── interactive_eda.py    # Interactive EDA with extras
-    │   ├── improved_eda_report.html     # Latest comprehensive report
-    │   ├── interactive_eda_report.html  # Latest interactive report
-    │   └── README.md             # Usage instructions
-    ├── google_trends/            # Google Trends viz 🚧
-    │   └── README.md
-    ├── news_api/                 # News API viz 🚧
-    │   └── README.md
-    └── reddit/                   # Reddit viz 🚧
-        └── README.md
-```
-
-## Output
-
-Data is saved to `data/bluesky/alltime_socmed/` with timestamps:
-
-- `socmed_search_YYYYMMDD_HHMMSS.jsonl` - Raw data
-- `socmed_search_YYYYMMDD_HHMMSS.csv` - Spreadsheet format
-- `socmed_search_YYYYMMDD_HHMMSS_summary.json` - Collection summary
-- Visualizations in `viz/bluesky/*.html`
-
-## Configuration
-
-### Keywords
-
-Edit `scripts/bluesky/keywords.txt` to customize search terms:
-
-```
-homeless
-homelessness
-housing crisis
-affordable housing
-# Add your keywords here
-```
-
-### Authentication
-
-Place your Bluesky credentials in `auth/bluesky/config/auth.json`:
-
-```json
-{
-  "bluesky": {
-    "username": "your_username.bsky.social",
-    "password": "your_app_password"
-  }
-}
-```
-
-## Requirements
-
-- Python 3.8+
-- Bluesky account with app password
-- Required packages in `requirements.txt`
-
-## Contributing
+## 🤝 Contributing
 
 **Team Project**: DFP F25 NGO Intelligence Blue Team
 
-Each team member can contribute their own intelligence source module:
+Each team member maintains their own module:
+- Module directories: `scripts/{source}/`
+- Data directories: `data/{source}/`
+- Visualizations: `viz/{source}/`
 
-1. **Choose your source**: Google Trends, News API, or Reddit
-2. **Set up structure**: Use existing directory pattern (`scripts/{source}/`, `data/{source}/`, `auth/{source}/`, `viz/{source}/`)
-3. **Follow READMEs**: Each placeholder directory includes setup instructions
-4. **Develop independently**: Modular structure prevents merge conflicts
-5. **Submit PR**: Update main README with your module status
-6. **Document**: Add your findings to module-specific documentation
+**Development Workflow:**
+1. Work in your module directory
+2. Test independently
+3. Ensure compatibility with master scraper
+4. Update README with your changes
+5. Submit PR
 
-### Current Team Assignments
-- ✅ **Bluesky**: Implemented (156K posts)
-- 🚧 **Google Trends**: Available for assignment
-- 🚧 **News API**: Available for assignment
-- 🚧 **Reddit**: Available for assignment
+---
 
-## Project Information
+## 📝 Output Files
+
+### Master Scraper Report
+```json
+{
+  "start_time": "2025-10-03T10:00:00",
+  "end_time": "2025-10-03T10:25:00",
+  "duration_seconds": 1500,
+  "keywords_used": ["homelessness", "housing crisis", ...],
+  "results": {
+    "google_trends": {"status": "success", "duration": 5.0},
+    "news_api": {"status": "success", "duration": 15.0},
+    "reddit": {"status": "success", "duration": 10.0},
+    "bluesky": {"status": "success", "duration": 8.0}
+  }
+}
+```
+
+Saved as: `collection_report_YYYYMMDD_HHMMSS.json`
+
+---
+
+## 🎓 Academic Information
 
 - **Course**: Data Focused Python (Fall 2025)
 - **Institution**: Carnegie Mellon University - Heinz College
@@ -339,6 +362,21 @@ Each team member can contribute their own intelligence source module:
 
 ---
 
-**Last Updated**: September 2025
-**Data Collection Period**: September 2024 - Present
-**Total Posts Analyzed**: 156,184 (Bluesky)
+## 📄 License
+
+Carnegie Mellon University - Data Focused Python Course Project
+
+---
+
+## 📧 Support
+
+For issues or questions:
+- Create an issue in the repository
+- Contact team members
+- Refer to individual module READMEs in `scripts/{module}/`
+
+---
+
+**Last Updated**: October 3, 2025
+**Total Data Collected**: 156K+ posts (Bluesky) + News articles + Reddit posts
+**Master Scraper Status**: ✅ Operational

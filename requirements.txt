@@ -3,16 +3,22 @@
 # DFP F25 - Carnegie Mellon University
 
 # ============================================
+# CORE DEPENDENCIES (Required for all modules)
+# ============================================
+pandas>=2.0.0            # Data manipulation and CSV export
+requests>=2.31.0         # HTTP requests for API calls
+numpy>=1.21.0            # Numerical computing
+
+# ============================================
 # BLUESKY SCRAPER DEPENDENCIES
 # ============================================
 atproto>=0.0.38          # Bluesky AT Protocol client
-pandas>=2.0.0            # Data manipulation and CSV export
-requests>=2.31.0         # HTTP requests for API calls
 
 # ============================================
 # REDDIT SCRAPER DEPENDENCIES
 # ============================================
 praw>=7.7.0              # Reddit API wrapper
+textblob>=0.15.0         # Text analysis and sentiment
 
 # ============================================
 # GOOGLE TRENDS DEPENDENCIES
@@ -26,11 +32,22 @@ us>=2.0.0                # US state utilities
 statsmodels>=0.13.0      # Statistical models and time series
 
 # ============================================
+# NEWS API DEPENDENCIES
+# ============================================
+newsapi-python>=0.2.7    # NewsAPI client
+wordcloud>=1.8.0         # Word cloud generation
+tqdm>=4.65.0             # Progress bars
+
+# ============================================
+# NEWS CLASSIFIER (HuggingFace)
+# ============================================
+transformers>=4.30.0     # HuggingFace transformers (optional, for local classification)
+
+# ============================================
 # SHARED ANALYSIS & VISUALIZATION
 # ============================================
 matplotlib>=3.5.0        # Plotting and visualization
 seaborn>=0.11.0          # Statistical visualization
-numpy>=1.21.0            # Numerical computing
 jupyter>=1.0.0           # Jupyter notebook support
 ipython>=7.0.0           # Interactive Python
 
@@ -52,6 +69,20 @@ numpy>=1.24.0            # Numerical computing
 pytest>=7.0.0            # Testing framework (optional)
 
 # ============================================
+# MASTER SCRAPER REQUIREMENTS
+# ============================================
+# The master scraper (master_scraper.py and master_scraper_fast.py)
+# requires all of the above dependencies to run all modules sequentially.
+#
+# Minimum requirements for master scraper:
+#   - pandas, requests, numpy (core)
+#   - atproto (Bluesky)
+#   - praw, textblob (Reddit)
+#   - pytrends, openpyxl (Google Trends)
+#   - newsapi-python (News API)
+#   - matplotlib, seaborn (visualization)
+
+# ============================================
 # INSTALLATION NOTES
 # ============================================
 # Install all dependencies:
@@ -59,8 +90,10 @@ pytest>=7.0.0            # Testing framework (optional)
 #
 # Or install by component:
 #   Bluesky only:  pip install atproto pandas requests matplotlib
-#   Reddit only:   pip install praw pandas matplotlib
+#   Reddit only:   pip install praw textblob pandas matplotlib
+#   News API only: pip install newsapi-python pandas requests wordcloud
 #   Trends only:   pip install -r scripts/google_trends/requirements-googletrends.txt
+#   Master scraper: pip install -r requirements.txt (all dependencies)
 #
 # Note: tkinter is usually included with Python
 #       If missing on Linux: sudo apt-get install python3-tk

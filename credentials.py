@@ -1,0 +1,5 @@
+# API Keys
+
+NEWSAPI_KEY = 'fafbfc25339b4ba0ac85575d86191267'
+
+HUGGINGFACE_TOKEN = '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'

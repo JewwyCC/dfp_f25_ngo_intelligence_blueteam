@@ -59,4 +59,4 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-*.temp
+*.tempscripts/news_api/credentials.py

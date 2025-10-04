@@ -219,6 +219,16 @@ class NGODashboard:
             st.session_state.current_page = 'landing'
         if 'zipcode' not in st.session_state:
             st.session_state.zipcode = None
+        if 'data_sources_status' not in st.session_state:
+            st.session_state.data_sources_status = {
+                'reddit': {'status': 'pending', 'progress': 0},
+                'google_trends': {'status': 'pending', 'progress': 0},
+                'news_api': {'status': 'pending', 'progress': 0},
+                'bluesky': {'status': 'pending', 'progress': 0},
+                'npr': {'status': 'pending', 'progress': 0}
+            }
+        if 'all_data_collected' not in st.session_state:
+            st.session_state.all_data_collected = False
         
         self.mock_data = self._generate_mock_data()
         
@@ -363,7 +373,17 @@ class NGODashboard:
             if st.button("🔍 Analyze Region", key="analyze_btn"):
                 if zipcode and len(zipcode) == 5 and zipcode.isdigit():
                     st.session_state.zipcode = zipcode
-                    st.session_state.current_page = 'dashboard'
+                    st.session_state.current_page = 'loading'
+                    
+                    # Reset data collection status
+                    st.session_state.data_sources_status = {
+                        'reddit': {'status': 'pending', 'progress': 0},
+                        'google_trends': {'status': 'pending', 'progress': 0},
+                        'news_api': {'status': 'pending', 'progress': 0},
+                        'bluesky': {'status': 'pending', 'progress': 0},
+                        'npr': {'status': 'pending', 'progress': 0}
+                    }
+                    st.session_state.all_data_collected = False
                     
                     # TODO: Trigger backend data collection for all sources
                     print(f"🚀 BACKEND DATA COLLECTION TRIGGERED FOR ZIP CODE: {zipcode}")
@@ -385,6 +405,134 @@ class NGODashboard:
                     st.rerun()
                 else:
                     st.error("Please enter a valid 5-digit ZIP code")
+    
+    def render_loading_screen(self):
+        """Render the data collection loading screen"""
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1d4ed8 100%); min-height: 100vh; padding: 2rem 0;">
+            <div style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+                <h1 style="color: #ffffff; text-align: center; font-size: 3rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    🔍 Collecting Data
+                </h1>
+                <p style="color: #ffffff; text-align: center; font-size: 1.2rem; margin-bottom: 3rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                    Gathering insights from multiple sources for ZIP code {st.session_state.zipcode}
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Data sources checklist
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.95); padding: 2rem; border-radius: 20px; margin: 2rem auto; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="color: #1f2937; text-align: center; margin-bottom: 2rem;">Data Sources Status</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create checklist for each data source
+        data_sources = [
+            {'name': 'Reddit Discussions', 'key': 'reddit', 'description': 'Collecting homelessness-related posts and comments'},
+            {'name': 'Google Trends', 'key': 'google_trends', 'description': 'Analyzing search volume patterns and trends'},
+            {'name': 'News API', 'key': 'news_api', 'description': 'Gathering media coverage and sentiment analysis'},
+            {'name': 'Bluesky Social', 'key': 'bluesky', 'description': 'Collecting social media posts and engagement'},
+            {'name': 'NPR Coverage', 'key': 'npr', 'description': 'Analyzing public radio coverage and stories'}
+        ]
+        
+        for source in data_sources:
+            status = st.session_state.data_sources_status[source['key']]
+            
+            if status['status'] == 'completed':
+                icon = "✅"
+                color = "#10b981"
+                progress_text = "Completed"
+            elif status['status'] == 'collecting':
+                icon = "⏳"
+                color = "#f59e0b"
+                progress_text = f"Collecting... {status['progress']}%"
+            else:
+                icon = "⏸️"
+                color = "#6b7280"
+                progress_text = "Pending"
+            
+            col1, col2 = st.columns([1, 4])
+            
+            with col1:
+                st.markdown(f"""
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 2rem;">{icon}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div style="padding: 1rem 0;">
+                    <h3 style="color: #1f2937; margin: 0 0 0.5rem 0; font-size: 1.2rem;">{source['name']}</h3>
+                    <p style="color: #6b7280; margin: 0 0 0.5rem 0; font-size: 0.9rem;">{source['description']}</p>
+                    <div style="background: #f3f4f6; border-radius: 10px; height: 8px; margin: 0.5rem 0;">
+                        <div style="background: {color}; height: 100%; border-radius: 10px; width: {status['progress']}%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="color: {color}; margin: 0; font-size: 0.8rem; font-weight: 600;">{progress_text}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+        
+        # Overall progress
+        total_progress = sum(status['progress'] for status in st.session_state.data_sources_status.values()) / len(st.session_state.data_sources_status)
+        completed_sources = sum(1 for status in st.session_state.data_sources_status.values() if status['status'] == 'completed')
+        total_sources = len(st.session_state.data_sources_status)
+        
+        st.markdown(f"""
+        <div style="background: rgba(255, 255, 255, 0.95); padding: 2rem; border-radius: 20px; margin: 2rem auto; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center;">
+            <h3 style="color: #1f2937; margin-bottom: 1rem;">Overall Progress</h3>
+            <div style="background: #f3f4f6; border-radius: 15px; height: 20px; margin: 1rem 0;">
+                <div style="background: linear-gradient(90deg, #10b981, #3b82f6); height: 100%; border-radius: 15px; width: {total_progress:.1f}%; transition: width 0.5s ease;"></div>
+            </div>
+            <p style="color: #1f2937; margin: 0; font-size: 1.1rem;">
+                {completed_sources}/{total_sources} sources completed ({total_progress:.1f}%)
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Status message
+        if completed_sources == total_sources:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">🎉 Data Collection Complete!</h3>
+                <p style="margin: 0; font-size: 1.1rem;">All sources have been successfully collected. Loading dashboard...</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">📊 Collecting Data Sources</h3>
+                <p style="margin: 0; font-size: 1.1rem;">Please wait while we gather comprehensive insights from all sources...</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    def simulate_data_collection(self):
+        """Simulate the data collection process"""
+        import time
+        
+        data_sources = ['reddit', 'google_trends', 'news_api', 'bluesky', 'npr']
+        
+        for i, source in enumerate(data_sources):
+            # Set status to collecting
+            st.session_state.data_sources_status[source]['status'] = 'collecting'
+            
+            # Simulate progress
+            for progress in range(0, 101, 10):
+                st.session_state.data_sources_status[source]['progress'] = progress
+                time.sleep(0.1)  # Small delay to show progress
+            
+            # Mark as completed
+            st.session_state.data_sources_status[source]['status'] = 'completed'
+            st.session_state.data_sources_status[source]['progress'] = 100
+            
+            # Small delay between sources
+            time.sleep(0.5)
+        
+        # Mark all data as collected
+        st.session_state.all_data_collected = True
     
     def render_dashboard_header(self):
         """Render the dashboard page header"""
@@ -762,6 +910,19 @@ class NGODashboard:
         """Main dashboard execution with page navigation"""
         if st.session_state.current_page == 'landing':
             self.render_landing_page()
+        elif st.session_state.current_page == 'loading':
+            self.render_loading_screen()
+            
+            # Auto-advance to dashboard after data collection
+            if st.session_state.all_data_collected:
+                st.session_state.current_page = 'dashboard'
+                st.rerun()
+            else:
+                # Simulate data collection on first load
+                if all(status['status'] == 'pending' for status in st.session_state.data_sources_status.values()):
+                    # Start data collection simulation
+                    self.simulate_data_collection()
+                    st.rerun()
         elif st.session_state.current_page == 'dashboard':
             self.render_dashboard_header()
             

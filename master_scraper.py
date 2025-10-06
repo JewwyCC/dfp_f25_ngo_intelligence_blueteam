@@ -579,12 +579,13 @@ try:
     print(f"Posts per subreddit: {posts_per_sub}")
 
     # Use the EXACT same method as data_collection.py script
+    # COMPREHENSIVE: 1 year of data for thorough analysis
     posts = collect_with_even_distribution(
         reddit=reddit,
         subreddits=subreddits,
         keywords=keywords,
         posts_per_sub={posts_per_sub},
-        time_filter='month',
+        time_filter='year',  # 1 YEAR of data
         strategy='balanced'
     )
 
@@ -688,9 +689,9 @@ except Exception as e:
         # This works on ANY computer - no external dependencies!
         homelessness_search_terms = ['homeless']  # Wildcard: matches homeless, homelessness, homeless shelter, etc.
 
-        # AGGRESSIVE MINIMAL settings for GUARANTEED speed
-        max_posts = 10   # Very small = 1 page only = FAST
-        days_back = 0    # Today only = minimum API calls
+        # COMPREHENSIVE settings for rich dataset (30s+ collection)
+        max_posts = 100  # More posts for comprehensive analysis
+        days_back = 7    # Last week of data
 
         self.print_progress(f"Running Bluesky script workflow")
         self.print_progress(f"Searching for homelessness ({max_posts} posts, {days_back} days)")

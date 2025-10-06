@@ -1,58 +1,81 @@
 # Homelessness Research Data Scraper
 
-Comprehensive data collection tool for homelessness research from multiple sources.
+Comprehensive data collection tool for homelessness research from multiple sources with automated visualizations.
 
 ## Quick Start
 
 ```bash
-python master_scraper.py --duration 120
+python master_scraper.py --duration 600
 ```
 
 ## What It Does
 
 Collects data from 4 sources sequentially:
 
-1. **Google Trends** (3-4 min) - Extracts trending homelessness keywords
-2. **News API** (~5s) - Collects news articles with dual classification (keyword + AI)
-3. **Reddit** (~20s) - Scrapes 9 homelessness subreddits
-4. **Bluesky** (~30-60s) - Social media posts with polarization analysis
+1. **Google Trends** (2-3 min) - Trend analysis with visualizations
+2. **News API** (~5s) - News articles with political bias classification
+3. **Reddit** (~30s) - 1 YEAR of historical data from 9 subreddits
+4. **Bluesky** (~30s) - 100 posts with rich metadata and polarization analysis
 
-## Output
+## Output Structure
 
 All data saved to: `data/master_output/session_YYYYMMDD_HHMMSS/`
 
-Files created:
-- `googletrends_*.xlsx` - Trend data
-- `news_api_articles.csv/json` - News articles
-- `news_api_classified.csv/json` - Dual classification results
-- `reddit_posts.csv/json` - Reddit posts
-- `homelessness_posts.csv/jsonl` - Bluesky posts with polarization
-- `master_log_*.json` - Complete execution log
+### Data Files (CSV/JSON/JSONL)
+- `googletrends_*.xlsx/csv` - Google Trends data
+- `news_api_articles.csv/json` - News articles with polarization
+- `reddit_posts.csv/json` - Reddit posts (1 year of data)
+- `homelessness_posts.csv/jsonl` - Bluesky posts with rich metadata
+
+### Visualizations (PNG)
+
+**Google Trends** (11 visualizations):
+- `viz_national_timeseries_*.png` - National trends over time
+- `viz_CA_timeseries_*.png` - California state trends
+- `viz_theme_comp_*.png` - Theme comparison chart
+- `viz_national_seasonal_*.png` (4 files) - National seasonal patterns by theme
+- `viz_state_seasonal_*.png` (4 files) - State-level seasonal patterns by theme
+- `viz_choropleth_*.html` (2 files) - Interactive geographic maps
+
+**Bluesky** (8 visualizations):
+- `bluesky_timeline_*.png` - Posts over time period
+- `bluesky_wordcloud_all_*.png` - Word cloud from all posts
+- `bluesky_polarization_gauge_*.png` - LEFT vs RIGHT political analysis
+- `bluesky_wordcloud_left_*.png` - Left-leaning content (blue)
+- `bluesky_wordcloud_right_*.png` - Right-leaning content (red)
+- `bluesky_engagement_totals_*.png` - Likes, Replies, Reposts
+- `bluesky_hourly_pattern_*.png` - Posting activity by hour (UTC)
+- `bluesky_top_authors_*.png` - Top 15 contributors
+
+### Logs
+- `master_log_*.json` - Complete execution log with metadata
 
 ## Features
 
-### News API - Dual Classification
-- **Keyword-based** (fast): Uses political keyword matching
-- **HuggingFace AI** (slow): Uses politicalBiasBERT model
-- Compares speed and accuracy between methods
+### Google Trends - Comprehensive Analysis
+- National and state-level trends (California focus)
+- Seasonal analysis across 4 theme categories
+- Interactive choropleth maps
+- Time series visualizations
+- **All visualizations saved as PNG/HTML in master_output**
 
-### Bluesky - Polarization Analysis
+### Bluesky - Rich Metadata & Polarization
 Every post includes:
-- `political_leaning`: LEFT, RIGHT, or NEUTRAL
-- `polarization_confidence`: Confidence score (0-1)
-- `left_keywords_count`: Number of left-leaning keywords
-- `right_keywords_count`: Number of right-leaning keywords
+- **Author metrics**: followers_count, following_count, posts_count, verified_status
+- **Engagement**: like_count, repost_count, reply_count, total_engagement
+- **Content features**: word_count, hashtag_count, mention_count, url_count, has_media
+- **Polarization**: political_bias (LEFT/RIGHT/NEUTRAL), bias_confidence (0-1)
+- **8 individual PNG visualizations** generated automatically
 
-### Reddit - Comprehensive Coverage
-Scrapes from 9 subreddits:
+### Reddit - 1 Year Historical Data
+Collects from 9 subreddits with `time_filter='year'`:
 - homeless, housing, eviction, affordablehousing
 - rent, shelter, housingcrisis, povertyfinance, urbancarliving
 
-### Google Trends - Full Analysis
-- National and state-level trends
-- Seasonal analysis
-- Interactive choropleth maps
-- Time series visualizations
+### News API - Political Bias Classification
+- Keyword-based political classification (LEFT/RIGHT/NEUTRAL)
+- Bias confidence scoring
+- Collects up to 100 articles per run
 
 ## Requirements
 
@@ -67,25 +90,46 @@ API Keys needed:
 
 ## Parameters
 
-- `--duration`: Total time budget in seconds (default: 60)
+- `--duration`: Total time budget in seconds (default: 60, recommended: 600 for comprehensive run)
 
-Time is allocated:
-- 15% to Google Trends (minimum 3 minutes)
+Time allocation:
+- 15% to Google Trends (minimum 3 minutes for full analysis)
 - 30% to News API
 - 25% to Reddit
-- 30% to Bluesky
+- 30% to Bluesky (minimum 30s for API calls)
 
-## Notes
+## Data Retention
 
-- Google Trends takes 3-4 minutes regardless of time budget (comprehensive analysis)
-- All modules save both JSON and CSV formats
-- Only latest 3 sessions are kept to save space
-- All data focuses on homelessness research
+**Auto-cleanup**: Only the last 3 sessions are retained to save disk space.
+
+## Comprehensive Run Example
+
+```bash
+# Recommended: 10-minute comprehensive collection
+python master_scraper.py --duration 600
+```
+
+**Expected results:**
+- Google Trends: 11 keywords extracted, 11+ visualizations
+- News API: 0-20 articles (may be rate-limited)
+- Reddit: 100-200 posts from 1 year of data
+- Bluesky: 99-100 posts with full metadata + 8 visualizations
+
+## Visualizations
+
+**Google Trends**: Generated by `scripts/google_trends/googletrends.py` and copied to master_output
+- National/state time series (PNG)
+- Seasonal patterns by theme (PNG)
+- Geographic choropleth maps (HTML)
+
+**Bluesky**: Generated inline during master_scraper execution
+- Timeline, word clouds, polarization gauge, engagement charts (PNG)
+- Created from CSV/JSONL data in the same session directory
 
 ## Success Rate
 
-Typical run: **4/4 modules succeed** (100%)
-- Google Trends: Always succeeds (patient execution)
-- News API: Fast, usually finds 5-20 articles
-- Reddit: Reliable, collects 60+ posts
-- Bluesky: Requires authentication, collects 100+ posts
+Typical comprehensive run: **3/4 modules succeed (75%)**
+- ✅ Google Trends: Always succeeds (patient execution)
+- ⚠️ News API: Works but often rate-limited (0 articles)
+- ✅ Reddit: Reliable, collects 100-200 posts from 1 year
+- ✅ Bluesky: Collects 99-100 posts with rich metadata + polarization

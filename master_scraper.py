@@ -910,6 +910,208 @@ except Exception as e:
 
                     print(f"{Colors.OKCYAN}➜ Polarization: LEFT={left_count}, RIGHT={right_count}, NEUTRAL={neutral_count}{Colors.ENDC}")
 
+                    # GENERATE VISUALIZATIONS as SEPARATE PNGs (one widget = one PNG, like Google Trends)
+                    print(f"{Colors.OKCYAN}➜ Generating Bluesky visualizations (individual PNGs)...{Colors.ENDC}")
+                    try:
+                        import pandas as pd
+                        import matplotlib.pyplot as plt
+                        import matplotlib
+                        matplotlib.use('Agg')  # Non-interactive backend
+                        from collections import Counter
+                        from wordcloud import WordCloud
+
+                        # Load data
+                        df = pd.DataFrame(posts)
+                        df['created_at_parsed'] = pd.to_datetime(df['created_at'], errors='coerce', utc=True)
+
+                        # Style settings
+                        text_color = '#121212'
+                        bg_color = 'white'
+                        accent_color = '#4a4a4a'
+                        left_color = '#4a90e2'
+                        right_color = '#e24a4a'
+
+                        viz_count = 0
+
+                        # 1. TIMELINE - Period Data Pulled
+                        if 'created_at_parsed' in df.columns and df['created_at_parsed'].notna().any():
+                            df['date'] = df['created_at_parsed'].dt.date
+                            posts_per_day = df.groupby('date').size().sort_index()
+
+                            fig, ax = plt.subplots(figsize=(10, 4), dpi=100, facecolor=bg_color)
+                            ax.plot(posts_per_day.index, posts_per_day.values, color=accent_color, linewidth=2.5, marker='o', markersize=5)
+                            ax.fill_between(posts_per_day.index, posts_per_day.values, alpha=0.1, color=accent_color)
+                            ax.set_title('Bluesky: Period Data Pulled (Timeline)', fontsize=14, color=text_color, weight='bold', pad=15)
+                            ax.set_xlabel('Date', fontsize=10, color='#666666')
+                            ax.set_ylabel('Posts', fontsize=10, color='#666666')
+                            ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+                            plt.tight_layout()
+                            viz_path = session_dir / f"bluesky_timeline_{self.timestamp}.png"
+                            fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                            plt.close(fig)
+                            output_files.append(str(viz_path))
+                            viz_count += 1
+
+                        # 2. CONTENT WORD CLOUD
+                        if 'text' in df.columns:
+                            text_data = ' '.join(df['text'].dropna().astype(str).head(1000))
+                            if text_data.strip():
+                                fig, ax = plt.subplots(figsize=(12, 6), dpi=100, facecolor=bg_color)
+                                wc = WordCloud(width=1200, height=600, background_color='white',
+                                             color_func=lambda *args, **kwargs: accent_color, max_words=80).generate(text_data)
+                                ax.imshow(wc, interpolation='bilinear')
+                                ax.set_title('Bluesky: Content Word Cloud (All Posts)', fontsize=14, color=text_color, weight='bold', pad=15)
+                                ax.axis('off')
+                                plt.tight_layout()
+                                viz_path = session_dir / f"bluesky_wordcloud_all_{self.timestamp}.png"
+                                fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                                plt.close(fig)
+                                output_files.append(str(viz_path))
+                                viz_count += 1
+
+                        # 3. POLITICAL POLARIZATION GAUGE
+                        left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
+                                        'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights']
+                        right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
+                                         'border security', 'pro-life', 'second amendment', 'law and order']
+
+                        left_texts = []
+                        right_texts = []
+                        left_polar_count = right_polar_count = 0
+
+                        for text in df['text'].dropna().astype(str):
+                            text_lower = text.lower()
+                            left_matches = sum(1 for kw in left_keywords if kw in text_lower)
+                            right_matches = sum(1 for kw in right_keywords if kw in text_lower)
+
+                            if left_matches > right_matches and left_matches > 0:
+                                left_polar_count += 1
+                                left_texts.append(text)
+                            elif right_matches > left_matches and right_matches > 0:
+                                right_polar_count += 1
+                                right_texts.append(text)
+
+                        total_polar = left_polar_count + right_polar_count
+                        if total_polar > 0:
+                            left_pct = (left_polar_count / total_polar) * 100
+                            right_pct = (right_polar_count / total_polar) * 100
+
+                            fig, ax = plt.subplots(figsize=(10, 5), dpi=100, facecolor=bg_color)
+                            sizes = [left_pct, right_pct]
+                            colors = [left_color, right_color]
+                            labels = [f'Left-leaning\\n{left_polar_count} posts\\n({left_pct:.1f}%)',
+                                     f'Right-leaning\\n{right_polar_count} posts\\n({right_pct:.1f}%)']
+                            wedges, texts = ax.pie(sizes, labels=labels, colors=colors, startangle=180,
+                                                   wedgeprops={'width': 0.4, 'linewidth': 1, 'edgecolor': 'white'})
+                            ax.set_ylim(-1, 0.2)  # Gauge style (half donut)
+                            ax.text(0, -0.5, f'{total_polar}\\npolarized posts', ha='center', va='center',
+                                   fontsize=12, color='#666666', weight='bold')
+                            ax.set_title('Bluesky: Political Polarization Analysis', fontsize=14, color=text_color, weight='bold', pad=15)
+                            plt.tight_layout()
+                            viz_path = session_dir / f"bluesky_polarization_gauge_{self.timestamp}.png"
+                            fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                            plt.close(fig)
+                            output_files.append(str(viz_path))
+                            viz_count += 1
+
+                        # 4. LEFT-LEANING WORD CLOUD
+                        if len(left_texts) > 0:
+                            left_text_data = ' '.join(left_texts)
+                            if left_text_data.strip():
+                                fig, ax = plt.subplots(figsize=(10, 5), dpi=100, facecolor=bg_color)
+                                wc_left = WordCloud(width=1000, height=500, background_color='white',
+                                                   color_func=lambda *args, **kwargs: left_color, max_words=60).generate(left_text_data)
+                                ax.imshow(wc_left, interpolation='bilinear')
+                                ax.set_title(f'Bluesky: Left-Leaning Content ({len(left_texts)} posts)',
+                                           fontsize=14, color=left_color, weight='bold', pad=15)
+                                ax.axis('off')
+                                plt.tight_layout()
+                                viz_path = session_dir / f"bluesky_wordcloud_left_{self.timestamp}.png"
+                                fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                                plt.close(fig)
+                                output_files.append(str(viz_path))
+                                viz_count += 1
+
+                        # 5. RIGHT-LEANING WORD CLOUD
+                        if len(right_texts) > 0:
+                            right_text_data = ' '.join(right_texts)
+                            if right_text_data.strip():
+                                fig, ax = plt.subplots(figsize=(10, 5), dpi=100, facecolor=bg_color)
+                                wc_right = WordCloud(width=1000, height=500, background_color='white',
+                                                    color_func=lambda *args, **kwargs: right_color, max_words=60).generate(right_text_data)
+                                ax.imshow(wc_right, interpolation='bilinear')
+                                ax.set_title(f'Bluesky: Right-Leaning Content ({len(right_texts)} posts)',
+                                           fontsize=14, color=right_color, weight='bold', pad=15)
+                                ax.axis('off')
+                                plt.tight_layout()
+                                viz_path = session_dir / f"bluesky_wordcloud_right_{self.timestamp}.png"
+                                fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                                plt.close(fig)
+                                output_files.append(str(viz_path))
+                                viz_count += 1
+
+                        # 6. ENGAGEMENT METRICS (Bar chart)
+                        if 'like_count' in df.columns:
+                            fig, ax = plt.subplots(figsize=(8, 5), dpi=100, facecolor=bg_color)
+                            engagement_data = [df['like_count'].sum(), df.get('reply_count', pd.Series([0])).sum(),
+                                             df.get('repost_count', pd.Series([0])).sum()]
+                            labels = ['Likes', 'Replies', 'Reposts']
+                            bars = ax.bar(labels, engagement_data, color=[accent_color, '#5a9bc4', '#8bb8d6'], width=0.6)
+                            ax.set_title('Bluesky: Total Engagement Counts', fontsize=14, color=text_color, weight='bold', pad=15)
+                            ax.set_ylabel('Count', fontsize=10, color='#666666')
+                            for i, v in enumerate(engagement_data):
+                                ax.text(i, v, f'{int(v):,}', ha='center', va='bottom', fontsize=9)
+                            ax.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.5)
+                            plt.tight_layout()
+                            viz_path = session_dir / f"bluesky_engagement_totals_{self.timestamp}.png"
+                            fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                            plt.close(fig)
+                            output_files.append(str(viz_path))
+                            viz_count += 1
+
+                        # 7. HOURLY POSTING PATTERN
+                        if 'created_at_parsed' in df.columns and df['created_at_parsed'].notna().any():
+                            df['hour'] = df['created_at_parsed'].dt.hour
+                            hourly_counts = df.groupby('hour').size()
+                            fig, ax = plt.subplots(figsize=(10, 4), dpi=100, facecolor=bg_color)
+                            ax.bar(hourly_counts.index, hourly_counts.values, color=accent_color, alpha=0.7, width=0.8)
+                            ax.set_title('Bluesky: Hourly Posting Pattern', fontsize=14, color=text_color, weight='bold', pad=15)
+                            ax.set_xlabel('Hour (UTC)', fontsize=10, color='#666666')
+                            ax.set_ylabel('Posts', fontsize=10, color='#666666')
+                            ax.set_xticks(range(0, 24, 3))
+                            ax.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.5)
+                            plt.tight_layout()
+                            viz_path = session_dir / f"bluesky_hourly_pattern_{self.timestamp}.png"
+                            fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                            plt.close(fig)
+                            output_files.append(str(viz_path))
+                            viz_count += 1
+
+                        # 8. TOP AUTHORS (Horizontal bar)
+                        if 'author_handle' in df.columns:
+                            author_counts = df['author_handle'].value_counts().head(15)
+                            fig, ax = plt.subplots(figsize=(10, 6), dpi=100, facecolor=bg_color)
+                            bars = ax.barh(range(len(author_counts)), author_counts.values, color=accent_color, height=0.7)
+                            ax.set_yticks(range(len(author_counts)))
+                            ax.set_yticklabels([f'@{h}' for h in author_counts.index], fontsize=9)
+                            ax.invert_yaxis()
+                            ax.set_title('Bluesky: Top 15 Contributors', fontsize=14, color=text_color, weight='bold', pad=15)
+                            ax.set_xlabel('Number of Posts', fontsize=10, color='#666666')
+                            ax.grid(True, alpha=0.3, axis='x', linestyle='-', linewidth=0.5)
+                            plt.tight_layout()
+                            viz_path = session_dir / f"bluesky_top_authors_{self.timestamp}.png"
+                            fig.savefig(viz_path, dpi=100, bbox_inches='tight', facecolor=bg_color)
+                            plt.close(fig)
+                            output_files.append(str(viz_path))
+                            viz_count += 1
+
+                        print(f"{Colors.OKGREEN}✅ Generated {viz_count} Bluesky visualizations (individual PNGs){Colors.ENDC}")
+
+                    except Exception as viz_error:
+                        print(f"{Colors.WARNING}⚠ Visualization failed: {str(viz_error)}{Colors.ENDC}")
+                        import traceback
+                        traceback.print_exc()
+
                 self.results['bluesky'] = {
                     'status': 'success',
                     'search_terms': homelessness_search_terms,

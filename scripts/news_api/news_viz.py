@@ -1,6 +1,8 @@
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import numpy as np
+import os
+from datetime import datetime
 from news_configs import *
 from wordcloud import WordCloud
 
@@ -14,9 +16,9 @@ class Visualizations:
         self.articles_data = None
         self.df = df.copy()
         self.keyword = keyword
+        self.output_directory = OUTPUT_DIRECTORY
 
         # Prepare temporal data
-        # self.df['date'] = pd.to_datetime(self.df['date']).dt.date
         self.df['date'] = pd.to_datetime(self.df['date'], errors='coerce', utc=True)
 
 
@@ -83,8 +85,7 @@ class Visualizations:
         ax.set_yticklabels(top_sources['Source'])
         ax.invert_yaxis()  # Labels read top-to-bottom
         ax.set_xlabel('Number of Articles', fontsize=12, fontweight='bold')
-        ax.set_title(f'Top {top_n} News Sources for Homelessness\n(Last {SEARCH_TIME} Days)',
-                     fontsize=14, fontweight='bold')
+        ax.set_title(f'US News Outlets Reporting on Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
 
         # Add value labels
         for i, (count, pct) in enumerate(zip(top_sources['Article Count'],
@@ -95,6 +96,10 @@ class Visualizations:
         plt.grid(axis='x', alpha=0.3)
         plt.tight_layout()
         plt.show()
+        news_timestamp = datetime.now()
+        barchart_fname = f'news_US-News-Outlets-Reporting-on-Homelessness-in-the-Last-30-Days-{news_timestamp}.png'
+        barchart_path = os.path.join(self.output_directory, barchart_fname)
+        plt.savefig(barchart_path)
 
 
     def generate_wordcloud(self, text):
@@ -126,6 +131,11 @@ class Visualizations:
         plt.tight_layout(pad=WC_LAYOUT_PADDING)
         plt.show()
 
+        news_timestamp = datetime.now()
+        wordcloud_fname = f'news_Word-Cloud-for-US-News-Articles-on-Homelessness-from-the-Last-30-Days_{news_timestamp}.png'
+        wordcloud_path = os.path.join(self.output_directory, wordcloud_fname)
+        plt.savefig(wordcloud_path)
+
         return wordcloud
 
     def pie_chart(self, df):
@@ -152,8 +162,13 @@ class Visualizations:
                 autopct='%1.1f%%',
                 startangle=90)
 
-        plt.title('Media Article by Political Leaning', fontsize=12, fontweight='bold')
+        plt.title('Proportion of US Media Articles on Homelessness by Political Leaning', fontsize=12, fontweight='bold')
         plt.show()
+
+        news_timestamp = datetime.now()
+        pie_chart_fname = f'news_Proportion of US Media Articles on Homelessness by Political Leaning_{news_timestamp}.png'
+        pie_chart_path = os.path.join(self.output_directory, pie_chart_fname)
+        plt.savefig(pie_chart_path)
 
 
 class PoliticalAnalysisVisualizer:
@@ -165,6 +180,7 @@ class PoliticalAnalysisVisualizer:
             'CENTER': '#cbcaca',  # Gray for center
             'RIGHT': '#d30b0d'  # Red for right
         }
+        self.output_directory = OUTPUT_DIRECTORY
         self.political_order = ['Left', 'Center', 'Right']
 
 
@@ -201,37 +217,17 @@ class PoliticalAnalysisVisualizer:
 
         plt.xlabel('Date')
         plt.ylabel('Number of Articles')
-        plt.title('Political Leaning Timeline')
+        plt.title('Timeline of US News Articles in the Last 30D ays by Political Leaning')
         plt.legend(title='Political Leaning')
         plt.grid(True, alpha=0.3)
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         plt.show()
 
-
-    def visualize_by_source(self, df, top_n=25):
-        """
-        Visualize political leanings by news source.
-        """
-
-        # Get top sources by article count
-        top_sources = df['source'].value_counts().head(top_n).index
-        df_top = df[df['source'].isin(top_sources)]
-
-        # Create crosstab for analysis
-        crosstab = pd.crosstab(df_top['source'], df_top['leaning'])
-
-        # Reorder columns
-        available_cols = [col for col in self.political_order if col in crosstab.columns]
-        crosstab = crosstab[available_cols]
-
-        # Sort by total articles
-        crosstab = crosstab.loc[crosstab.sum(axis=1).sort_values(ascending=False).index]
-
-        # Create visualizations
-        fig, axes = plt.subplots(1, 2, figsize=(18, 8))
-        fig.suptitle(f'Political Classification by News Source: Homelessness',
-                     fontsize=16, fontweight='bold')
+        news_timestamp = datetime.now()
+        timeline_fname = f'news_Timeline-of-US-News-Articles-in-the-Last-30-Days-by-Political-Leaning_{news_timestamp}.png'
+        timeline_path = os.path.join(self.output_directory, timeline_fname)
+        plt.savefig(timeline_path)
 
 
     def create_interactive_visualizations(self, df):
@@ -270,9 +266,12 @@ class PoliticalAnalysisVisualizer:
         )])
 
         fig_sankey.update_layout(
-            title_text=f'Flow from News Sources to Political Classifications: "Homelessness"',
+            title_text=f'Political Leaning of Articles on Homelessness from US Media"',
             font_size=10,
             height=600
         )
-        # fig_sankey.show()
-        fig_sankey.write_html('sankey_diagram.html', auto_open=False)
+        fig_sankey.show()
+        news_timestamp = datetime.now()
+        sankey_fname = f'news_Political Leaning of Articles on Homelessness from US Media_{news_timestamp}.html'
+        sankey_path = os.path.join(self.output_directory, sankey_fname)
+        fig_sankey.write_html(sankey_path, auto_open=False)

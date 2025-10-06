@@ -130,6 +130,39 @@ class HomelessnessMasterOrchestrator:
         self.log_entry('google_trends', 'info', f"Starting Google Trends analysis with {self.time_budget['google_trends']}s budget")
 
         try:
+            # Check if recent Google Trends data exists (within last 7 days for reuse)
+            viz_dir = self.project_root / "viz" / "google_trends"
+            recent_viz_exists = False
+            if viz_dir.exists():
+                viz_files = list(viz_dir.glob("*"))
+                if viz_files:
+                    # Check if any file is less than 7 days old (avoid frequent API calls)
+                    import time as time_module
+                    seven_days_ago = time_module.time() - (7 * 24 * 3600)
+                    recent_viz_exists = any(f.stat().st_mtime > seven_days_ago for f in viz_files)
+            
+            if recent_viz_exists:
+                self.print_info("✓ Recent Google Trends data found (< 7 days old)")
+                self.print_info("  Skipping API calls to avoid rate limits - using existing data")
+                self.log_entry('google_trends', 'info', 'Using existing recent data to avoid rate limits')
+                
+                # Extract keywords and copy files
+                self.keywords = self.extract_keywords_from_trends()
+                output_files = self.copy_google_trends_outputs()
+                
+                elapsed = time.time() - start
+                self.print_success(f"Google Trends data reused in {elapsed:.1f}s")
+                self.print_info(f"Keywords extracted: {len(self.keywords)} homelessness-related terms")
+                
+                self.results['google_trends'] = {
+                    'status': 'success',
+                    'keywords_extracted': len(self.keywords),
+                    'duration': elapsed,
+                    'output_files': output_files,
+                    'note': 'Used existing recent data'
+                }
+                return True
+            
             self.print_progress("🕰️ PATIENT Google Trends: Running googletrends.py (NO TIMEOUT)")
             self.print_progress("This creates: Excel files, normalized CSV, visualizations, and keyword extraction")
             self.print_progress("⏳ Please wait - comprehensive analysis takes time...")
@@ -328,15 +361,13 @@ class HomelessnessMasterOrchestrator:
                         shutil.copy2(src_file, dst_file)
                         copied_files.append(str(dst_file))
 
-            # CLEAN UP: Delete timestamp files from source directories (centralize in master_output)
+            # CLEAN UP: Delete timestamp files from scripts/google_trends (but KEEP viz files for reuse)
             import shutil
             for f in all_files:
                 f.unlink()  # Delete timestamp files from scripts/google_trends
-            if viz_dir.exists():
-                for f in viz_files:
-                    f.unlink()  # Delete viz files from viz/google_trends
+            # NOTE: We keep viz files in viz/google_trends for reuse to avoid API rate limits
 
-            self.log_entry('google_trends', 'info', f'Copied {len(copied_files)} files and cleaned source directories')
+            self.log_entry('google_trends', 'info', f'Copied {len(copied_files)} files (kept viz files for reuse)')
 
         except Exception as e:
             self.log_entry('google_trends', 'warning', f'Error copying output files: {str(e)}')
@@ -703,33 +734,74 @@ except Exception as e:
             return False
 
     def run_bluesky(self):
-        """Step 4: Bluesky - WILDCARD SEARCH for homelessness (portable, no dependencies)"""
+        """Step 4: Bluesky - Comprehensive social media data collection with visualizations"""
         self.print_header(f"STEP 4/4: BLUESKY (HOMELESSNESS SEARCH - {self.time_budget['bluesky']}s)")
         start = time.time()
 
-        # WILDCARD SEARCH: Use broad single keyword that matches everything homelessness-related
-        # This works on ANY computer - no external dependencies!
-        homelessness_search_terms = ['homeless']  # Wildcard: matches homeless, homelessness, homeless shelter, etc.
+        # Use the comprehensive Bluesky scraper with proper duration
+        duration_minutes = int(self.time_budget['bluesky'] / 60)
+        if duration_minutes < 1:
+            duration_minutes = 1
 
-        # COMPREHENSIVE settings for rich dataset (30s+ collection)
-        max_posts = 100  # More posts for comprehensive analysis
-        days_back = 7    # Last week of data
-
-        self.print_progress(f"Running Bluesky script workflow")
-        self.print_progress(f"Searching for homelessness ({max_posts} posts, {days_back} days)")
-        self.print_progress(f"Search terms: {', '.join(homelessness_search_terms)}")
-
-        # Create temporary keywords file with comprehensive homelessness terms
-        temp_keywords_file = self.scripts_dir / "bluesky" / "temp_homelessness_keywords.txt"
-        with open(temp_keywords_file, 'w') as f:
-            f.write('\n'.join(homelessness_search_terms))
+        self.print_progress(f"🦋 Running comprehensive Bluesky collector")
+        self.print_progress(f"   Method: search (API-based)")
+        self.print_progress(f"   Duration: {duration_minutes} minutes")
+        self.print_progress(f"   Keywords: homelessness + related terms")
+        self.print_progress(f"   Output: Posts + Visualizations")
 
         try:
-            # Bluesky writes DIRECTLY to master_output - no copying needed!
-            session_dir = self.master_output_dir / f"session_{self.timestamp}"
-            session_dir.mkdir(exist_ok=True)
+            # Run the comprehensive Bluesky collector using main.py
+            bluesky_script = self.scripts_dir / "bluesky" / "main.py"
+            
+            # Call the Bluesky main.py with proper arguments
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(bluesky_script),
+                    '--method', 'search',
+                    '--duration', str(duration_minutes),
+                    '--keywords', 'homelessness'
+                ],
+                cwd=str(self.scripts_dir / "bluesky"),
+                capture_output=True,
+                text=True,
+                timeout=self.time_budget['bluesky'] + 60  # Add 60s buffer
+            )
 
-            homelessness_wrapper_code = f'''
+            elapsed = time.time() - start
+
+            if result.returncode == 0:
+                # Parse output for success indicators
+                output_lines = result.stdout.strip().split('\n')
+                for line in output_lines:
+                    if '✅' in line or 'Collected' in line or 'Saved' in line:
+                        self.print_info(line.strip())
+                        self.log_entry('bluesky', 'info', line.strip())
+
+                # Copy Bluesky outputs to master_output
+                bluesky_output_files = self.copy_bluesky_outputs()
+
+                self.print_success(f"🦋 Bluesky collector completed in {elapsed:.1f}s")
+                self.print_info(f"   Posts collected and saved to session directory")
+                if bluesky_output_files:
+                    self.print_info(f"   {len(bluesky_output_files)} files copied to master_output")
+
+                self.log_entry('bluesky', 'success', 'Bluesky collection completed', {
+                    'duration': elapsed,
+                    'output_files': bluesky_output_files
+                })
+
+                self.results['bluesky'] = {
+                    'status': 'success',
+                    'duration': elapsed,
+                    'output_files': bluesky_output_files,
+                    'method': 'search'
+                }
+                return True
+            else:
+                # If main.py failed, try simple inline fallback
+                self.print_info("⚠️ Main collector failed, using simple fallback")
+                homelessness_wrapper_code = f'''
 import sys
 import os
 import json

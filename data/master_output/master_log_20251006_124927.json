@@ -1,0 +1,252 @@
+{
+  "session_info": {
+    "start_time": "2025-10-06T12:49:27.031650",
+    "duration_budget": 900,
+    "time_budget": {
+      "google_trends": 135,
+      "news_api": 270,
+      "reddit": 225,
+      "bluesky": 270
+    },
+    "timestamp": "20251006_124927"
+  },
+  "results": {
+    "google_trends": {
+      "status": "success",
+      "keywords_extracted": 11,
+      "duration": 833.893975019455,
+      "output_files": []
+    },
+    "news_api": {
+      "status": "SUCCESS",
+      "duration": 27.12983012199402,
+      "articles": 75,
+      "visualizations": 4
+    },
+    "reddit": {
+      "status": "success",
+      "subreddits_used": 9,
+      "keywords_used": 31,
+      "duration": 28.764175176620483
+    },
+    "bluesky": {
+      "status": "success",
+      "search_terms": [
+        "homeless"
+      ],
+      "duration": 18.931006908416748,
+      "output_files": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/homelessness_posts.jsonl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/homelessness_posts.csv",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_timeline_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_wordcloud_all_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_polarization_gauge_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_wordcloud_left_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_wordcloud_right_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_engagement_totals_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_hourly_pattern_20251006_124927.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/bluesky_top_authors_20251006_124927.png"
+      ]
+    }
+  },
+  "keywords": [
+    "homelessness definition",
+    "california homelessness",
+    "hud homeless",
+    "what is homelessness",
+    "alliance to end homelessness",
+    "los angeles homelessness",
+    "san francisco homelessness",
+    "end homelessness",
+    "causes of homelessness",
+    "homeless statistics",
+    "homelessness statistics"
+  ],
+  "log_entries": [
+    {
+      "timestamp": "2025-10-06T12:49:27.031788",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Starting Google Trends analysis with 135s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:49:27.031978",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Executing googletrends.py script with NO TIMEOUT - being patient",
+      "data": {
+        "script_path": "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/scripts/google_trends/googletrends.py",
+        "timeout": "NONE - Patient execution"
+      }
+    },
+    {
+      "timestamp": "2025-10-06T13:03:20.925921",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\ud83d\ude80 Starting Google Trends Analysis Pipeline",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:20.925989",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Theme-keyword mapping loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:20.925993",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Help keywords loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:20.925995",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 ZIP to state mapping loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:21.713694",
+      "module": "google_trends",
+      "level": "success",
+      "message": "Script completed successfully",
+      "data": {
+        "duration": 833.893975019455,
+        "keywords_extracted": 11,
+        "keywords_sample": [
+          "homelessness definition",
+          "california homelessness",
+          "hud homeless",
+          "what is homelessness",
+          "alliance to end homelessness"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-10-06T13:03:21.714678",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Copied 0 files (kept viz files for reuse)",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:21.714708",
+      "module": "news_api",
+      "level": "info",
+      "message": "Starting News API scraping with 270s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:26.650832",
+      "module": "news_api",
+      "level": "info",
+      "message": "Using Kaitlin's modular News API implementation",
+      "data": {
+        "keywords": [
+          "homeless",
+          "what is homelessness",
+          "end homelessness",
+          "homelessness in america",
+          "california homelessness"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-10-06T13:03:48.844626",
+      "module": "news_api",
+      "level": "success",
+      "message": "Collected 75 articles and generated 4 visualizations",
+      "data": {
+        "articles_count": 75,
+        "visualizations": 4,
+        "elapsed_seconds": 27.1
+      }
+    },
+    {
+      "timestamp": "2025-10-06T13:03:48.849984",
+      "module": "reddit",
+      "level": "info",
+      "message": "Starting Reddit scraping with 225s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:03:48.852877",
+      "module": "reddit",
+      "level": "info",
+      "message": "Using exact Reddit configuration",
+      "data": {
+        "subreddits": [
+          "homeless",
+          "housing",
+          "eviction",
+          "affordablehousing",
+          "rent",
+          "shelter",
+          "housingcrisis",
+          "povertyfinance",
+          "urbancarliving"
+        ],
+        "keywords_count": 31,
+        "posts_per_sub": 200,
+        "total_potential_posts": 1800
+      }
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614234",
+      "module": "reddit",
+      "level": "info",
+      "message": "HUNGRY SCRAPER: Using ALL 9 subreddits and 31 keywords",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614271",
+      "module": "reddit",
+      "level": "info",
+      "message": "Subreddits: homeless, housing, eviction, affordablehousing, rent, shelter, housingcrisis, povertyfinance, urbancarliving",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614285",
+      "module": "reddit",
+      "level": "info",
+      "message": "Posts per subreddit: 200",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614288",
+      "module": "reddit",
+      "level": "info",
+      "message": "SUCCESS: Collected 169 homelessness posts",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614297",
+      "module": "reddit",
+      "level": "info",
+      "message": "CSV: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/reddit_posts.csv",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614299",
+      "module": "reddit",
+      "level": "info",
+      "message": "JSON: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_124927/reddit_posts.json",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T13:04:17.614326",
+      "module": "reddit",
+      "level": "success",
+      "message": "Reddit scraping completed",
+      "data": {
+        "duration": 28.764175176620483,
+        "subreddits_used": 9,
+        "keywords_used": 31,
+        "posts_collected": "see output files"
+      }
+    }
+  ]
+}

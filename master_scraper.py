@@ -130,6 +130,39 @@ class HomelessnessMasterOrchestrator:
         self.log_entry('google_trends', 'info', f"Starting Google Trends analysis with {self.time_budget['google_trends']}s budget")
 
         try:
+            # Check if recent Google Trends data exists (within last 7 days for reuse)
+            viz_dir = self.project_root / "viz" / "google_trends"
+            recent_viz_exists = False
+            if viz_dir.exists():
+                viz_files = list(viz_dir.glob("*"))
+                if viz_files:
+                    # Check if any file is less than 7 days old (avoid frequent API calls)
+                    import time as time_module
+                    seven_days_ago = time_module.time() - (7 * 24 * 3600)
+                    recent_viz_exists = any(f.stat().st_mtime > seven_days_ago for f in viz_files)
+            
+            if recent_viz_exists:
+                self.print_info("✓ Recent Google Trends data found (< 7 days old)")
+                self.print_info("  Skipping API calls to avoid rate limits - using existing data")
+                self.log_entry('google_trends', 'info', 'Using existing recent data to avoid rate limits')
+                
+                # Extract keywords and copy files
+                self.keywords = self.extract_keywords_from_trends()
+                output_files = self.copy_google_trends_outputs()
+                
+                elapsed = time.time() - start
+                self.print_success(f"Google Trends data reused in {elapsed:.1f}s")
+                self.print_info(f"Keywords extracted: {len(self.keywords)} homelessness-related terms")
+                
+                self.results['google_trends'] = {
+                    'status': 'success',
+                    'keywords_extracted': len(self.keywords),
+                    'duration': elapsed,
+                    'output_files': output_files,
+                    'note': 'Used existing recent data'
+                }
+                return True
+            
             self.print_progress("🕰️ PATIENT Google Trends: Running googletrends.py (NO TIMEOUT)")
             self.print_progress("This creates: Excel files, normalized CSV, visualizations, and keyword extraction")
             self.print_progress("⏳ Please wait - comprehensive analysis takes time...")
@@ -328,15 +361,13 @@ class HomelessnessMasterOrchestrator:
                         shutil.copy2(src_file, dst_file)
                         copied_files.append(str(dst_file))
 
-            # CLEAN UP: Delete timestamp files from source directories (centralize in master_output)
+            # CLEAN UP: Delete timestamp files from scripts/google_trends (but KEEP viz files for reuse)
             import shutil
             for f in all_files:
                 f.unlink()  # Delete timestamp files from scripts/google_trends
-            if viz_dir.exists():
-                for f in viz_files:
-                    f.unlink()  # Delete viz files from viz/google_trends
+            # NOTE: We keep viz files in viz/google_trends for reuse to avoid API rate limits
 
-            self.log_entry('google_trends', 'info', f'Copied {len(copied_files)} files and cleaned source directories')
+            self.log_entry('google_trends', 'info', f'Copied {len(copied_files)} files (kept viz files for reuse)')
 
         except Exception as e:
             self.log_entry('google_trends', 'warning', f'Error copying output files: {str(e)}')
@@ -397,7 +428,7 @@ class HomelessnessMasterOrchestrator:
         return copied_files
 
     def run_news_api(self):
-        """Step 2: News API - HUNGRY SCRAPER using DIRECT IMPORT"""
+        """Step 2: News API - Using Kaitlin's modular implementation with visualizations"""
         self.print_header(f"STEP 2/4: NEWS API (HOMELESSNESS ARTICLES - {self.time_budget['news_api']}s)")
         start = time.time()
 
@@ -407,112 +438,134 @@ class HomelessnessMasterOrchestrator:
             # Add News API directory to path
             sys.path.insert(0, str(self.scripts_dir / "news_api"))
 
-            # Import directly like dfp_socmed_blueteam does
-            from NewsAPI_Scrape import NewsAPIScraper
-            from news_configs import KEYWORDS_DEFAULT, MAX_PAGES
+            # Import Kaitlin's modular components
+            from combined_news_analyzer import CombinedNewsAnalyzer
+            from NewsPoliticalClassifier import PoliticalLeaningClassifier
+            from news_viz import Visualizations, PoliticalAnalysisVisualizer
             from credentials import NEWSAPI_KEY
+            from news_configs import KEYWORDS_DEFAULT
             import pandas as pd
+            import matplotlib
+            matplotlib.use('Agg')  # Non-interactive backend
+            import matplotlib.pyplot as plt
 
-            # Use targeted homelessness keywords
-            if self.keywords:
-                # Filter Google Trends keywords to only include homelessness-related ones
-                filtered_trends_keywords = [kw for kw in self.keywords if any(homeless_term in kw.lower() for homeless_term in ['homeless', 'housing', 'unhoused', 'eviction', 'affordable', 'shelter', 'tent', 'encampment'])]
-                combined_keywords = list(set(filtered_trends_keywords + KEYWORDS_DEFAULT))
-            else:
-                combined_keywords = KEYWORDS_DEFAULT
+            self.print_progress(f"🦁 COMPREHENSIVE NEWS ANALYSIS: NewsAPI + NPR scraping")
+            self.print_progress(f"Keywords: {', '.join(KEYWORDS_DEFAULT[:5])}...")
 
-            # HUNGRY SCRAPER: Use MAX_PAGES (100) for comprehensive collection
-            num_articles = min(MAX_PAGES, self.time_budget['news_api'] * 3)  # Scale aggressively
-
-            self.print_progress(f"🦁 HUNGRY NEWS SCRAPER: Fetching {num_articles} articles")
-            self.print_progress(f"Keywords ({len(combined_keywords)}): {', '.join(combined_keywords[:8])}...")
-
-            self.log_entry('news_api', 'info', 'Using exact News API configuration', {
-                'keywords_count': len(combined_keywords),
-                'max_pages': MAX_PAGES,
-                'target_articles': num_articles,
-                'keywords_sample': combined_keywords[:5]
+            self.log_entry('news_api', 'info', 'Using Kaitlin\'s modular News API implementation', {
+                'keywords': KEYWORDS_DEFAULT
             })
 
-            # Initialize scraper
-            scraper = NewsAPIScraper(NEWSAPI_KEY)
+            # Initialize combined analyzer (NewsAPI + NPR)
+            scraper = CombinedNewsAnalyzer(newsapi_key=NEWSAPI_KEY)
 
-            print(f"{Colors.OKCYAN}➜ HUNGRY SCRAPER: Using {len(combined_keywords)} keywords, targeting {num_articles} articles{Colors.ENDC}")
+            # Fetch and combine articles from both sources
+            print(f"{Colors.OKCYAN}➜ Fetching articles from NewsAPI and NPR...{Colors.ENDC}")
+            combined_articles = scraper.combine_sources()
 
-            # Fetch articles - NEWS API ALREADY FILTERS BY KEYWORDS!
-            # Don't double-filter or we lose all results
-            articles = scraper.fetch_articles(keywords=combined_keywords, page_size=num_articles)
-
-            print(f"{Colors.OKCYAN}➜ SUCCESS: Collected {len(articles)} homelessness articles{Colors.ENDC}")
-
-            # POLARIZATION ANALYSIS: Keyword-based political bias classification
-            if articles:
-                print(f"{Colors.OKCYAN}➜ Running polarization analysis on {len(articles)} articles...{Colors.ENDC}")
-
-                left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
-                                'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
-                                'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich']
-                right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
-                                 'border security', 'pro-life', 'second amendment', 'small government',
-                                 'law and order', 'patriot', 'maga', 'god', 'family values']
-
-                for article in articles:
-                    text = (article.get('title', '') + ' ' + article.get('description', '')).lower()
-                    left_matches = sum(1 for kw in left_keywords if kw in text)
-                    right_matches = sum(1 for kw in right_keywords if kw in text)
-
-                    total_matches = left_matches + right_matches
-                    if total_matches > 0:
-                        if left_matches > right_matches:
-                            article['political_bias'] = 'LEFT'
-                            article['bias_confidence'] = round(left_matches / total_matches, 2)
-                        elif right_matches > left_matches:
-                            article['political_bias'] = 'RIGHT'
-                            article['bias_confidence'] = round(right_matches / total_matches, 2)
-                        else:
-                            article['political_bias'] = 'NEUTRAL'
-                            article['bias_confidence'] = 0.5
-                    else:
-                        article['political_bias'] = 'NEUTRAL'
-                        article['bias_confidence'] = 0.0
-
-                left_count = sum(1 for a in articles if a.get('political_bias') == 'LEFT')
-                right_count = sum(1 for a in articles if a.get('political_bias') == 'RIGHT')
-                neutral_count = sum(1 for a in articles if a.get('political_bias') == 'NEUTRAL')
-                print(f"{Colors.OKCYAN}➜ Polarization: LEFT={left_count}, RIGHT={right_count}, NEUTRAL={neutral_count}{Colors.ENDC}")
+            print(f"{Colors.OKCYAN}➜ SUCCESS: Collected {len(combined_articles)} articles{Colors.ENDC}")
 
             # Save to MASTER OUTPUT directory
             session_dir = self.master_output_dir / f"session_{self.timestamp}"
             session_dir.mkdir(exist_ok=True)
 
-            output_file = session_dir / 'news_api_articles.json'
-            with open(output_file, 'w') as f:
-                json.dump(articles, f, indent=2)
+            # Save combined articles JSON
+            output_file = session_dir / 'combined_articles.json'
+            scraper.save_combined_data(str(output_file))
 
-            # Save CSV
-            csv_file = session_dir / 'news_api_articles.csv'
-            if articles:
-                df = pd.DataFrame(articles)
-            else:
-                df = pd.DataFrame(columns=['title', 'description', 'url', 'publishedAt', 'source'])
+            # Classify articles with political leaning
+            print(f"{Colors.OKCYAN}➜ Classifying political leaning...{Colors.ENDC}")
+            classifier = PoliticalLeaningClassifier()
+            classified_articles = classifier.classify_batch(combined_articles)
+
+            # Convert to DataFrame
+            df = pd.DataFrame(classified_articles)
+
+            # Update NPR labels
+            df.loc[df['source'] == 'section_/sections/news/', 'source'] = 'NPR'
+
+            # Save classified CSV
+            csv_file = session_dir / 'classified.csv'
             df.to_csv(csv_file, index=False)
 
-            print(f"{Colors.OKCYAN}➜ CSV: {csv_file}{Colors.ENDC}")
-            print(f"{Colors.OKCYAN}➜ JSON: {output_file}{Colors.ENDC}")
+            left_count = len(df[df['leaning'] == 'LEFT'])
+            right_count = len(df[df['leaning'] == 'RIGHT'])
+            center_count = len(df[df['leaning'] == 'CENTER'])
+            print(f"{Colors.OKCYAN}➜ Political Classification: LEFT={left_count}, CENTER={center_count}, RIGHT={right_count}{Colors.ENDC}")
+
+            # Generate visualizations
+            print(f"{Colors.OKCYAN}➜ Generating visualizations...{Colors.ENDC}")
+            viz = Visualizations(df, 'homelessness')
+            summary_df = viz.analyze_sources(combined_articles)
+
+            # Get all text for word cloud
+            all_text = scraper.all_text(combined_articles)
+
+            viz_files = []
+
+            # 1. Word Cloud
+            plt.figure(figsize=(12, 6))
+            wordcloud = viz.generate_wordcloud(all_text)
+            viz_path = session_dir / f"news_wordcloud_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 2. Outlet Article Count Bar Chart
+            plt.figure(figsize=(10, 8))
+            viz.plot_comparison_horizontal(summary_df, top_n=25)
+            viz_path = session_dir / f"news_outlet_counts_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 3. Political Pie Chart
+            plt.figure(figsize=(8, 8))
+            viz.pie_chart(df)
+            viz_path = session_dir / f"news_political_pie_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 4. Political Timeline
+            poli_viz = PoliticalAnalysisVisualizer()
+            plt.figure(figsize=(14, 7))
+            poli_viz.political_timeline(df)
+            viz_path = session_dir / f"news_political_timeline_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 5. Interactive Sankey Diagram
+            poli_viz.create_interactive_visualizations(df)
+            sankey_src = self.scripts_dir / "news_api" / "sankey_diagram.html"
+            if sankey_src.exists():
+                sankey_dst = session_dir / f"news_sankey_{self.timestamp}.html"
+                import shutil
+                shutil.move(str(sankey_src), str(sankey_dst))
+                viz_files.append(str(sankey_dst))
+
+            print(f"{Colors.OKGREEN}✅ Generated {len(viz_files)} visualizations{Colors.ENDC}")
 
             elapsed = time.time() - start
-            self.print_success(f"🦁 HUNGRY News API completed in {elapsed:.1f}s")
+            self.print_success(f"🦁 News API + Visualizations completed in {elapsed:.1f}s")
 
-            self.log_entry('news_api', 'success', f"Collected {len(articles)} homelessness articles", {
-                'articles_count': len(articles),
+            self.log_entry('news_api', 'success', f"Collected {len(combined_articles)} articles and generated {len(viz_files)} visualizations", {
+                'articles_count': len(combined_articles),
+                'visualizations': len(viz_files),
                 'elapsed_seconds': round(elapsed, 1)
             })
 
-            self.results['news_api'] = {'status': 'SUCCESS', 'duration': elapsed, 'articles': len(articles)}
+            self.results['news_api'] = {
+                'status': 'SUCCESS',
+                'duration': elapsed,
+                'articles': len(combined_articles),
+                'visualizations': len(viz_files)
+            }
 
         except Exception as e:
             elapsed = time.time() - start
-            self.print_failure(f"Failed: {str(e)}")
+            self.print_error(f"Failed: {str(e)}")
             self.log_entry('news_api', 'error', f"News API failed: {str(e)}")
             self.results['news_api'] = {'status': 'FAILED', 'duration': elapsed, 'error': str(e)}
             import traceback
@@ -681,33 +734,74 @@ except Exception as e:
             return False
 
     def run_bluesky(self):
-        """Step 4: Bluesky - WILDCARD SEARCH for homelessness (portable, no dependencies)"""
+        """Step 4: Bluesky - Comprehensive social media data collection with visualizations"""
         self.print_header(f"STEP 4/4: BLUESKY (HOMELESSNESS SEARCH - {self.time_budget['bluesky']}s)")
         start = time.time()
 
-        # WILDCARD SEARCH: Use broad single keyword that matches everything homelessness-related
-        # This works on ANY computer - no external dependencies!
-        homelessness_search_terms = ['homeless']  # Wildcard: matches homeless, homelessness, homeless shelter, etc.
+        # Use the comprehensive Bluesky scraper with proper duration
+        duration_minutes = int(self.time_budget['bluesky'] / 60)
+        if duration_minutes < 1:
+            duration_minutes = 1
 
-        # COMPREHENSIVE settings for rich dataset (30s+ collection)
-        max_posts = 100  # More posts for comprehensive analysis
-        days_back = 7    # Last week of data
-
-        self.print_progress(f"Running Bluesky script workflow")
-        self.print_progress(f"Searching for homelessness ({max_posts} posts, {days_back} days)")
-        self.print_progress(f"Search terms: {', '.join(homelessness_search_terms)}")
-
-        # Create temporary keywords file with comprehensive homelessness terms
-        temp_keywords_file = self.scripts_dir / "bluesky" / "temp_homelessness_keywords.txt"
-        with open(temp_keywords_file, 'w') as f:
-            f.write('\n'.join(homelessness_search_terms))
+        self.print_progress(f"🦋 Running comprehensive Bluesky collector")
+        self.print_progress(f"   Method: search (API-based)")
+        self.print_progress(f"   Duration: {duration_minutes} minutes")
+        self.print_progress(f"   Keywords: homelessness + related terms")
+        self.print_progress(f"   Output: Posts + Visualizations")
 
         try:
-            # Bluesky writes DIRECTLY to master_output - no copying needed!
-            session_dir = self.master_output_dir / f"session_{self.timestamp}"
-            session_dir.mkdir(exist_ok=True)
+            # Run the comprehensive Bluesky collector using main.py
+            bluesky_script = self.scripts_dir / "bluesky" / "main.py"
+            
+            # Call the Bluesky main.py with proper arguments
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(bluesky_script),
+                    '--method', 'search',
+                    '--duration', str(duration_minutes),
+                    '--keywords', 'homelessness'
+                ],
+                cwd=str(self.scripts_dir / "bluesky"),
+                capture_output=True,
+                text=True,
+                timeout=self.time_budget['bluesky'] + 60  # Add 60s buffer
+            )
 
-            homelessness_wrapper_code = f'''
+            elapsed = time.time() - start
+
+            if result.returncode == 0:
+                # Parse output for success indicators
+                output_lines = result.stdout.strip().split('\n')
+                for line in output_lines:
+                    if '✅' in line or 'Collected' in line or 'Saved' in line:
+                        self.print_info(line.strip())
+                        self.log_entry('bluesky', 'info', line.strip())
+
+                # Copy Bluesky outputs to master_output
+                bluesky_output_files = self.copy_bluesky_outputs()
+
+                self.print_success(f"🦋 Bluesky collector completed in {elapsed:.1f}s")
+                self.print_info(f"   Posts collected and saved to session directory")
+                if bluesky_output_files:
+                    self.print_info(f"   {len(bluesky_output_files)} files copied to master_output")
+
+                self.log_entry('bluesky', 'success', 'Bluesky collection completed', {
+                    'duration': elapsed,
+                    'output_files': bluesky_output_files
+                })
+
+                self.results['bluesky'] = {
+                    'status': 'success',
+                    'duration': elapsed,
+                    'output_files': bluesky_output_files,
+                    'method': 'search'
+                }
+                return True
+            else:
+                # If main.py failed, try simple inline fallback
+                self.print_info("⚠️ Main collector failed, using simple fallback")
+                homelessness_wrapper_code = f'''
 import sys
 import os
 import json

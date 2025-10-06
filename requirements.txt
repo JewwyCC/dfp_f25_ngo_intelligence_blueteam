@@ -35,13 +35,15 @@ statsmodels>=0.13.0      # Statistical models and time series
 # NEWS API DEPENDENCIES
 # ============================================
 newsapi-python>=0.2.7    # NewsAPI client
+beautifulsoup4>=4.12.0   # HTML/XML parsing for NPR scraping
 wordcloud>=1.8.0         # Word cloud generation
 tqdm>=4.65.0             # Progress bars
 
 # ============================================
 # NEWS CLASSIFIER (HuggingFace)
 # ============================================
-transformers>=4.30.0     # HuggingFace transformers (optional, for local classification)
+transformers>=4.30.0     # HuggingFace transformers for political classification
+torch>=2.0.0             # PyTorch backend for transformers
 
 # ============================================
 # SHARED ANALYSIS & VISUALIZATION

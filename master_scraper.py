@@ -397,7 +397,7 @@ class HomelessnessMasterOrchestrator:
         return copied_files
 
     def run_news_api(self):
-        """Step 2: News API - HUNGRY SCRAPER using DIRECT IMPORT"""
+        """Step 2: News API - Using Kaitlin's modular implementation with visualizations"""
         self.print_header(f"STEP 2/4: NEWS API (HOMELESSNESS ARTICLES - {self.time_budget['news_api']}s)")
         start = time.time()
 
@@ -407,112 +407,134 @@ class HomelessnessMasterOrchestrator:
             # Add News API directory to path
             sys.path.insert(0, str(self.scripts_dir / "news_api"))
 
-            # Import directly like dfp_socmed_blueteam does
-            from NewsAPI_Scrape import NewsAPIScraper
-            from news_configs import KEYWORDS_DEFAULT, MAX_PAGES
+            # Import Kaitlin's modular components
+            from combined_news_analyzer import CombinedNewsAnalyzer
+            from NewsPoliticalClassifier import PoliticalLeaningClassifier
+            from news_viz import Visualizations, PoliticalAnalysisVisualizer
             from credentials import NEWSAPI_KEY
+            from news_configs import KEYWORDS_DEFAULT
             import pandas as pd
+            import matplotlib
+            matplotlib.use('Agg')  # Non-interactive backend
+            import matplotlib.pyplot as plt
 
-            # Use targeted homelessness keywords
-            if self.keywords:
-                # Filter Google Trends keywords to only include homelessness-related ones
-                filtered_trends_keywords = [kw for kw in self.keywords if any(homeless_term in kw.lower() for homeless_term in ['homeless', 'housing', 'unhoused', 'eviction', 'affordable', 'shelter', 'tent', 'encampment'])]
-                combined_keywords = list(set(filtered_trends_keywords + KEYWORDS_DEFAULT))
-            else:
-                combined_keywords = KEYWORDS_DEFAULT
+            self.print_progress(f"🦁 COMPREHENSIVE NEWS ANALYSIS: NewsAPI + NPR scraping")
+            self.print_progress(f"Keywords: {', '.join(KEYWORDS_DEFAULT[:5])}...")
 
-            # HUNGRY SCRAPER: Use MAX_PAGES (100) for comprehensive collection
-            num_articles = min(MAX_PAGES, self.time_budget['news_api'] * 3)  # Scale aggressively
-
-            self.print_progress(f"🦁 HUNGRY NEWS SCRAPER: Fetching {num_articles} articles")
-            self.print_progress(f"Keywords ({len(combined_keywords)}): {', '.join(combined_keywords[:8])}...")
-
-            self.log_entry('news_api', 'info', 'Using exact News API configuration', {
-                'keywords_count': len(combined_keywords),
-                'max_pages': MAX_PAGES,
-                'target_articles': num_articles,
-                'keywords_sample': combined_keywords[:5]
+            self.log_entry('news_api', 'info', 'Using Kaitlin\'s modular News API implementation', {
+                'keywords': KEYWORDS_DEFAULT
             })
 
-            # Initialize scraper
-            scraper = NewsAPIScraper(NEWSAPI_KEY)
+            # Initialize combined analyzer (NewsAPI + NPR)
+            scraper = CombinedNewsAnalyzer(newsapi_key=NEWSAPI_KEY)
 
-            print(f"{Colors.OKCYAN}➜ HUNGRY SCRAPER: Using {len(combined_keywords)} keywords, targeting {num_articles} articles{Colors.ENDC}")
+            # Fetch and combine articles from both sources
+            print(f"{Colors.OKCYAN}➜ Fetching articles from NewsAPI and NPR...{Colors.ENDC}")
+            combined_articles = scraper.combine_sources()
 
-            # Fetch articles - NEWS API ALREADY FILTERS BY KEYWORDS!
-            # Don't double-filter or we lose all results
-            articles = scraper.fetch_articles(keywords=combined_keywords, page_size=num_articles)
-
-            print(f"{Colors.OKCYAN}➜ SUCCESS: Collected {len(articles)} homelessness articles{Colors.ENDC}")
-
-            # POLARIZATION ANALYSIS: Keyword-based political bias classification
-            if articles:
-                print(f"{Colors.OKCYAN}➜ Running polarization analysis on {len(articles)} articles...{Colors.ENDC}")
-
-                left_keywords = ['progressive', 'liberal', 'democrat', 'social justice', 'equity',
-                                'climate action', 'healthcare for all', 'lgbtq', 'immigrant rights',
-                                'gun control', 'abortion rights', 'blm', 'defund', 'taxing the rich']
-                right_keywords = ['conservative', 'republican', 'traditional', 'freedom', 'liberty',
-                                 'border security', 'pro-life', 'second amendment', 'small government',
-                                 'law and order', 'patriot', 'maga', 'god', 'family values']
-
-                for article in articles:
-                    text = (article.get('title', '') + ' ' + article.get('description', '')).lower()
-                    left_matches = sum(1 for kw in left_keywords if kw in text)
-                    right_matches = sum(1 for kw in right_keywords if kw in text)
-
-                    total_matches = left_matches + right_matches
-                    if total_matches > 0:
-                        if left_matches > right_matches:
-                            article['political_bias'] = 'LEFT'
-                            article['bias_confidence'] = round(left_matches / total_matches, 2)
-                        elif right_matches > left_matches:
-                            article['political_bias'] = 'RIGHT'
-                            article['bias_confidence'] = round(right_matches / total_matches, 2)
-                        else:
-                            article['political_bias'] = 'NEUTRAL'
-                            article['bias_confidence'] = 0.5
-                    else:
-                        article['political_bias'] = 'NEUTRAL'
-                        article['bias_confidence'] = 0.0
-
-                left_count = sum(1 for a in articles if a.get('political_bias') == 'LEFT')
-                right_count = sum(1 for a in articles if a.get('political_bias') == 'RIGHT')
-                neutral_count = sum(1 for a in articles if a.get('political_bias') == 'NEUTRAL')
-                print(f"{Colors.OKCYAN}➜ Polarization: LEFT={left_count}, RIGHT={right_count}, NEUTRAL={neutral_count}{Colors.ENDC}")
+            print(f"{Colors.OKCYAN}➜ SUCCESS: Collected {len(combined_articles)} articles{Colors.ENDC}")
 
             # Save to MASTER OUTPUT directory
             session_dir = self.master_output_dir / f"session_{self.timestamp}"
             session_dir.mkdir(exist_ok=True)
 
-            output_file = session_dir / 'news_api_articles.json'
-            with open(output_file, 'w') as f:
-                json.dump(articles, f, indent=2)
+            # Save combined articles JSON
+            output_file = session_dir / 'combined_articles.json'
+            scraper.save_combined_data(str(output_file))
 
-            # Save CSV
-            csv_file = session_dir / 'news_api_articles.csv'
-            if articles:
-                df = pd.DataFrame(articles)
-            else:
-                df = pd.DataFrame(columns=['title', 'description', 'url', 'publishedAt', 'source'])
+            # Classify articles with political leaning
+            print(f"{Colors.OKCYAN}➜ Classifying political leaning...{Colors.ENDC}")
+            classifier = PoliticalLeaningClassifier()
+            classified_articles = classifier.classify_batch(combined_articles)
+
+            # Convert to DataFrame
+            df = pd.DataFrame(classified_articles)
+
+            # Update NPR labels
+            df.loc[df['source'] == 'section_/sections/news/', 'source'] = 'NPR'
+
+            # Save classified CSV
+            csv_file = session_dir / 'classified.csv'
             df.to_csv(csv_file, index=False)
 
-            print(f"{Colors.OKCYAN}➜ CSV: {csv_file}{Colors.ENDC}")
-            print(f"{Colors.OKCYAN}➜ JSON: {output_file}{Colors.ENDC}")
+            left_count = len(df[df['leaning'] == 'LEFT'])
+            right_count = len(df[df['leaning'] == 'RIGHT'])
+            center_count = len(df[df['leaning'] == 'CENTER'])
+            print(f"{Colors.OKCYAN}➜ Political Classification: LEFT={left_count}, CENTER={center_count}, RIGHT={right_count}{Colors.ENDC}")
+
+            # Generate visualizations
+            print(f"{Colors.OKCYAN}➜ Generating visualizations...{Colors.ENDC}")
+            viz = Visualizations(df, 'homelessness')
+            summary_df = viz.analyze_sources(combined_articles)
+
+            # Get all text for word cloud
+            all_text = scraper.all_text(combined_articles)
+
+            viz_files = []
+
+            # 1. Word Cloud
+            plt.figure(figsize=(12, 6))
+            wordcloud = viz.generate_wordcloud(all_text)
+            viz_path = session_dir / f"news_wordcloud_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 2. Outlet Article Count Bar Chart
+            plt.figure(figsize=(10, 8))
+            viz.plot_comparison_horizontal(summary_df, top_n=25)
+            viz_path = session_dir / f"news_outlet_counts_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 3. Political Pie Chart
+            plt.figure(figsize=(8, 8))
+            viz.pie_chart(df)
+            viz_path = session_dir / f"news_political_pie_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 4. Political Timeline
+            poli_viz = PoliticalAnalysisVisualizer()
+            plt.figure(figsize=(14, 7))
+            poli_viz.political_timeline(df)
+            viz_path = session_dir / f"news_political_timeline_{self.timestamp}.png"
+            plt.savefig(viz_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            viz_files.append(str(viz_path))
+
+            # 5. Interactive Sankey Diagram
+            poli_viz.create_interactive_visualizations(df)
+            sankey_src = self.scripts_dir / "news_api" / "sankey_diagram.html"
+            if sankey_src.exists():
+                sankey_dst = session_dir / f"news_sankey_{self.timestamp}.html"
+                import shutil
+                shutil.move(str(sankey_src), str(sankey_dst))
+                viz_files.append(str(sankey_dst))
+
+            print(f"{Colors.OKGREEN}✅ Generated {len(viz_files)} visualizations{Colors.ENDC}")
 
             elapsed = time.time() - start
-            self.print_success(f"🦁 HUNGRY News API completed in {elapsed:.1f}s")
+            self.print_success(f"🦁 News API + Visualizations completed in {elapsed:.1f}s")
 
-            self.log_entry('news_api', 'success', f"Collected {len(articles)} homelessness articles", {
-                'articles_count': len(articles),
+            self.log_entry('news_api', 'success', f"Collected {len(combined_articles)} articles and generated {len(viz_files)} visualizations", {
+                'articles_count': len(combined_articles),
+                'visualizations': len(viz_files),
                 'elapsed_seconds': round(elapsed, 1)
             })
 
-            self.results['news_api'] = {'status': 'SUCCESS', 'duration': elapsed, 'articles': len(articles)}
+            self.results['news_api'] = {
+                'status': 'SUCCESS',
+                'duration': elapsed,
+                'articles': len(combined_articles),
+                'visualizations': len(viz_files)
+            }
 
         except Exception as e:
             elapsed = time.time() - start
-            self.print_failure(f"Failed: {str(e)}")
+            self.print_error(f"Failed: {str(e)}")
             self.log_entry('news_api', 'error', f"News API failed: {str(e)}")
             self.results['news_api'] = {'status': 'FAILED', 'duration': elapsed, 'error': str(e)}
             import traceback

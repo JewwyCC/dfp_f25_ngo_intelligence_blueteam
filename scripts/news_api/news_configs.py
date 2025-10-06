@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from torch.export.graph_signature import OutputKind
 
 # Consolidating common customization parameters in one place for easier editing while working on the front end
 
@@ -22,6 +23,9 @@ STOPWORDS = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'
             'Zarutska', 'chars', 'its', 'xbox', 'homelessness', 'homeless', 'Homelessness', 'Homeless']
 
 MAX_WORDS = 100 # Maximum number of words to include in word cloud
+
+OUTPUT_DIRECTORY = '/viz/news_api'
+
 WC_BG_COLOR = 'white' # Word cloud background color
 WC_LAYOUT_PADDING = 1
 WC_TITLE_FONT_SIZE = 12

@@ -1,0 +1,144 @@
+{
+  "session_info": {
+    "start_time": "2025-10-06T12:39:01.347961",
+    "duration_budget": 600,
+    "time_budget": {
+      "google_trends": 90,
+      "news_api": 180,
+      "reddit": 150,
+      "bluesky": 180
+    },
+    "timestamp": "20251006_123901"
+  },
+  "results": {
+    "google_trends": {
+      "status": "success",
+      "keywords_extracted": 11,
+      "duration": 0.558326005935669,
+      "output_files": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/googletrends_help_20251006_120715.csv",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/googletrends_mapdata_20251006_120715.pkl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/googletrends_state_20251006_120712.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/googletrends_national_20251006_120712.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_choropleth_Help_20251006_120715.html",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_state_seasonal_Location-specific_search_20251006_120714.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_state_seasonal_General_Information_and_Definitions_20251006_120714.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_national_seasonal_Location-specific_search_20251006_120713.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_national_seasonal_General_Information_and_Definitions_20251006_120713.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_theme_comp_themecomparison_20251006_120713.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_CA_timeseries_20251006_120713.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/viz_national_timeseries_20251006_120712.png"
+      ],
+      "note": "Used existing recent data"
+    },
+    "news_api": {
+      "status": "FAILED",
+      "duration": 0.4687988758087158,
+      "error": "No module named 'newsapi'"
+    },
+    "reddit": {
+      "status": "failed",
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n    import praw\nModuleNotFoundError: No module named 'praw'\n",
+      "duration": 0.054660797119140625
+    },
+    "bluesky": {
+      "status": "success",
+      "search_terms": [
+        "homeless"
+      ],
+      "duration": 0.4377908706665039,
+      "output_files": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/homelessness_posts.jsonl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123901/homelessness_posts.csv"
+      ]
+    }
+  },
+  "keywords": [
+    "homelessness definition",
+    "hud homeless",
+    "end homelessness",
+    "california homelessness",
+    "what is homelessness",
+    "causes of homelessness",
+    "san francisco homelessness",
+    "los angeles homelessness",
+    "homeless statistics",
+    "homelessness statistics",
+    "alliance to end homelessness"
+  ],
+  "log_entries": [
+    {
+      "timestamp": "2025-10-06T12:39:01.348198",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Starting Google Trends analysis with 90s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:01.348471",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Using existing recent data to avoid rate limits",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:01.906417",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Copied 12 files and cleaned source directories",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:01.906560",
+      "module": "news_api",
+      "level": "info",
+      "message": "Starting News API scraping with 180s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:02.375372",
+      "module": "news_api",
+      "level": "error",
+      "message": "News API failed: No module named 'newsapi'",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:02.376881",
+      "module": "reddit",
+      "level": "info",
+      "message": "Starting Reddit scraping with 150s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:39:02.378920",
+      "module": "reddit",
+      "level": "info",
+      "message": "Using exact Reddit configuration",
+      "data": {
+        "subreddits": [
+          "homeless",
+          "housing",
+          "eviction",
+          "affordablehousing",
+          "rent",
+          "shelter",
+          "housingcrisis",
+          "povertyfinance",
+          "urbancarliving"
+        ],
+        "keywords_count": 31,
+        "posts_per_sub": 200,
+        "total_potential_posts": 1800
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:39:02.431586",
+      "module": "reddit",
+      "level": "error",
+      "message": "Reddit execution failed",
+      "data": {
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n    import praw\nModuleNotFoundError: No module named 'praw'\n"
+      }
+    }
+  ]
+}

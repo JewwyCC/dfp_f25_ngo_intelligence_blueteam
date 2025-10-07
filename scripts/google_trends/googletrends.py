@@ -134,7 +134,7 @@ class GoogleTrendsAnalyzer:
         """Get state abbreviation from ZIP code"""
         return self.zip_to_state.get(str(zipcode), 'Unknown')
 
-    def batch_extract(self, theme_kw_map, base_keyword, geo, years=5, batch_size=5, delay=60, max_retries=5):
+    def batch_extract(self, theme_kw_map, base_keyword, geo, years=5, batch_size=5, delay=10, max_retries=5):
         """Extract data in batches with retry logic"""
         all_keywords = theme_kw_map['Keyword'].unique().tolist()
         # Remove duplicates, always include base keyword at front
@@ -146,19 +146,24 @@ class GoogleTrendsAnalyzer:
         for batch in batches:
             batch = list(dict.fromkeys(batch))  # remove duplicates within batch
             print(f"Processing batch ({geo}): {batch}")
+            # Track whether this batch succeeded so we can avoid an extra post-batch sleep
+            success = False
             for attempt in range(max_retries):
                 try:
                     self.pytrends.build_payload(batch, geo=geo, timeframe=f'today {years}-y')
                     batch_data = self.pytrends.interest_over_time()
                     batch_dfs.append(batch_data)
+                    success = True
                     break  # Success, break out of retry loop
                 except TooManyRequestsError:
                     wait = delay * (attempt + 1)  # exponential backoff
                     print(f"Rate limit hit. Waiting {wait} seconds before retrying...")
                     time.sleep(wait)
-            else:
+
+            if not success:
                 print(f"Failed to fetch batch after {max_retries} attempts: {batch}")
-            time.sleep(delay)  # Always wait between batches
+                # Only sleep the configured delay after a failed batch (we already waited during retries)
+                time.sleep(delay)
 
         return batch_dfs
 
@@ -233,11 +238,11 @@ class GoogleTrendsAnalyzer:
 
         # Extract National Search Volume
         print("Extracting national data...")
-        national_batches = self.batch_extract(self.theme_kw_map, base_national_keyword, geo='US', delay=15)
+        national_batches = self.batch_extract(self.theme_kw_map, base_national_keyword, geo='US', delay=10)
         
         # Extract State Search Volume
         print(f"Extracting state data for {state_abbr}...")
-        state_batches = self.batch_extract(self.theme_kw_map, base_state_keyword, geo=f'US-{state_abbr}', delay=15)
+        state_batches = self.batch_extract(self.theme_kw_map, base_state_keyword, geo=f'US-{state_abbr}', delay=10)
 
         # Normalize data
         self.national_norm = self.normalize_batches(national_batches, base_national_keyword)

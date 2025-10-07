@@ -1,0 +1,399 @@
+{
+  "session_info": {
+    "start_time": "2025-10-06T12:30:42.224214",
+    "duration_budget": 900,
+    "time_budget": {
+      "google_trends": 135,
+      "news_api": 270,
+      "reddit": 225,
+      "bluesky": 270
+    },
+    "timestamp": "20251006_123042"
+  },
+  "results": {
+    "google_trends": {
+      "status": "success",
+      "keywords_extracted": 11,
+      "duration": 816.1798260211945,
+      "output_files": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_help_20251006_124417.csv",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_mapdata_20251006_124417.pkl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_state_20251006_124414.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_national_20251006_124414.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_help_20251006_124356.csv",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_mapdata_20251006_124356.pkl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_state_20251006_124353.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/googletrends_national_20251006_124353.xlsx",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_choropleth_Help_20251006_124418.html",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Statistics,_Data,_and_Scope_20251006_124416.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Policy,_Organisations_and_Solutions_20251006_124416.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Location-specific_search_20251006_124416.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_General_Information_and_Definitions_20251006_124416.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_Statistics,_Data,_and_Scope_20251006_124416.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_Policy,_Organisations_and_Solutions_20251006_124415.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_General_Information_and_Definitions_20251006_124415.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_theme_comp_themecomparison_20251006_124415.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_CA_timeseries_20251006_124415.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_timeseries_20251006_124415.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_choropleth_Help_20251006_124357.html",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Statistics,_Data,_and_Scope_20251006_124355.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Policy,_Organisations_and_Solutions_20251006_124355.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_Location-specific_search_20251006_124355.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_state_seasonal_General_Information_and_Definitions_20251006_124355.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_Statistics,_Data,_and_Scope_20251006_124355.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_Policy,_Organisations_and_Solutions_20251006_124354.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_national_seasonal_General_Information_and_Definitions_20251006_124354.png",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/viz_theme_comp_themecomparison_20251006_124354.png"
+      ]
+    },
+    "news_api": {
+      "status": "SUCCESS",
+      "duration": 20.6661958694458,
+      "articles": 75,
+      "visualizations": 4
+    },
+    "reddit": {
+      "status": "success",
+      "subreddits_used": 9,
+      "keywords_used": 31,
+      "duration": 26.937079191207886
+    },
+    "bluesky": {
+      "status": "success",
+      "search_terms": [
+        "homeless"
+      ],
+      "duration": 0.5375199317932129,
+      "output_files": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/homelessness_posts.jsonl",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/homelessness_posts.csv"
+      ]
+    }
+  },
+  "keywords": [
+    "end homelessness",
+    "homeless statistics",
+    "los angeles homelessness",
+    "alliance to end homelessness",
+    "causes of homelessness",
+    "homelessness statistics",
+    "what is homelessness",
+    "california homelessness",
+    "san francisco homelessness",
+    "homelessness definition",
+    "hud homeless"
+  ],
+  "log_entries": [
+    {
+      "timestamp": "2025-10-06T12:30:42.224364",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Starting Google Trends analysis with 135s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:30:42.224417",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Executing googletrends.py script with NO TIMEOUT - being patient",
+      "data": {
+        "script_path": "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/scripts/google_trends/googletrends.py",
+        "timeout": "NONE - Patient execution"
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404394",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\ud83d\ude80 Starting Google Trends Analysis Pipeline",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404459",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Theme-keyword mapping loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404463",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Help keywords loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404466",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 ZIP to state mapping loaded",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404489",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Historical data extraction completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404491",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Time series saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/national_timeseries_20251006_124415.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404493",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 historical_timeline_national completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404495",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Time series saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/CA_timeseries_20251006_124415.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404498",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 historical_timeline_state completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404500",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Theme comparison saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/theme_comp_themecomparison_20251006_124415.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404502",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 theme_comparison_chart completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404512",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/national_seasonal_General_Information_and_Definitions_20251006_124415.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404519",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/national_seasonal_Policy,_Organisations_and_Solutions_20251006_124415.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404522",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/national_seasonal_Statistics,_Data,_and_Scope_20251006_124416.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404524",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 seasonality_national completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404526",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/state_seasonal_General_Information_and_Definitions_20251006_124416.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404528",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/state_seasonal_Location-specific_search_20251006_124416.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404530",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/state_seasonal_Policy,_Organisations_and_Solutions_20251006_124416.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404532",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Seasonal plot saved: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/viz/google_trends/state_seasonal_Statistics,_Data,_and_Scope_20251006_124416.png",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404534",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 seasonality_state completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404540",
+      "module": "google_trends",
+      "level": "info",
+      "message": "=== Historical Analysis Complete ===",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.404546",
+      "module": "google_trends",
+      "level": "info",
+      "message": "\u2713 Help data extraction completed",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.860578",
+      "module": "google_trends",
+      "level": "success",
+      "message": "Script completed successfully",
+      "data": {
+        "duration": 816.1798260211945,
+        "keywords_extracted": 11,
+        "keywords_sample": [
+          "end homelessness",
+          "homeless statistics",
+          "los angeles homelessness",
+          "alliance to end homelessness",
+          "causes of homelessness"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.877448",
+      "module": "google_trends",
+      "level": "info",
+      "message": "Copied 28 files and cleaned source directories",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:18.877498",
+      "module": "news_api",
+      "level": "info",
+      "message": "Starting News API scraping with 270s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:24.099912",
+      "module": "news_api",
+      "level": "info",
+      "message": "Using Kaitlin's modular News API implementation",
+      "data": {
+        "keywords": [
+          "homeless",
+          "what is homelessness",
+          "end homelessness",
+          "homelessness in america",
+          "california homelessness"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:44:39.543719",
+      "module": "news_api",
+      "level": "success",
+      "message": "Collected 75 articles and generated 4 visualizations",
+      "data": {
+        "articles_count": 75,
+        "visualizations": 4,
+        "elapsed_seconds": 20.7
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:44:39.551296",
+      "module": "reddit",
+      "level": "info",
+      "message": "Starting Reddit scraping with 225s budget",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:44:39.554211",
+      "module": "reddit",
+      "level": "info",
+      "message": "Using exact Reddit configuration",
+      "data": {
+        "subreddits": [
+          "homeless",
+          "housing",
+          "eviction",
+          "affordablehousing",
+          "rent",
+          "shelter",
+          "housingcrisis",
+          "povertyfinance",
+          "urbancarliving"
+        ],
+        "keywords_count": 31,
+        "posts_per_sub": 200,
+        "total_potential_posts": 1800
+      }
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488426",
+      "module": "reddit",
+      "level": "info",
+      "message": "HUNGRY SCRAPER: Using ALL 9 subreddits and 31 keywords",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488462",
+      "module": "reddit",
+      "level": "info",
+      "message": "Subreddits: homeless, housing, eviction, affordablehousing, rent, shelter, housingcrisis, povertyfinance, urbancarliving",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488475",
+      "module": "reddit",
+      "level": "info",
+      "message": "Posts per subreddit: 200",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488477",
+      "module": "reddit",
+      "level": "info",
+      "message": "SUCCESS: Collected 169 homelessness posts",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488486",
+      "module": "reddit",
+      "level": "info",
+      "message": "CSV: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/reddit_posts.csv",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488488",
+      "module": "reddit",
+      "level": "info",
+      "message": "JSON: /Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251006_123042/reddit_posts.json",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-06T12:45:06.488538",
+      "module": "reddit",
+      "level": "success",
+      "message": "Reddit scraping completed",
+      "data": {
+        "duration": 26.937079191207886,
+        "subreddits_used": 9,
+        "keywords_used": 31,
+        "posts_collected": "see output files"
+      }
+    }
+  ]
+}

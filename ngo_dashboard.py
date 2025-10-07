@@ -6,14 +6,20 @@ and craft resonant messaging around homelessness issues.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import datetime
+from datetime import datetime
 from typing import Dict, List, Tuple
 import json
+import subprocess
+import os
+import sys
+import time
+from pathlib import Path
 
 # Configure Streamlit page
 st.set_page_config(
@@ -212,6 +218,53 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+class DataCollectionManager:
+    """Manages real data collection using master scraper"""
+    
+    def __init__(self):
+        self.project_root = Path(__file__).parent
+        self.master_scraper_path = self.project_root / "master_scraper.py"
+        self.output_dir = self.project_root / "data" / "master_output"
+        
+    def run_master_scraper(self, duration=120):
+        """Run the master scraper with specified duration"""
+        try:
+            # Run master scraper as subprocess
+            cmd = [sys.executable, str(self.master_scraper_path), "--duration", str(duration)]
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            
+            return process
+        except Exception as e:
+            st.error(f"Failed to start master scraper: {e}")
+            return None
+    
+    def get_latest_session_dir(self):
+        """Get the most recent session directory"""
+        if not self.output_dir.exists():
+            return None
+            
+        session_dirs = [d for d in self.output_dir.iterdir() if d.is_dir() and d.name.startswith('session_')]
+        if not session_dirs:
+            return None
+            
+        # Sort by creation time and return the latest
+        latest_dir = max(session_dirs, key=lambda x: x.stat().st_mtime)
+        return latest_dir
+    
+    def get_visualizations(self, session_dir):
+        """Get all visualization files from a session"""
+        if not session_dir or not session_dir.exists():
+            return []
+            
+        viz_extensions = ['.png', '.html', '.jpg', '.jpeg']
+        viz_files = []
+        
+        for file in session_dir.iterdir():
+            if file.suffix.lower() in viz_extensions:
+                viz_files.append(file)
+                
+        return sorted(viz_files, key=lambda x: x.stat().st_mtime, reverse=True)
+
 class NGODashboard:
     def __init__(self):
         # Initialize session state for page navigation
@@ -219,8 +272,22 @@ class NGODashboard:
             st.session_state.current_page = 'landing'
         if 'zipcode' not in st.session_state:
             st.session_state.zipcode = None
+        if 'data_sources_status' not in st.session_state:
+            st.session_state.data_sources_status = {
+                'reddit': {'status': 'pending', 'progress': 0},
+                'google_trends': {'status': 'pending', 'progress': 0},
+                'news_api': {'status': 'pending', 'progress': 0},
+                'bluesky': {'status': 'pending', 'progress': 0}
+            }
+        if 'all_data_collected' not in st.session_state:
+            st.session_state.all_data_collected = False
+        if 'scraper_process' not in st.session_state:
+            st.session_state.scraper_process = None
+        if 'collection_start_time' not in st.session_state:
+            st.session_state.collection_start_time = None
         
         self.mock_data = self._generate_mock_data()
+        self.data_manager = DataCollectionManager()
         
     def _generate_mock_data(self) -> Dict:
         """Generate realistic mock data for homelessness analysis"""
@@ -363,7 +430,16 @@ class NGODashboard:
             if st.button("🔍 Analyze Region", key="analyze_btn"):
                 if zipcode and len(zipcode) == 5 and zipcode.isdigit():
                     st.session_state.zipcode = zipcode
-                    st.session_state.current_page = 'dashboard'
+                    st.session_state.current_page = 'loading'
+                    
+                    # Reset data collection status
+                    st.session_state.data_sources_status = {
+                        'reddit': {'status': 'pending', 'progress': 0},
+                        'google_trends': {'status': 'pending', 'progress': 0},
+                        'news_api': {'status': 'pending', 'progress': 0},
+                        'bluesky': {'status': 'pending', 'progress': 0}
+                    }
+                    st.session_state.all_data_collected = False
                     
                     # TODO: Trigger backend data collection for all sources
                     print(f"🚀 BACKEND DATA COLLECTION TRIGGERED FOR ZIP CODE: {zipcode}")
@@ -385,6 +461,166 @@ class NGODashboard:
                     st.rerun()
                 else:
                     st.error("Please enter a valid 5-digit ZIP code")
+    
+    def render_loading_screen(self):
+        """Render the data collection loading screen"""
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1d4ed8 100%); min-height: 100vh; padding: 2rem 0;">
+            <div style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+                <h1 style="color: #ffffff; text-align: center; font-size: 3rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    🔍 Collecting Data
+                </h1>
+                <p style="color: #ffffff; text-align: center; font-size: 1.2rem; margin-bottom: 3rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                    Gathering insights from multiple sources for ZIP code {st.session_state.zipcode}
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Data sources checklist
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.95); padding: 2rem; border-radius: 20px; margin: 2rem auto; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="color: #1f2937; text-align: center; margin-bottom: 2rem;">Data Sources Status</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create checklist for each data source
+        data_sources = [
+            {'name': 'Reddit Discussions', 'key': 'reddit', 'description': 'Collecting homelessness-related posts and comments'},
+            {'name': 'Google Trends', 'key': 'google_trends', 'description': 'Analyzing search volume patterns and trends'},
+            {'name': 'News API', 'key': 'news_api', 'description': 'Gathering media coverage and sentiment analysis'},
+            {'name': 'Bluesky Social', 'key': 'bluesky', 'description': 'Collecting social media posts and engagement'}
+        ]
+        
+        for source in data_sources:
+            status = st.session_state.data_sources_status[source['key']]
+            
+            if status['status'] == 'completed':
+                icon = "✅"
+                color = "#10b981"
+                progress_text = "Completed"
+            elif status['status'] == 'collecting':
+                icon = "⏳"
+                color = "#f59e0b"
+                progress_text = f"Collecting... {status['progress']}%"
+            else:
+                icon = "⏸️"
+                color = "#6b7280"
+                progress_text = "Pending"
+            
+            col1, col2 = st.columns([1, 4])
+            
+            with col1:
+                st.markdown(f"""
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 2rem;">{icon}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div style="padding: 1rem 0;">
+                    <h3 style="color: #1f2937; margin: 0 0 0.5rem 0; font-size: 1.2rem;">{source['name']}</h3>
+                    <p style="color: #6b7280; margin: 0 0 0.5rem 0; font-size: 0.9rem;">{source['description']}</p>
+                    <div style="background: #f3f4f6; border-radius: 10px; height: 8px; margin: 0.5rem 0;">
+                        <div style="background: {color}; height: 100%; border-radius: 10px; width: {status['progress']}%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="color: {color}; margin: 0; font-size: 0.8rem; font-weight: 600;">{progress_text}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+        
+        # Overall progress
+        total_progress = sum(status['progress'] for status in st.session_state.data_sources_status.values()) / len(st.session_state.data_sources_status)
+        completed_sources = sum(1 for status in st.session_state.data_sources_status.values() if status['status'] == 'completed')
+        total_sources = len(st.session_state.data_sources_status)
+        
+        st.markdown(f"""
+        <div style="background: rgba(255, 255, 255, 0.95); padding: 2rem; border-radius: 20px; margin: 2rem auto; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center;">
+            <h3 style="color: #1f2937; margin-bottom: 1rem;">Overall Progress</h3>
+            <div style="background: #f3f4f6; border-radius: 15px; height: 20px; margin: 1rem 0;">
+                <div style="background: linear-gradient(90deg, #10b981, #3b82f6); height: 100%; border-radius: 15px; width: {total_progress:.1f}%; transition: width 0.5s ease;"></div>
+            </div>
+            <p style="color: #1f2937; margin: 0; font-size: 1.1rem;">
+                {completed_sources}/{total_sources} sources completed ({total_progress:.1f}%)
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Status message
+        if completed_sources == total_sources:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">🎉 Data Collection Complete!</h3>
+                <p style="margin: 0; font-size: 1.1rem;">All sources have been successfully collected. Loading dashboard...</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">📊 Collecting Data Sources</h3>
+                <p style="margin: 0; font-size: 1.1rem;">Please wait while we gather comprehensive insights from all sources...</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    def start_real_data_collection(self):
+        """Start real data collection using master scraper"""
+        if st.session_state.scraper_process is None:
+            # Start the master scraper process
+            st.session_state.scraper_process = self.data_manager.run_master_scraper(duration=120)
+            st.session_state.collection_start_time = time.time()
+            
+            # Initialize all sources as collecting
+            for source in st.session_state.data_sources_status:
+                st.session_state.data_sources_status[source]['status'] = 'collecting'
+                st.session_state.data_sources_status[source]['progress'] = 0
+    
+    def update_data_collection_progress(self):
+        """Update progress based on real master scraper execution"""
+        if st.session_state.scraper_process is None:
+            return
+            
+        # Check if process is still running
+        if st.session_state.scraper_process.poll() is None:
+            # Process is still running, update progress based on elapsed time
+            elapsed_time = time.time() - st.session_state.collection_start_time
+            total_estimated_time = 120  # 2 minutes estimated total time
+            
+            # Estimate progress based on time (this is approximate)
+            overall_progress = min(95, (elapsed_time / total_estimated_time) * 100)
+            
+            # Distribute progress across sources based on estimated timing
+            # Google Trends: 15%, News API: 30%, Reddit: 25%, Bluesky: 30%
+            source_timing = {
+                'google_trends': (0, 0.15),
+                'news_api': (0.15, 0.45), 
+                'reddit': (0.45, 0.70),
+                'bluesky': (0.70, 1.0)
+            }
+            
+            for source, (start_ratio, end_ratio) in source_timing.items():
+                if overall_progress >= end_ratio * 100:
+                    st.session_state.data_sources_status[source]['status'] = 'completed'
+                    st.session_state.data_sources_status[source]['progress'] = 100
+                elif overall_progress >= start_ratio * 100:
+                    st.session_state.data_sources_status[source]['status'] = 'collecting'
+                    source_progress = ((overall_progress - start_ratio * 100) / ((end_ratio - start_ratio) * 100)) * 100
+                    st.session_state.data_sources_status[source]['progress'] = min(95, source_progress)
+                else:
+                    st.session_state.data_sources_status[source]['status'] = 'pending'
+                    st.session_state.data_sources_status[source]['progress'] = 0
+        else:
+            # Process has completed
+            st.session_state.scraper_process = None
+            
+            # Mark all sources as completed
+            for source in st.session_state.data_sources_status:
+                st.session_state.data_sources_status[source]['status'] = 'completed'
+                st.session_state.data_sources_status[source]['progress'] = 100
+            
+            # Mark all data as collected
+            st.session_state.all_data_collected = True
     
     def render_dashboard_header(self):
         """Render the dashboard page header"""
@@ -756,12 +992,123 @@ class NGODashboard:
         </div>
         """, unsafe_allow_html=True)
     
+    def render_generated_visualizations(self):
+        """Section 7: Display generated visualizations from master scraper"""
+        st.markdown('<h2 class="section-header">📊 Generated Visualizations</h2>', unsafe_allow_html=True)
+        
+        # Get the latest session directory
+        latest_session = self.data_manager.get_latest_session_dir()
+        
+        if latest_session:
+            st.markdown(f"""
+            <div class="success-box">
+                <strong>🎉 Data Collection Complete!</strong><br>
+                Session: {latest_session.name}<br>
+                Generated on: {datetime.fromtimestamp(latest_session.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')}
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Get all visualization files
+            viz_files = self.data_manager.get_visualizations(latest_session)
+            
+            if viz_files:
+                st.markdown("### 📈 Interactive Visualizations")
+                
+                # Group visualizations by type
+                google_trends_viz = [f for f in viz_files if 'googletrends' in f.name.lower() or 'national_seasonal' in f.name.lower() or 'state_seasonal' in f.name.lower()]
+                news_viz = [f for f in viz_files if 'news_' in f.name.lower()]
+                reddit_viz = [f for f in viz_files if 'reddit' in f.name.lower()]
+                bluesky_viz = [f for f in viz_files if 'bluesky' in f.name.lower()]
+                
+                # Display Google Trends visualizations
+                if google_trends_viz:
+                    st.markdown("#### 🔍 Google Trends Analysis")
+                    cols = st.columns(min(3, len(google_trends_viz)))
+                    for i, viz_file in enumerate(google_trends_viz[:6]):  # Show up to 6
+                        with cols[i % 3]:
+                            if viz_file.suffix.lower() == '.png':
+                                st.image(str(viz_file), caption=viz_file.stem, use_column_width=True)
+                            elif viz_file.suffix.lower() == '.html':
+                                with open(viz_file, 'r') as f:
+                                    html_content = f.read()
+                                components.html(html_content, height=400)
+                
+                # Display News visualizations
+                if news_viz:
+                    st.markdown("#### 📰 News Analysis")
+                    cols = st.columns(min(3, len(news_viz)))
+                    for i, viz_file in enumerate(news_viz[:6]):
+                        with cols[i % 3]:
+                            if viz_file.suffix.lower() == '.png':
+                                st.image(str(viz_file), caption=viz_file.stem, use_column_width=True)
+                
+                # Display Bluesky visualizations
+                if bluesky_viz:
+                    st.markdown("#### 🐦 Bluesky Social Analysis")
+                    cols = st.columns(min(3, len(bluesky_viz)))
+                    for i, viz_file in enumerate(bluesky_viz[:6]):
+                        with cols[i % 3]:
+                            if viz_file.suffix.lower() == '.png':
+                                st.image(str(viz_file), caption=viz_file.stem, use_column_width=True)
+                
+                # Show file summary
+                st.markdown("### 📁 Generated Files Summary")
+                file_summary = {}
+                for viz_file in viz_files:
+                    ext = viz_file.suffix.lower()
+                    file_summary[ext] = file_summary.get(ext, 0) + 1
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("PNG Images", file_summary.get('.png', 0))
+                with col2:
+                    st.metric("HTML Files", file_summary.get('.html', 0))
+                with col3:
+                    st.metric("CSV Data", file_summary.get('.csv', 0))
+                with col4:
+                    st.metric("Total Files", len(viz_files))
+                    
+            else:
+                st.markdown("""
+                <div class="warning-box">
+                    <strong>⚠️ No Visualizations Found</strong><br>
+                    The data collection completed but no visualization files were generated. This might be due to an issue with the visualization generation process.
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ No Recent Data Found</strong><br>
+                No recent data collection session was found. The visualizations will appear here once the master scraper completes successfully.
+            </div>
+            """, unsafe_allow_html=True)
+    
     # Old methods removed - using new guided workflow instead
     
     def run(self):
         """Main dashboard execution with page navigation"""
         if st.session_state.current_page == 'landing':
             self.render_landing_page()
+        elif st.session_state.current_page == 'loading':
+            self.render_loading_screen()
+            
+            # Auto-advance to dashboard after data collection
+            if st.session_state.all_data_collected:
+                st.session_state.current_page = 'dashboard'
+                st.rerun()
+            else:
+                # Start real data collection on first load
+                if all(status['status'] == 'pending' for status in st.session_state.data_sources_status.values()):
+                    # Start real data collection
+                    self.start_real_data_collection()
+                    st.rerun()
+                else:
+                    # Update progress for ongoing collection
+                    self.update_data_collection_progress()
+                    # Use auto-refresh with a placeholder for better UX
+                    placeholder = st.empty()
+                    placeholder.info("🔄 Updating progress... Please wait while data is being collected.")
+                    st.rerun()
         elif st.session_state.current_page == 'dashboard':
             self.render_dashboard_header()
             
@@ -782,6 +1129,9 @@ class NGODashboard:
             
             # Section 6: Zoom it and compare to surrounding states
             self.render_geographic_comparison()
+            
+            # Section 7: Generated Visualizations
+            self.render_generated_visualizations()
 
 def main():
     """Main application entry point"""

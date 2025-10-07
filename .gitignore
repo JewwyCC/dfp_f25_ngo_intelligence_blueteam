@@ -4,6 +4,15 @@ auth/*/config/auth_template.json
 auth/*/*.json
 *.json
 !requirements.json
+!data/master_output/**/*.json
+!data/master_output/**/*.csv
+!data/master_output/**/*.png
+!data/master_output/**/*.html
+
+# Credentials - NEVER COMMIT
+**/credentials.py
+credentials.py
+scripts/news_api/credentials.py
 
 # Data directories
 data/*/alltime/
@@ -54,4 +63,4 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-*.temp
+*.tempscripts/news_api/credentials.py

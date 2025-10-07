@@ -20,6 +20,8 @@ import os
 import sys
 import time
 from pathlib import Path
+from master_scraper_viz import VisualizationOrchestrator
+import shutil
 
 # Configure Streamlit page
 st.set_page_config(
@@ -223,8 +225,9 @@ class DataCollectionManager:
     
     def __init__(self):
         self.project_root = Path(__file__).parent
-        self.master_scraper_path = self.project_root / "master_scraper.py"
+        self.master_scraper_path = self.project_root / "master_scraper_data.py"
         self.output_dir = self.project_root / "data" / "master_output"
+        self.backup_data_dir = self.project_root / "data" / "BACKUP_RAWDATA"
         
     def run_master_scraper(self, duration=120):
         """Run the master scraper with specified duration"""
@@ -251,19 +254,118 @@ class DataCollectionManager:
         latest_dir = max(session_dirs, key=lambda x: x.stat().st_mtime)
         return latest_dir
     
-    def get_visualizations(self, session_dir):
-        """Get all visualization files from a session"""
-        if not session_dir or not session_dir.exists():
-            return []
-            
+    def get_visualizations(self, session_dir=None):
+        """Get all visualization files from a session or backup directory"""
         viz_extensions = ['.png', '.html', '.jpg', '.jpeg']
         viz_files = []
         
-        for file in session_dir.iterdir():
-            if file.suffix.lower() in viz_extensions:
-                viz_files.append(file)
-                
+        # Try session directory first (including artifacts subdirectory)
+        if session_dir and session_dir.exists():
+            # Check artifacts subdirectory first (where new visualizations are saved)
+            artifacts_dir = session_dir / "artifacts"
+            if artifacts_dir.exists():
+                for file in artifacts_dir.iterdir():
+                    if file.suffix.lower() in viz_extensions:
+                        viz_files.append(file)
+            
+            # Also check session root directory (for legacy visualizations)
+            for file in session_dir.iterdir():
+                if file.suffix.lower() in viz_extensions:
+                    viz_files.append(file)
+        
+        # If no visualizations found in session, try backup visualizations
+        if not viz_files:
+            backup_viz_dir = self.output_dir / "backup_visualizations"
+            if backup_viz_dir.exists():
+                for file in backup_viz_dir.iterdir():
+                    if file.suffix.lower() in viz_extensions:
+                        viz_files.append(file)
+        
         return sorted(viz_files, key=lambda x: x.stat().st_mtime, reverse=True)
+    
+    def create_real_visualizations(self, session_dir=None):
+        """Create real visualizations using master_scraper_viz system with automatic fallback to backup data"""
+        try:
+            # Determine if we're using backup data or session data
+            using_backup = False
+            
+            if session_dir and session_dir.exists():
+                # Try to use session data first
+                try:
+                    session_id = session_dir.name
+                    viz_orchestrator = VisualizationOrchestrator(session_id)
+                    viz_orchestrator.run()
+                    
+                    # Count generated visualizations
+                    artifacts_dir = session_dir / "artifacts"
+                    viz_files = list(artifacts_dir.glob("*.png")) + list(artifacts_dir.glob("*.html"))
+                    
+                    st.success(f"✅ Generated {len(viz_files)} visualizations from live collected data")
+                    return {
+                        'status': 'success',
+                        'visualizations': len(viz_files),
+                        'fallback_mode': False,
+                        'output_dir': str(artifacts_dir)
+                    }
+                except Exception as e:
+                    st.warning(f"⚠️ Session visualization failed: {e}")
+                    using_backup = True
+            
+            # If session failed or no session, use backup data
+            if using_backup or not session_dir:
+                st.warning("⚠️ Using backup data for visualizations (live data collection failed or incomplete)")
+                
+                # Create a temporary session structure for backup data
+                backup_viz_dir = self.output_dir / "backup_visualizations"
+                backup_viz_dir.mkdir(exist_ok=True)
+                
+                # Copy backup data to a temporary session structure
+                temp_session_id = f"session_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                temp_session_dir = self.output_dir / temp_session_id
+                temp_session_dir.mkdir(exist_ok=True)
+                temp_raw_data_dir = temp_session_dir / "raw_data"
+                temp_raw_data_dir.mkdir(exist_ok=True)
+                
+                # Copy backup data files
+                backup_files_copied = 0
+                for backup_file in self.backup_data_dir.glob("*"):
+                    if backup_file.is_file():
+                        dst = temp_raw_data_dir / backup_file.name
+                        shutil.copy2(backup_file, dst)
+                        backup_files_copied += 1
+                
+                if backup_files_copied > 0:
+                    # Run visualization orchestrator on backup data
+                    viz_orchestrator = VisualizationOrchestrator(temp_session_id)
+                    viz_orchestrator.run()
+                    
+                    # Move generated visualizations to backup_viz_dir
+                    temp_artifacts_dir = temp_session_dir / "artifacts"
+                    if temp_artifacts_dir.exists():
+                        for viz_file in temp_artifacts_dir.glob("*"):
+                            dst = backup_viz_dir / viz_file.name
+                            shutil.move(str(viz_file), str(dst))
+                    
+                    # Clean up temporary session
+                    shutil.rmtree(temp_session_dir, ignore_errors=True)
+                    
+                    # Count final visualizations
+                    viz_files = list(backup_viz_dir.glob("*.png")) + list(backup_viz_dir.glob("*.html"))
+                    
+                    st.info(f"🔄 Generated {len(viz_files)} visualizations using backup data")
+                    return {
+                        'status': 'success',
+                        'visualizations': len(viz_files),
+                        'fallback_mode': True,
+                        'output_dir': str(backup_viz_dir)
+                    }
+                else:
+                    st.error("❌ No backup data files found")
+                    return {'status': 'failed', 'error': 'No backup data available'}
+            
+        except Exception as e:
+            st.error(f"Error creating visualizations: {e}")
+            return {'status': 'failed', 'error': str(e)}
 
 class NGODashboard:
     def __init__(self):
@@ -286,90 +388,8 @@ class NGODashboard:
         if 'collection_start_time' not in st.session_state:
             st.session_state.collection_start_time = None
         
-        self.mock_data = self._generate_mock_data()
         self.data_manager = DataCollectionManager()
         
-    def _generate_mock_data(self) -> Dict:
-        """Generate realistic mock data for homelessness analysis"""
-        
-        # Generate time series data for the past 12 months
-        dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
-        
-        # Reddit discussion trends
-        reddit_data = {
-            'date': dates,
-            'mentions': np.random.poisson(50, len(dates)) + 
-                       np.sin(np.arange(len(dates)) * 2 * np.pi / 365) * 20 + 
-                       np.random.normal(0, 10, len(dates)),
-            'sentiment': np.random.normal(0.2, 0.3, len(dates)),
-            'engagement': np.random.poisson(100, len(dates))
-        }
-        
-        # Google Trends data (normalized 0-100)
-        google_trends = {
-            'date': dates,
-            'search_volume': np.random.uniform(20, 80, len(dates)) + 
-                           np.sin(np.arange(len(dates)) * 2 * np.pi / 365 + np.pi/4) * 15 +
-                           np.random.normal(0, 5, len(dates))
-        }
-        
-        # News coverage sentiment
-        news_data = {
-            'date': dates,
-            'article_count': np.random.poisson(15, len(dates)),
-            'sentiment': np.random.normal(-0.1, 0.4, len(dates)),
-            'political_mentions': np.random.poisson(8, len(dates))
-        }
-        
-        # Bluesky/Social media sentiment
-        social_data = {
-            'date': dates,
-            'posts': np.random.poisson(25, len(dates)),
-            'sentiment': np.random.normal(0.1, 0.3, len(dates)),
-            'hashtag_usage': np.random.poisson(40, len(dates))
-        }
-        
-        # Geographic data (mock for different zipcodes)
-        zipcode_data = {
-            '90210': {'city': 'Beverly Hills, CA', 'homeless_pop': 450, 'shelter_capacity': 120, 'funding': 2.3},
-            '10001': {'city': 'New York, NY', 'homeless_pop': 7800, 'shelter_capacity': 3400, 'funding': 8.7},
-            '60601': {'city': 'Chicago, IL', 'homeless_pop': 3200, 'shelter_capacity': 1500, 'funding': 4.2},
-            '33101': {'city': 'Miami, FL', 'homeless_pop': 2100, 'shelter_capacity': 800, 'funding': 3.1},
-            '94102': {'city': 'San Francisco, CA', 'homeless_pop': 6800, 'shelter_capacity': 2100, 'funding': 12.5}
-        }
-        
-        # Key themes and messaging insights
-        themes = {
-            'top_themes': [
-                {'theme': 'Housing Affordability Crisis', 'mentions': 1250, 'sentiment': -0.3, 'growth': 15.2},
-                {'theme': 'Mental Health Support', 'mentions': 890, 'sentiment': 0.1, 'growth': 8.7},
-                {'theme': 'Economic Inequality', 'mentions': 760, 'sentiment': -0.2, 'growth': 12.1},
-                {'theme': 'Homeless Services Funding', 'mentions': 650, 'sentiment': -0.1, 'growth': 6.3},
-                {'theme': 'Policy Solutions', 'mentions': 580, 'sentiment': 0.2, 'growth': 9.8}
-            ],
-            'effective_messaging': [
-                'Focus on individual stories and human impact',
-                'Emphasize economic benefits of housing-first approaches',
-                'Highlight successful programs and measurable outcomes',
-                'Connect homelessness to broader community health',
-                'Use data-driven arguments for policy change'
-            ],
-            'timing_insights': [
-                'Peak engagement occurs during winter months (Dec-Feb)',
-                'Policy discussions spike during budget season (Mar-May)',
-                'Community events generate 40% more engagement',
-                'Weekend posts receive 25% higher interaction rates'
-            ]
-        }
-        
-        return {
-            'reddit': reddit_data,
-            'google_trends': google_trends,
-            'news': news_data,
-            'social': social_data,
-            'zipcode_data': zipcode_data,
-            'themes': themes
-        }
     
     def render_landing_page(self):
         """Render the landing page with ZIP code input"""
@@ -503,6 +523,10 @@ class NGODashboard:
                 icon = "⏳"
                 color = "#f59e0b"
                 progress_text = f"Collecting... {status['progress']}%"
+            elif status['status'] == 'failed':
+                icon = "❌"
+                color = "#ef4444"
+                progress_text = "Failed"
             else:
                 icon = "⏸️"
                 color = "#6b7280"
@@ -549,11 +573,20 @@ class NGODashboard:
         """, unsafe_allow_html=True)
         
         # Status message
+        failed_sources = sum(1 for status in st.session_state.data_sources_status.values() if status['status'] == 'failed')
+        
         if completed_sources == total_sources:
             st.markdown("""
             <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);">
                 <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">🎉 Data Collection Complete!</h3>
                 <p style="margin: 0; font-size: 1.1rem;">All sources have been successfully collected. Loading dashboard...</p>
+            </div>
+            """, unsafe_allow_html=True)
+        elif failed_sources > 0:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; padding: 1.5rem; border-radius: 15px; margin: 2rem auto; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">⚠️ Partial Data Collection</h3>
+                <p style="margin: 0; font-size: 1.1rem;">Some data sources failed to collect. Dashboard will show available data.</p>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -563,6 +596,22 @@ class NGODashboard:
                 <p style="margin: 0; font-size: 1.1rem;">Please wait while we gather comprehensive insights from all sources...</p>
             </div>
             """, unsafe_allow_html=True)
+        
+        # Add manual proceed button if data collection is taking too long
+        elapsed_time = time.time() - st.session_state.collection_start_time if st.session_state.collection_start_time else 0
+        if elapsed_time > 120:  # After 2 minutes, show manual proceed option
+            st.markdown("""
+            <div style="background: rgba(255, 255, 255, 0.95); padding: 2rem; border-radius: 20px; margin: 2rem auto; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center;">
+                <h3 style="color: #1f2937; margin-bottom: 1rem;">Data Collection Taking Longer Than Expected</h3>
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">You can proceed to the dashboard with available data or continue waiting.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("🚀 Proceed to Dashboard with Available Data", key="proceed_btn", type="primary"):
+                    st.session_state.current_page = 'dashboard'
+                    st.rerun()
     
     def start_real_data_collection(self):
         """Start real data collection using master scraper"""
@@ -577,7 +626,7 @@ class NGODashboard:
                 st.session_state.data_sources_status[source]['progress'] = 0
     
     def update_data_collection_progress(self):
-        """Update progress based on real master scraper execution"""
+        """Update progress based on real master scraper execution and actual data files"""
         if st.session_state.scraper_process is None:
             return
             
@@ -585,42 +634,108 @@ class NGODashboard:
         if st.session_state.scraper_process.poll() is None:
             # Process is still running, update progress based on elapsed time
             elapsed_time = time.time() - st.session_state.collection_start_time
-            total_estimated_time = 120  # 2 minutes estimated total time
+            total_estimated_time = 180  # 3 minutes estimated total time (increased for safety)
             
             # Estimate progress based on time (this is approximate)
-            overall_progress = min(95, (elapsed_time / total_estimated_time) * 100)
+            overall_progress = min(90, (elapsed_time / total_estimated_time) * 100)
             
             # Distribute progress across sources based on estimated timing
-            # Google Trends: 15%, News API: 30%, Reddit: 25%, Bluesky: 30%
+            # Google Trends: 20%, News API: 25%, Reddit: 30%, Bluesky: 25%
             source_timing = {
-                'google_trends': (0, 0.15),
-                'news_api': (0.15, 0.45), 
-                'reddit': (0.45, 0.70),
-                'bluesky': (0.70, 1.0)
+                'google_trends': (0, 0.20),
+                'news_api': (0.20, 0.45), 
+                'reddit': (0.45, 0.75),
+                'bluesky': (0.75, 1.0)
             }
             
             for source, (start_ratio, end_ratio) in source_timing.items():
                 if overall_progress >= end_ratio * 100:
-                    st.session_state.data_sources_status[source]['status'] = 'completed'
-                    st.session_state.data_sources_status[source]['progress'] = 100
+                    st.session_state.data_sources_status[source]['status'] = 'collecting'
+                    st.session_state.data_sources_status[source]['progress'] = 90  # Don't mark as complete yet
                 elif overall_progress >= start_ratio * 100:
                     st.session_state.data_sources_status[source]['status'] = 'collecting'
-                    source_progress = ((overall_progress - start_ratio * 100) / ((end_ratio - start_ratio) * 100)) * 100
-                    st.session_state.data_sources_status[source]['progress'] = min(95, source_progress)
+                    source_progress = ((overall_progress - start_ratio * 100) / ((end_ratio - start_ratio) * 100)) * 90
+                    st.session_state.data_sources_status[source]['progress'] = min(90, source_progress)
                 else:
                     st.session_state.data_sources_status[source]['status'] = 'pending'
                     st.session_state.data_sources_status[source]['progress'] = 0
         else:
-            # Process has completed
+            # Process has completed - now check for actual data files
             st.session_state.scraper_process = None
             
-            # Mark all sources as completed
-            for source in st.session_state.data_sources_status:
-                st.session_state.data_sources_status[source]['status'] = 'completed'
-                st.session_state.data_sources_status[source]['progress'] = 100
+            # Get the latest session directory
+            latest_session = self.data_manager.get_latest_session_dir()
             
-            # Mark all data as collected
-            st.session_state.all_data_collected = True
+            if latest_session:
+                # Check for actual data files from each source in raw_data/ directory
+                raw_data_dir = latest_session / "raw_data"
+                data_sources = {
+                    'google_trends': ['googletrends', 'google_trends'],
+                    'news_api': ['news', 'articles'],
+                    'reddit': ['reddit', 'reddit_posts'],
+                    'bluesky': ['bluesky', 'social']
+                }
+                
+                all_sources_complete = True
+                
+                for source, keywords in data_sources.items():
+                    source_complete = False
+                    
+                    # Check for CSV files with relevant keywords in raw_data/
+                    if raw_data_dir.exists():
+                        for file in raw_data_dir.glob("*.csv"):
+                            if any(keyword in file.name.lower() for keyword in keywords):
+                                source_complete = True
+                                break
+                        
+                        # Check for JSON/JSONL files with relevant keywords
+                        if not source_complete:
+                            for file in raw_data_dir.glob("*.json*"):
+                                if any(keyword in file.name.lower() for keyword in keywords):
+                                    source_complete = True
+                                    break
+                        
+                        # Check for Excel files (Google Trends)
+                        if not source_complete and source == 'google_trends':
+                            for file in raw_data_dir.glob("*.xlsx"):
+                                if any(keyword in file.name.lower() for keyword in keywords):
+                                    source_complete = True
+                                    break
+                    
+                    if source_complete:
+                        st.session_state.data_sources_status[source]['status'] = 'completed'
+                        st.session_state.data_sources_status[source]['progress'] = 100
+                    else:
+                        st.session_state.data_sources_status[source]['status'] = 'failed'
+                        st.session_state.data_sources_status[source]['progress'] = 0
+                        all_sources_complete = False
+                
+                # Use backup mode if ANY source failed (new logic)
+                failed_sources = [source for source, status in st.session_state.data_sources_status.items() 
+                                if status['status'] == 'failed']
+                completed_sources = [source for source, status in st.session_state.data_sources_status.items() 
+                                   if status['status'] == 'completed']
+                
+                if len(failed_sources) > 0:
+                    # ANY failure triggers backup mode
+                    st.warning(f"⚠️ Data collection incomplete. Failed sources: {', '.join(failed_sources)}")
+                    st.info("🔄 Using backup data mode due to data collection failures.")
+                    st.session_state.all_data_collected = True  # Allow dashboard to proceed with backup data
+                elif all_sources_complete:
+                    # All sources completed successfully
+                    st.session_state.all_data_collected = True
+                else:
+                    # No data collected at all, use backup data only
+                    st.info("🔄 No live data collected. Dashboard will use backup data.")
+                    st.session_state.all_data_collected = True  # Allow dashboard to proceed
+            else:
+                # No session directory found - mark all as failed and use backup data
+                for source in st.session_state.data_sources_status:
+                    st.session_state.data_sources_status[source]['status'] = 'failed'
+                    st.session_state.data_sources_status[source]['progress'] = 0
+                
+                st.warning("⚠️ No session directory found. Using backup data for dashboard.")
+                st.session_state.all_data_collected = True  # Allow dashboard to proceed with backup data
     
     def render_dashboard_header(self):
         """Render the dashboard page header"""
@@ -634,23 +749,12 @@ class NGODashboard:
         
         # Location info
         if st.session_state.zipcode:
-            zipcode_data = self.mock_data['zipcode_data'].get(st.session_state.zipcode)
-            if zipcode_data:
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
-                    <strong style="color: #ffffff; font-size: 1.1rem;">📍 Analyzing: {zipcode_data['city']} ({st.session_state.zipcode})</strong><br>
-                    <span style="color: #f0fdf4;">Homeless Population: {zipcode_data['homeless_pop']:,} • 
-                    Shelter Capacity: {zipcode_data['shelter_capacity']:,} • 
-                    Annual Funding: ${zipcode_data['funding']:.1f}M</span>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
-                    <strong style="color: #ffffff; font-size: 1.1rem;">📍 Analyzing ZIP Code: {st.session_state.zipcode}</strong><br>
-                    <span style="color: #f0fdf4;">Using sample data for demonstration purposes</span>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 1rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
+                <strong style="color: #ffffff; font-size: 1.1rem;">📍 Analyzing ZIP Code: {st.session_state.zipcode}</strong><br>
+                <span style="color: #f0fdf4;">Real-time data analysis from multiple sources</span>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Back button
         col1, col2, col3 = st.columns([1, 8, 1])
@@ -664,351 +768,209 @@ class NGODashboard:
         """Section 1: What are the trends in your zipcode?"""
         st.markdown('<h2 class="section-header">📊 What are the trends in your zipcode?</h2>', unsafe_allow_html=True)
         
-        # Sample stats for the zipcode
-        col1, col2, col3 = st.columns(3)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        with col1:
-            st.metric(
-                label="📈 Monthly Search Volume",
-                value="4,230",
-                delta="12.3%",
-                help="Google search interest for homelessness-related terms"
-            )
-        
-        with col2:
-            st.metric(
-                label="💬 Social Mentions",
-                value="1,847",
-                delta="8.7%",
-                help="Total mentions across social platforms this month"
-            )
-        
-        with col3:
-            st.metric(
-                label="📰 News Articles",
-                value="156",
-                delta="-3.2%",
-                help="Number of news articles mentioning homelessness"
-            )
-        
-        # TODO: Replace with actual Google Trends visualization
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: Google Trends Visualization</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • Time series of search volume for homelessness-related terms in this ZIP code<br>
-            • Comparison with national average<br>
-            • Seasonal patterns and spikes in interest<br>
-            • Related search terms and queries
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Mock chart placeholder
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            y=[100, 120, 110, 140, 160, 150],
-            mode='lines+markers',
-            name='Your ZIP Code',
-            line=dict(color='#3b82f6', width=3)
-        ))
-        fig.add_trace(go.Scatter(
-            x=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            y=[80, 85, 90, 95, 100, 105],
-            mode='lines+markers',
-            name='National Average',
-            line=dict(color='#ef4444', width=3)
-        ))
-        fig.update_layout(
-            title="Search Volume Trends (Sample Data)",
-            xaxis_title="Month",
-            yaxis_title="Search Interest (Normalized)",
-            height=400
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Data Analysis Available</strong><br>
+                The visualizations below are generated from actual data collected from Google Trends, News APIs, Reddit, and Bluesky. 
+                Scroll down to the "Generated Visualizations" section to view the comprehensive analysis.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Please enter a ZIP code and start data collection to see real trends analysis. 
+                The system will collect data from Google Trends, News APIs, Reddit, and Bluesky to provide comprehensive insights.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_constituent_impact(self):
         """Section 2: How is homelessness affecting your constituents?"""
         st.markdown('<h2 class="section-header">👥 How is homelessness affecting your constituents?</h2>', unsafe_allow_html=True)
         
-        # TODO: Replace with actual Google Trends visualizations
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: 3 Google Trends Visualizations (National vs Local)</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • <strong>Visualization 1:</strong> Housing affordability searches (local vs national)<br>
-            • <strong>Visualization 2:</strong> Homeless services searches (local vs national)<br>
-            • <strong>Visualization 3:</strong> Emergency shelter searches (local vs national)
-        </div>
-        """, unsafe_allow_html=True)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        # Mock visualizations
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig1 = go.Figure()
-            fig1.add_trace(go.Bar(
-                x=['Housing Affordability', 'Shelter Services', 'Emergency Help'],
-                y=[85, 92, 78],
-                name='Your ZIP Code',
-                marker_color='#3b82f6'
-            ))
-            fig1.add_trace(go.Bar(
-                x=['Housing Affordability', 'Shelter Services', 'Emergency Help'],
-                y=[65, 70, 60],
-                name='National Average',
-                marker_color='#ef4444'
-            ))
-            fig1.update_layout(
-                title="Search Interest: Local vs National (Sample)",
-                xaxis_title="Search Categories",
-                yaxis_title="Search Volume (Normalized)",
-                height=400
-            )
-            st.plotly_chart(fig1, use_container_width=True)
-        
-        with col2:
-            # Mock heatmap showing interest patterns
-            fig2 = go.Figure(data=go.Heatmap(
-                z=[[85, 92, 78, 65],
-                   [70, 88, 82, 58],
-                   [90, 85, 75, 72]],
-                x=['Q1', 'Q2', 'Q3', 'Q4'],
-                y=['Housing', 'Services', 'Emergency'],
-                colorscale='Blues',
-                showscale=True
-            ))
-            fig2.update_layout(
-                title="Quarterly Search Patterns (Sample)",
-                height=400
-            )
-            st.plotly_chart(fig2, use_container_width=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Constituent Impact Analysis</strong><br>
+                The Google Trends visualizations below show real search patterns from your area compared to national averages. 
+                This reveals what your constituents are actively searching for regarding homelessness services and support.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Constituent impact analysis requires Google Trends data collection for your specific ZIP code area. 
+                This will show local vs national search patterns for homelessness-related services and support.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_search_trends(self):
         """Section 3: What are people searching for?"""
         st.markdown('<h2 class="section-header">🔍 What are people searching for?</h2>', unsafe_allow_html=True)
         
-        # TODO: Replace with actual Google Trends data
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: Google Trends Search Analysis</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • Top search terms related to homelessness in your area<br>
-            • Rising search queries (trending upward)<br>
-            • Geographic comparison of search patterns<br>
-            • Related queries and search suggestions
-        </div>
-        """, unsafe_allow_html=True)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        # Mock search trends
-        search_terms = [
-            "homeless shelters near me",
-            "housing assistance programs",
-            "emergency shelter",
-            "homeless help",
-            "affordable housing",
-            "homeless services",
-            "shelter beds available",
-            "homeless outreach"
-        ]
-        
-        search_volumes = [95, 88, 82, 76, 71, 68, 65, 60]
-        
-        fig = go.Figure(go.Bar(
-            x=search_volumes,
-            y=search_terms,
-            orientation='h',
-            marker_color='#10b981'
-        ))
-        fig.update_layout(
-            title="Top Search Terms (Sample Data)",
-            xaxis_title="Search Volume",
-            yaxis_title="Search Terms",
-            height=500
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Search Trend Analysis</strong><br>
+                The Google Trends data below shows actual search patterns from your area. 
+                This reveals the most searched terms related to homelessness, helping you understand what your community is actively looking for.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Search trend analysis requires Google Trends data collection. 
+                This will show the most searched terms related to homelessness in your specific area, including trending queries and search volume patterns.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_reddit_analysis(self):
         """Section 4: What are the top problems faced by the homeless community nationwide?"""
         st.markdown('<h2 class="section-header">💬 What are the top problems faced by the homeless community nationwide?</h2>', unsafe_allow_html=True)
         
-        # TODO: Replace with actual Reddit visualizations
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: Reddit Visualizations</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • Sentiment analysis of homelessness discussions<br>
-            • Most mentioned problems and challenges<br>
-            • Community sentiment trends over time<br>
-            • Geographic distribution of discussions<br>
-            • Top subreddits discussing homelessness issues
-        </div>
-        """, unsafe_allow_html=True)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        # Mock Reddit analysis
-        problems = [
-            "Housing Affordability",
-            "Mental Health Support",
-            "Job Opportunities",
-            "Healthcare Access",
-            "Substance Abuse",
-            "Family Separation",
-            "Legal Issues",
-            "Weather Exposure"
-        ]
-        
-        mentions = [1250, 890, 760, 650, 580, 520, 480, 420]
-        sentiment = [0.2, -0.3, 0.1, -0.1, -0.4, -0.2, -0.3, -0.1]
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=mentions,
-            y=problems,
-            mode='markers',
-            marker=dict(
-                size=15,
-                color=sentiment,
-                colorscale='RdYlBu',
-                showscale=True,
-                colorbar=dict(title="Sentiment Score")
-            ),
-            text=[f"Mentions: {m}<br>Sentiment: {s:.2f}" for m, s in zip(mentions, sentiment)],
-            hovertemplate="%{y}<br>%{text}<extra></extra>"
-        ))
-        fig.update_layout(
-            title="Homelessness Problems Discussion (Sample Reddit Data)",
-            xaxis_title="Number of Mentions",
-            yaxis_title="Problems Discussed",
-            height=500
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Reddit Community Analysis</strong><br>
+                The Reddit visualizations below show actual discussions from homelessness-related subreddits. 
+                This reveals the real problems and challenges discussed by the community, including sentiment analysis and trending topics.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Reddit community analysis requires data collection from homelessness-related subreddits. 
+                This will show real discussions about problems faced by the homeless community, including sentiment analysis and trending topics.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_media_analysis(self):
         """Section 5: How is the media talking about it?"""
         st.markdown('<h2 class="section-header">📰 How is the media talking about it?</h2>', unsafe_allow_html=True)
         
-        # TODO: Replace with actual news/media visualizations
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: NewsAPI, NPR and Bluesky Visualizations</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • <strong>NewsAPI:</strong> Media coverage volume and sentiment by outlet<br>
-            • <strong>NPR:</strong> Public radio coverage analysis and story themes<br>
-            • <strong>Bluesky:</strong> Social media sentiment and trending topics<br>
-            • News channel traction analysis and framing approaches
-        </div>
-        """, unsafe_allow_html=True)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        # Mock media analysis
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # News outlets analysis
-            outlets = ['CNN', 'Fox News', 'NPR', 'BBC', 'Local News', 'AP', 'Reuters']
-            coverage = [45, 38, 52, 41, 28, 35, 33]
-            sentiment = [0.1, -0.2, 0.3, 0.2, 0.0, 0.1, 0.2]
-            
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=outlets,
-                y=coverage,
-                marker_color=['#ef4444' if s < 0 else '#10b981' for s in sentiment],
-                text=[f"{s:.1f}" for s in sentiment],
-                textposition='auto'
-            ))
-            fig.update_layout(
-                title="News Coverage by Outlet (Sample)",
-                xaxis_title="News Outlets",
-                yaxis_title="Number of Articles",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Bluesky sentiment analysis
-            fig = go.Figure(data=go.Pie(
-                labels=['Positive', 'Neutral', 'Negative'],
-                values=[35, 45, 20],
-                marker_colors=['#10b981', '#f59e0b', '#ef4444']
-            ))
-            fig.update_layout(
-                title="Bluesky Social Media Sentiment (Sample)",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Media Analysis</strong><br>
+                The News API and Bluesky visualizations below show actual media coverage and social media sentiment. 
+                This reveals how different news outlets are framing homelessness stories and the sentiment in social media discussions.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Media analysis requires data collection from News APIs and Bluesky social media. 
+                This will show real media coverage patterns, sentiment analysis, and how different outlets are framing homelessness stories.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_geographic_comparison(self):
         """Section 6: Zoom it and compare to surrounding states"""
         st.markdown('<h2 class="section-header">🗺️ Zoom it and compare to surrounding states</h2>', unsafe_allow_html=True)
         
-        # TODO: Replace with actual Google Trends map visualization
-        st.markdown("""
-        <div class="insight-box">
-            <strong>🔍 TODO: Google Trends Map Visualization</strong><br>
-            <em>Once data sources are ready, this will show:</em><br>
-            • Interactive map showing search interest by state/region<br>
-            • Identification of areas with high need but low help<br>
-            • Comparison of your state with surrounding states<br>
-            • Resource gap analysis and partnership opportunities
-        </div>
-        """, unsafe_allow_html=True)
+        # Check if we have real data available
+        latest_session = self.data_manager.get_latest_session_dir()
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        has_real_data = (latest_session and latest_session.exists()) or (backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0)
         
-        # Mock geographic comparison
-        states = ['Your State', 'Neighbor 1', 'Neighbor 2', 'Neighbor 3', 'Neighbor 4']
-        search_interest = [85, 65, 78, 45, 72]
-        resources = [60, 80, 55, 90, 65]
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=states,
-            y=search_interest,
-            name='Search Interest',
-            marker_color='#3b82f6'
-        ))
-        fig.add_trace(go.Bar(
-            x=states,
-            y=resources,
-            name='Available Resources',
-            marker_color='#10b981'
-        ))
-        fig.update_layout(
-            title="Search Interest vs Available Resources (Sample)",
-            xaxis_title="States",
-            yaxis_title="Score (Normalized)",
-            barmode='group',
-            height=400
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Partnership opportunities
-        st.markdown("""
-        <div class="success-box">
-            <strong>🤝 Partnership Opportunities Identified</strong><br>
-            <em>Based on the analysis above:</em><br>
-            • <strong>Neighbor 1:</strong> High resources, moderate interest - potential resource sharing<br>
-            • <strong>Neighbor 3:</strong> Very high resources, low interest - outreach opportunity<br>
-            • <strong>Your State:</strong> High interest, moderate resources - advocacy focus needed<br>
-            • <strong>Neighbor 2:</strong> Similar profile - collaboration potential
-        </div>
-        """, unsafe_allow_html=True)
+        if has_real_data:
+            st.markdown("""
+            <div class="success-box">
+                <strong>✅ Real Geographic Analysis</strong><br>
+                The Google Trends map visualizations below show actual search interest patterns across different states and regions. 
+                This helps identify areas with high need but low resources, and potential partnership opportunities with neighboring regions.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="warning-box">
+                <strong>⚠️ Data Collection Required</strong><br>
+                Geographic comparison requires Google Trends data collection for multiple states and regions. 
+                This will show real search interest patterns to identify resource gaps and partnership opportunities.
+            </div>
+            """, unsafe_allow_html=True)
     
     def render_generated_visualizations(self):
-        """Section 7: Display generated visualizations from master scraper"""
+        """Section 7: Display generated visualizations from master scraper with fallback to backup data"""
         st.markdown('<h2 class="section-header">📊 Generated Visualizations</h2>', unsafe_allow_html=True)
         
         # Get the latest session directory
         latest_session = self.data_manager.get_latest_session_dir()
         
-        if latest_session:
-            st.markdown(f"""
-            <div class="success-box">
-                <strong>🎉 Data Collection Complete!</strong><br>
-                Session: {latest_session.name}<br>
-                Generated on: {datetime.fromtimestamp(latest_session.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')}
-            </div>
-            """, unsafe_allow_html=True)
+        # Check if we're using backup data
+        backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+        using_backup = backup_viz_dir.exists() and len(list(backup_viz_dir.glob("*.png"))) > 0
+        
+        if latest_session or using_backup:
+            # Show appropriate status message
+            if latest_session and not using_backup:
+                st.markdown(f"""
+                <div class="success-box">
+                    <strong>🎉 Data Collection Complete!</strong><br>
+                    Session: {latest_session.name}<br>
+                    Generated on: {datetime.fromtimestamp(latest_session.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')}
+                </div>
+                """, unsafe_allow_html=True)
+            elif using_backup:
+                st.markdown(f"""
+                <div class="warning-box">
+                    <strong>🔄 Using Backup Data</strong><br>
+                    Live data collection failed or incomplete. Dashboard is displaying visualizations created from backup data.<br>
+                    <em>Data may not reflect the most recent trends.</em>
+                </div>
+                """, unsafe_allow_html=True)
             
-            # Get all visualization files
+            # Create real visualizations if they don't exist
+            if latest_session:
+                artifacts_dir = latest_session / "artifacts"
+                if not artifacts_dir.exists() or len(list(artifacts_dir.glob("*.png"))) == 0:
+                    with st.spinner("Creating visualizations from collected data..."):
+                        viz_results = self.data_manager.create_real_visualizations(latest_session)
+                        if viz_results and viz_results.get('status') == 'success':
+                            total_viz = viz_results.get('visualizations', 0)
+                            if viz_results.get('fallback_mode', False):
+                                st.warning(f"Generated {total_viz} visualizations using backup data!")
+                            else:
+                                st.success(f"Generated {total_viz} visualizations from live data!")
+            elif using_backup:
+                # Create visualizations from backup data only
+                with st.spinner("Creating visualizations from backup data..."):
+                    viz_results = self.data_manager.create_real_visualizations(None)
+                    if viz_results and viz_results.get('status') == 'success':
+                        total_viz = viz_results.get('visualizations', 0)
+                        st.info(f"Generated {total_viz} visualizations from backup data!")
+            
+            # Get all visualization files (from session or backup)
             viz_files = self.data_manager.get_visualizations(latest_session)
             
             if viz_files:
@@ -1038,6 +1000,15 @@ class NGODashboard:
                     st.markdown("#### 📰 News Analysis")
                     cols = st.columns(min(3, len(news_viz)))
                     for i, viz_file in enumerate(news_viz[:6]):
+                        with cols[i % 3]:
+                            if viz_file.suffix.lower() == '.png':
+                                st.image(str(viz_file), caption=viz_file.stem, use_column_width=True)
+                
+                # Display Reddit visualizations
+                if reddit_viz:
+                    st.markdown("#### 💬 Reddit Analysis")
+                    cols = st.columns(min(3, len(reddit_viz)))
+                    for i, viz_file in enumerate(reddit_viz[:6]):
                         with cols[i % 3]:
                             if viz_file.suffix.lower() == '.png':
                                 st.image(str(viz_file), caption=viz_file.stem, use_column_width=True)
@@ -1078,8 +1049,8 @@ class NGODashboard:
         else:
             st.markdown("""
             <div class="warning-box">
-                <strong>⚠️ No Recent Data Found</strong><br>
-                No recent data collection session was found. The visualizations will appear here once the master scraper completes successfully.
+                <strong>⚠️ No Data Available</strong><br>
+                No recent data collection session was found and no backup data is available. The visualizations will appear here once data is available.
             </div>
             """, unsafe_allow_html=True)
     
@@ -1092,10 +1063,21 @@ class NGODashboard:
         elif st.session_state.current_page == 'loading':
             self.render_loading_screen()
             
-            # Auto-advance to dashboard after data collection
-            if st.session_state.all_data_collected:
-                st.session_state.current_page = 'dashboard'
-                st.rerun()
+            # Auto-advance to dashboard after data collection (even if partial)
+            if st.session_state.all_data_collected or any(status['status'] in ['completed', 'failed'] for status in st.session_state.data_sources_status.values()):
+                # Check if we have at least some data or if enough time has passed
+                elapsed_time = time.time() - st.session_state.collection_start_time if st.session_state.collection_start_time else 0
+                
+                # If we have completed sources or enough time has passed (3+ minutes), proceed to dashboard
+                if st.session_state.all_data_collected or elapsed_time > 180:
+                    st.session_state.current_page = 'dashboard'
+                    st.rerun()
+                else:
+                    # Update progress for ongoing collection
+                    self.update_data_collection_progress()
+                    # Auto-refresh every 2 seconds to show progress
+                    time.sleep(2)
+                    st.rerun()
             else:
                 # Start real data collection on first load
                 if all(status['status'] == 'pending' for status in st.session_state.data_sources_status.values()):
@@ -1105,12 +1087,28 @@ class NGODashboard:
                 else:
                     # Update progress for ongoing collection
                     self.update_data_collection_progress()
-                    # Use auto-refresh with a placeholder for better UX
-                    placeholder = st.empty()
-                    placeholder.info("🔄 Updating progress... Please wait while data is being collected.")
+                    # Auto-refresh every 2 seconds to show progress
+                    time.sleep(2)
                     st.rerun()
         elif st.session_state.current_page == 'dashboard':
             self.render_dashboard_header()
+            
+            # Check if we need to create backup visualizations immediately
+            latest_session = self.data_manager.get_latest_session_dir()
+            backup_viz_dir = self.data_manager.output_dir / "backup_visualizations"
+            
+            # If no session data and no backup visualizations exist, create them
+            if not latest_session and (not backup_viz_dir.exists() or len(list(backup_viz_dir.glob("*.png"))) == 0):
+                with st.spinner("Creating visualizations from backup data..."):
+                    try:
+                        viz_results = self.data_manager.create_real_visualizations(None)
+                        if viz_results and viz_results.get('status') == 'success':
+                            total_viz = viz_results.get('visualizations', 0)
+                            st.success(f"✅ Dashboard ready with {total_viz} backup data visualizations!")
+                        else:
+                            st.warning("⚠️ Could not create visualizations from backup data")
+                    except Exception as e:
+                        st.error(f"Error creating backup visualizations: {e}")
             
             # Section 1: What are the trends in your zipcode?
             self.render_zipcode_trends()

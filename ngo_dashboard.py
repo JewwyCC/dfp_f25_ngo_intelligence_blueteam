@@ -544,51 +544,37 @@ def display_bluesky_top_tweets_table(df, page_size=10):
     # Display table header
     st.markdown("#### 🐦 Top Bluesky Posts by Engagement")
     st.markdown(f"*Showing {start_idx + 1}-{min(end_idx, len(df_sorted))} of {len(df_sorted)} posts*")
-    
-    # Select relevant columns for display
+
+    # Find the exact three columns we need: Author, Engagement, Content
+    author_col = None
+    content_col = None
+
+    # Find author column
+    for col in df.columns:
+        if any(term in col.lower() for term in ['author', 'handle', 'username']):
+            author_col = col
+            break
+
+    # Find content column
+    for col in df.columns:
+        if any(term in col.lower() for term in ['text', 'content', 'post', 'message']):
+            content_col = col
+            break
+
+    # Prepare display columns in order: Author, Engagement, Content
     display_columns = []
     column_mapping = {}
-    
-    # Common column mappings (updated for Bluesky schema)
-    column_mappings = {
-        'text': 'Post Content',
-        'content': 'Post Content',
-        'post_text': 'Post Content',
-        'message': 'Post Content',
-        'author_handle': 'Author',
-        'author': 'Author',
-        'username': 'Username',
-        'handle': 'Handle',
-        'created_at': 'Date',
-        'timestamp': 'Date',
-        'date': 'Date',
-        'like_count': 'Likes',
-        'repost_count': 'Reposts',
-        'reply_count': 'Replies',
-        'likes': 'Likes',
-        'reposts': 'Reposts',
-        'replies': 'Replies',
-        'engagement_score': 'Engagement'
-    }
-    
-    # Find available columns
-    for original_col in df.columns:
-        original_lower = original_col.lower()
-        for key, display_name in column_mappings.items():
-            if key in original_lower:
-                display_columns.append(original_col)
-                column_mapping[original_col] = display_name
-                break
-    
-    # If no standard columns found, use first few columns
-    if not display_columns:
-        display_columns = df.columns[:min(6, len(df.columns))]
-        column_mapping = {col: col.replace('_', ' ').title() for col in display_columns}
-    
-    # Ensure engagement_score is included
-    if 'engagement_score' not in display_columns:
-        display_columns.append('engagement_score')
-        column_mapping['engagement_score'] = 'Engagement Score'
+
+    if author_col:
+        display_columns.append(author_col)
+        column_mapping[author_col] = 'Author'
+
+    display_columns.append('engagement_score')
+    column_mapping['engagement_score'] = 'Engagement'
+
+    if content_col:
+        display_columns.append(content_col)
+        column_mapping[content_col] = 'Content'
     
     # Display the table
     if not page_data.empty:
@@ -656,42 +642,9 @@ def display_bluesky_top_tweets_table(df, page_size=10):
             if st.button("Last ⏭️", disabled=st.session_state.bluesky_page >= total_pages - 1):
                 st.session_state.bluesky_page = total_pages - 1
                 st.rerun()
-        
-        # Show engagement statistics
-        with st.expander("📊 Engagement Statistics", expanded=False):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Total Tweets", len(df_sorted))
-            
-            with col2:
-                avg_engagement = df_sorted['engagement_score'].mean()
-                st.metric("Avg Engagement", f"{avg_engagement:.1f}")
-            
-            with col3:
-                max_engagement = df_sorted['engagement_score'].max()
-                st.metric("Max Engagement", f"{max_engagement:.1f}")
-            
-            # Engagement distribution
-            if len(df_sorted) > 1:
-                st.markdown("**Engagement Score Distribution:**")
-                fig = px.histogram(
-                    df_sorted, 
-                    x='engagement_score',
-                    nbins=20,
-                    title="Distribution of Engagement Scores"
-                )
-                fig.update_layout(
-                    font_color='white',
-                    paper_bgcolor='#1f2937',
-                    plot_bgcolor='#1f2937',
-                    xaxis=dict(color='white'),
-                    yaxis=dict(color='white')
-                )
-                st.plotly_chart(fig, use_container_width=True)
-    
+
     else:
-        st.info("No tweets found in the current page.")
+        st.info("No posts found in the current page.")
 
 def create_google_trends_4_chart_layout(theme_data, selected_theme):
     """Create the 4-chart layout for Google Trends analysis like the reference image"""

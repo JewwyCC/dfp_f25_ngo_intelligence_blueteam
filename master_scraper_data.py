@@ -173,6 +173,14 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
             
             self.print_success(f"Collected {len(combined_articles)} articles")
 
+            # Update NPR labels.
+            search_string = 'section_/sections/'
+            npr = 'NPR'
+
+            for article in combined_articles:
+                if search_string in article['source']:
+                    article['source'] = npr
+
             # Save directly to raw_data/ with news_ prefix
             output_file = self.raw_data_dir / 'news_combined_articles.json'
             scraper.save_combined_data(str(output_file))
@@ -181,7 +189,6 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
             classifier = PoliticalLeaningClassifier()
             classified_articles = classifier.classify_batch(combined_articles)
             df = pd.DataFrame(classified_articles)
-            df.loc[df['source'] == 'section_/sections/news/', 'source'] = 'NPR'
             
             csv_file = self.raw_data_dir / 'news_classified.csv'
             df.to_csv(csv_file, index=False)

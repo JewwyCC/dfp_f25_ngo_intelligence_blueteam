@@ -1,0 +1,17 @@
+[global]
+developmentMode = false
+
+[logger]
+level = "error"
+
+[client]
+showErrorDetails = false
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#3b82f6"
+backgroundColor = "#0a0a0a"
+secondaryBackgroundColor = "#1a1a1a"
+textColor = "#ffffff"

@@ -119,8 +119,8 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
                 [sys.executable, str(trends_script)],
                 cwd=str(self.scripts_dir / "google_trends"),
                 capture_output=True,
-                text=True,
-                timeout=self.time_budget['google_trends'] + 60
+                text=True
+                # Removed timeout for Google Trends - let it run as long as needed
             )
 
             # Move data files (xlsx, csv, pkl) to raw_data/ with google_trends_ prefix

@@ -471,9 +471,31 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             import matplotlib.pyplot as plt
             from wordcloud import WordCloud
             
-            # Load data
-            df = pd.read_csv(bluesky_file)
-            viz_count = 0
+            # Load data with error handling
+            try:
+                # Check if file is empty or has content
+                file_size = bluesky_file.stat().st_size
+                if file_size == 0:
+                    self.print_info("⚠️  Bluesky file is empty, skipping")
+                    return
+                
+                # Try to read the CSV with error handling
+                df = pd.read_csv(bluesky_file)
+                
+                # Check if DataFrame is empty
+                if df.empty:
+                    self.print_info("⚠️  Bluesky file has no data, skipping")
+                    return
+                    
+                self.print_info(f"✓ Loaded {len(df)} Bluesky posts")
+                viz_count = 0
+                
+            except pd.errors.EmptyDataError:
+                self.print_info("⚠️  Bluesky file has no columns to parse, skipping")
+                return
+            except Exception as e:
+                self.print_info(f"⚠️  Error reading Bluesky file: {str(e)[:50]}")
+                return
             
             # FIRST: Generate comprehensive narrative (like original)
             try:

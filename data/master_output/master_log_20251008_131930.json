@@ -1,0 +1,82 @@
+{
+  "session_info": {
+    "start_time": "2025-10-08T13:19:30.965112",
+    "duration_budget": 120,
+    "time_budget": {
+      "bluesky": 60,
+      "news_api": 30,
+      "reddit": 30,
+      "google_trends": 3
+    },
+    "timestamp": "20251008_131930"
+  },
+  "results": {
+    "bluesky": {
+      "status": "success",
+      "duration": 66.08988904953003,
+      "keywords_used": "homeless OR homelessness OR unhoused OR housing crisis OR housing insecurity",
+      "collection_period": "30 days",
+      "output": "Data files in raw_data/"
+    },
+    "news_api": {
+      "status": "SUCCESS",
+      "duration": 14.68238878250122,
+      "articles": 70,
+      "keywords_used": [
+        "homeless",
+        "homelessness",
+        "unhoused",
+        "housing crisis",
+        "housing insecurity",
+        "street homelessness",
+        "chronic homelessness",
+        "homeless shelter",
+        "homeless services"
+      ],
+      "output": [
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251008_131930/raw_data/news_combined_articles.json",
+        "/Users/rzrizaldy/CodeFolder/dfp_ngo_module/data/master_output/session_20251008_131930/raw_data/news_classified.csv"
+      ]
+    },
+    "reddit": {
+      "status": "success",
+      "duration": 18.118777990341187,
+      "output": "Data files in raw_data/"
+    },
+    "google_trends": {
+      "status": "success",
+      "duration": 3.0061888694763184,
+      "data_files": 1,
+      "output": "Copied from demo data"
+    }
+  },
+  "keywords": [
+    "causes of homelessness",
+    "what is homelessness",
+    "homelessness definition",
+    "california homelessness",
+    "los angeles homelessness",
+    "san francisco homelessness",
+    "hud homeless",
+    "alliance to end homelessness",
+    "end homelessness",
+    "homeless statistics",
+    "homelessness statistics"
+  ],
+  "log_entries": [
+    {
+      "timestamp": "2025-10-08T13:19:31.479089",
+      "module": "init",
+      "level": "info",
+      "message": "Loaded 11 keywords from theme file",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-08T13:19:31.479099",
+      "module": "init",
+      "level": "info",
+      "message": "Using 9 homeless-focused wildcard keywords",
+      "data": null
+    }
+  ]
+}

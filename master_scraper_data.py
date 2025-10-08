@@ -25,20 +25,30 @@ from master_scraper import HomelessnessMasterOrchestrator, Colors
 class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
     """Focused on data collection only - no visualizations"""
     
-    def __init__(self, duration_seconds=60):
+    def __init__(self, duration_seconds=123):
         super().__init__(duration_seconds)
+
+        # Override time_budget with fixed allocations
+        # Order: Bluesky (60s) → News (30s) → Reddit (30s) → Google Trends (3s)
+        self.time_budget = {
+            'bluesky': 60,        # 1 month data, homeless keyword
+            'news_api': 30,       # Recent articles
+            'reddit': 30,         # 1 year data, defined subreddits
+            'google_trends': 3    # Just copy from demo (preloaded)
+        }
+
         # Create session directories immediately
         self.session_dir = self.master_output_dir / f"session_{self.timestamp}"
         self.session_dir.mkdir(exist_ok=True)
-        
+
         # Create raw_data subdirectory - THIS is where all data goes
         self.raw_data_dir = self.session_dir / "raw_data"
         self.raw_data_dir.mkdir(exist_ok=True)
-        
+
         # Also create artifacts placeholder (empty for now)
         self.artifacts_dir = self.session_dir / "artifacts"
         self.artifacts_dir.mkdir(exist_ok=True)
-        
+
         # Load keywords from Google Trends keyword_theme.xlsx
         self.load_keywords_from_theme()
         
@@ -106,50 +116,43 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
         return self.raw_data_dir
     
     def run_google_trends(self):
-        """Override to collect Google Trends data and save to raw_data/"""
-        self.print_header(f"STEP 1/4: GOOGLE TRENDS (DATA ONLY - {self.time_budget['google_trends']}s)")
+        """SKIP collection - just copy from demo data (Google Trends is preloaded)"""
+        self.print_header(f"STEP 4/4: GOOGLE TRENDS (COPY FROM DEMO - 3s)")
         start = time.time()
 
         try:
-            self.print_progress("📊 Running Google Trends data collection")
-            
-            # Run Google Trends script
-            trends_script = self.scripts_dir / "google_trends" / "googletrends.py"
-            result = subprocess.run(
-                [sys.executable, str(trends_script)],
-                cwd=str(self.scripts_dir / "google_trends"),
-                capture_output=True,
-                text=True
-                # Removed timeout for Google Trends - let it run as long as needed
-            )
+            self.print_progress("📊 Copying Google Trends demo data (preloaded)")
 
-            # Move data files (xlsx, csv, pkl) to raw_data/ with google_trends_ prefix
-            trends_dir = self.scripts_dir / "google_trends"
-            data_files = (
-                list(trends_dir.glob("googletrends_*.xlsx")) +
-                list(trends_dir.glob("googletrends_*.csv")) +
-                list(trends_dir.glob("googletrends_*.pkl"))
-            )
-            
+            # Copy Google Trends data from demo directory
             import shutil
-            for src_file in data_files:
-                # Add google_trends_ prefix if not already present
-                new_name = f"google_trends_{src_file.name}" if not src_file.name.startswith('google_trends_') else src_file.name
-                dst_file = self.raw_data_dir / new_name
-                shutil.copy2(src_file, dst_file)
-                src_file.unlink()  # Clean up source
+            demo_data_dir = self.project_root / "data" / "demo_data" / "demo_session" / "raw_data"
 
-            duration = time.time() - start
-            self.results['google_trends'] = {
-                'status': 'success',
-                'duration': duration,
-                'data_files': len(data_files),
-                'output': 'Data files in raw_data/'
-            }
-            self.print_success(f"Google Trends completed in {duration:.1f}s - {len(data_files)} data files")
+            if demo_data_dir.exists():
+                # Find Google Trends files in demo data
+                demo_trends_files = list(demo_data_dir.glob("google_trends_*"))
+
+                # Copy to current session's raw_data/
+                for src_file in demo_trends_files:
+                    dst_file = self.raw_data_dir / src_file.name
+                    shutil.copy2(src_file, dst_file)
+
+                # Quick 3-second mock delay
+                time.sleep(3)
+
+                duration = time.time() - start
+                self.results['google_trends'] = {
+                    'status': 'success',
+                    'duration': duration,
+                    'data_files': len(demo_trends_files),
+                    'output': 'Copied from demo data'
+                }
+                self.print_success(f"Google Trends copied in {duration:.1f}s - {len(demo_trends_files)} data files (preloaded)")
+            else:
+                self.print_error("Demo data directory not found - skipping Google Trends")
+                self.results['google_trends'] = {'status': 'SKIPPED', 'reason': 'No demo data'}
 
         except Exception as e:
-            self.print_error(f"Google Trends failed: {str(e)}")
+            self.print_error(f"Google Trends copy failed: {str(e)}")
             self.results['google_trends'] = {'status': 'FAILED', 'error': str(e)}
     
     def run_news_api(self):
@@ -258,7 +261,7 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
     
     def run_bluesky(self):
         """Override to output data directly to raw_data/ (NO visualizations)"""
-        self.print_header(f"STEP 4/4: BLUESKY (DATA ONLY - {self.time_budget['bluesky']}s)")
+        self.print_header(f"STEP 1/4: BLUESKY (DATA ONLY - {self.time_budget['bluesky']}s)")
         start = time.time()
 
         try:
@@ -348,10 +351,11 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
         print(f"    └── artifacts/    ← Empty (for visualizations later)\n")
         
         # Run all collectors (overridden methods output directly to raw_data/)
-        self.run_google_trends()
+        # Order: Bluesky (60s) → News (30s) → Reddit (30s) → Google Trends (3s copy)
+        self.run_bluesky()
         self.run_news_api()
         self.run_reddit()
-        self.run_bluesky()
+        self.run_google_trends()
         
         # Save master log
         self.save_master_log()

@@ -1857,9 +1857,10 @@ class NGODashboard:
             """, unsafe_allow_html=True)
         
         # Back button with better UX - placed naturally at top right
-        col1, col2 = st.columns([6, 1])
+        # Center the return button
+        col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("⬅ Search", key="back_btn", help="Return to search page"):
+            if st.button("🏠 Return to Search", key="back_btn", help="Return to search page", use_container_width=True):
                 st.session_state.current_page = 'landing'
                 st.session_state.zipcode = None
                 st.rerun()
@@ -2436,23 +2437,21 @@ class NGODashboard:
                     for viz_file in timeline_viz:
                         st.image(str(viz_file), use_container_width=True, caption=None)
 
-                    # Political Analysis Row: Left wordcloud | Polarization Gauge | Right wordcloud
+                    # Polarization Gauge (centered on top)
+                    if polarization_viz:
+                        for viz_file in polarization_viz[:1]:
+                            st.image(str(viz_file), use_container_width=True, caption=None)
+
+                    # Political Wordclouds Row: Left | Right (below pie chart)
                     left_wc = [f for f in wordcloud_viz if 'left' in f.name.lower()]
                     right_wc = [f for f in wordcloud_viz if 'right' in f.name.lower()]
 
-                    if left_wc and right_wc and polarization_viz:
-                        col1, col2, col3 = st.columns(3)
+                    if left_wc and right_wc:
+                        col1, col2 = st.columns(2)
                         with col1:
                             st.image(str(left_wc[0]), use_container_width=True, caption=None)
                         with col2:
-                            for viz_file in polarization_viz[:1]:
-                                st.image(str(viz_file), use_container_width=True, caption=None)
-                        with col3:
                             st.image(str(right_wc[0]), use_container_width=True, caption=None)
-                    elif polarization_viz:
-                        # If no wordclouds, just show polarization centered
-                        for viz_file in polarization_viz[:1]:
-                            st.image(str(viz_file), use_container_width=True, caption=None)
 
                     # Two-column: Engagement patterns
                     if engagement_viz and len(engagement_viz) >= 2:

@@ -143,11 +143,11 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 
                 stopwords = set(STOPWORDS)
                 wordcloud = WordCloud(width=1600, height=800, background_color='white', 
-                                     stopwords=stopwords, max_words=200, colormap='viridis').generate(all_text)
+                                     stopwords=stopwords, max_words=200, colormap='magma').generate(all_text)
                 
                 fig, ax = plt.subplots(figsize=(16, 8))
                 ax.imshow(wordcloud, interpolation='bilinear')
-                ax.set_title('News Articles Word Cloud - Homelessness Coverage', fontsize=16, fontweight='bold')
+                ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=16, fontweight='bold')
                 ax.axis('off')
                 
                 output_file = self.artifacts_dir / f"news_wordcloud_{self.timestamp}.png"
@@ -161,8 +161,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             try:
                 fig, ax = plt.subplots(figsize=(12, 8))
                 source_counts = df['source'].value_counts().head(15)
-                source_counts.plot(kind='barh', ax=ax, color='steelblue')
-                ax.set_title('Top News Outlets Covering Homelessness', fontsize=14, fontweight='bold')
+                source_counts.plot(kind='barh', ax=ax, color='#D98586')
+                ax.set_title('News Outlets Covering Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
                 ax.set_xlabel('Number of Articles')
                 ax.set_ylabel('News Outlet')
                 ax.grid(axis='x', alpha=0.3)
@@ -179,12 +179,13 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             try:
                 fig, ax = plt.subplots(figsize=(10, 8))
                 leaning_counts = df['leaning'].value_counts()
-                colors = {'LEFT': '#013364', 'CENTER': '#cbcaca', 'RIGHT': '#d30b0d'}
+                colors = {'LEFT': '#013364', 'CENTER': '#333333', 'RIGHT': '#d30b0d'}
                 colors_list = [colors.get(x, 'gray') for x in leaning_counts.index]
                 
                 ax.pie(leaning_counts, labels=leaning_counts.index, autopct='%1.1f%%', 
-                      colors=colors_list, startangle=90)
+                      colors=colors_list, startangle=90, textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 14})
                 ax.set_title('Political Leaning of Homelessness News Coverage', fontsize=14, fontweight='bold')
+                ax.legend(loc='lower left')
                 plt.tight_layout()
                 
                 output_file = self.artifacts_dir / f"news_political_pie_{self.timestamp}.png"

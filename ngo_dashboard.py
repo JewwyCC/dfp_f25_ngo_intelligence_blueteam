@@ -1596,8 +1596,8 @@ class NGODashboard:
                         st.error("Please enter a valid 5-digit ZIP code")
 
             with col_btn2:
-                if st.button("📊 Load Demo Data", key="demo_btn", use_container_width=True,
-                             help="Load pre-collected comprehensive data instantly"):
+                if st.button("📊 Load Visualization", key="demo_btn", use_container_width=True,
+                             help="Load pre-collected comprehensive visualization instantly"):
                     st.session_state.zipcode = "15206"  # Demo ZIP
                     st.session_state.use_demo_data = True
                     st.session_state.all_data_collected = True
@@ -1610,9 +1610,9 @@ class NGODashboard:
                     st.session_state.current_page = 'dashboard'
                     st.rerun()
             
-            # Credits and Go to Visualization link at bottom
+            # Credits at bottom
             st.markdown("---")
-            
+
             # Credits section
             st.markdown("""
             <div style="text-align: center; padding: 1rem 0; color: #6b7280;">
@@ -1621,55 +1621,6 @@ class NGODashboard:
                 </p>
             </div>
             """, unsafe_allow_html=True)
-            
-            # Go to Visualization button (styled as subtle link, centered)
-            col1, col2, col3 = st.columns([2, 1, 2])
-            with col2:
-                st.markdown("""
-                <style>
-                    div[data-testid="stButton"] > button[kind="secondary"] {
-                        background-color: transparent !important;
-                        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                        color: rgba(255, 255, 255, 0.8) !important;
-                        padding: 0.4rem 1.2rem !important;
-                        font-size: 0.9rem !important;
-                        font-weight: 400 !important;
-                        box-shadow: none !important;
-                        border-radius: 6px !important;
-                        transition: all 0.2s ease !important;
-                    }
-                    div[data-testid="stButton"] > button[kind="secondary"]:hover {
-                        background-color: rgba(255, 255, 255, 0.1) !important;
-                        border-color: rgba(255, 255, 255, 0.5) !important;
-                        color: #ffffff !important;
-                        transform: none !important;
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-                if st.button("→ Go to Visualizations", key="go_to_viz_link", help="View existing visualizations", type="secondary"):
-                    # Always prioritize demo data for visualization
-                    demo_dir = Path("data/demo_data/demo_session")
-
-                    if demo_dir.exists():
-                        # Set a default ZIP code if none provided
-                        if not st.session_state.zipcode:
-                            st.session_state.zipcode = "15206"  # Default ZIP code (Pittsburgh)
-
-                        # Set all data sources as completed to skip loading screen
-                        st.session_state.data_sources_status = {
-                            'reddit': {'status': 'completed', 'progress': 100},
-                            'google_trends': {'status': 'completed', 'progress': 100},
-                            'news_api': {'status': 'completed', 'progress': 100},
-                            'bluesky': {'status': 'completed', 'progress': 100}
-                        }
-                        st.session_state.all_data_collected = True
-                        st.session_state.use_demo_data = True  # Flag to use demo data
-
-                        # Go directly to dashboard
-                        st.session_state.current_page = 'dashboard'
-                        st.rerun()
-                    else:
-                        st.error("No demo data found. Please ensure demo data exists in data/demo_data/demo_session/")
     
     def render_loading_screen(self):
         """Render the data collection loading screen"""

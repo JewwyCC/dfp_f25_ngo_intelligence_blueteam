@@ -119,9 +119,10 @@ def _remove_outliers_zscore(data, column, threshold=3):
 
 
 def _sentiment_colormap():
-    # Heatmap-style red spectrum: lightest to darkest representing sentiment intensity
-    colors = ['#FFF5F5', '#FFE5E5', '#FFD5D5', '#FFC5C5', '#FFB5B5', '#FFA5A5', '#FF9595', '#FF8585', '#FF7575', '#FF6565', '#FF5555', '#FF4545', '#FF3535', '#FF2525', '#FF1515', '#FF0505', '#F50000', '#E50000', '#D50000', '#C50000', '#B50000', '#A50000', '#950000', '#850000', '#750000', '#650000', '#550000', '#450000', '#350000', '#250000', '#150000', '#050000']
-    return LinearSegmentedColormap.from_list('sentiment_heatmap', colors, N=256)
+    # Sentiment spectrum: dark red for negative, bright/light colors for positive
+    # Negative sentiment (dark red) -> Neutral (gray) -> Positive sentiment (bright colors)
+    colors = ['#8B0000', '#A00000', '#B50000', '#CA0000', '#DF0000', '#F40000', '#FF0000', '#FF1A1A', '#FF3333', '#FF4D4D', '#FF6666', '#FF8080', '#FF9999', '#FFB3B3', '#FFCCCC', '#FFE5E5', '#FFFFFF', '#F0F8FF', '#E6F3FF', '#CCE7FF', '#B3DBFF', '#99CFFF', '#80C3FF', '#66B7FF', '#4DABFF', '#339FFF', '#1A93FF', '#0087FF', '#007BFF', '#006FFF', '#0063FF', '#0057FF']
+    return LinearSegmentedColormap.from_list('sentiment_spectrum', colors, N=256)
 
 
 def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time_filter: str = 'month'):
@@ -248,19 +249,19 @@ def build_dashboard(fig, df: pd.DataFrame, keyword_sentiments: dict = None, time
         def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
             sentiment = word_sentiments.get(word.lower(), 0.0)
             # Map sentiment to color intensity (0-1)
-            # Negative sentiment = bright dark red, positive sentiment = very light red
+            # Negative sentiment = dark red, positive sentiment = bright/light colors
             intensity = (sentiment + 1) / 2.0  # Map from [-1,1] to [0,1]
-            intensity = 1 - intensity  # Invert so negative = bright dark red
+            # No inversion needed - negative sentiment (0) maps to dark red, positive (1) to bright colors
             rgba = cmap(intensity)
             r, g, b = [int(255 * v) for v in rgba[:3]]
             return f"rgb({r}, {g}, {b})"
 
         ax2.imshow(wc.recolor(color_func=color_func), interpolation='bilinear')
-        ax2.set_title('Housing Crisis Keywords Heatmap (Light Red=Positive, Dark Red=Negative)', fontsize=12, fontweight='bold')
+        ax2.set_title('Housing Crisis Keywords Heatmap (Bright Colors=Positive, Dark Red=Negative)', fontsize=12, fontweight='bold')
         ax2.axis('off')
         
         # Add color bar explanation
-        ax2.text(0.02, 0.02, 'Heatmap Spectrum: Light Red = Positive Sentiment\nDark Red = Negative Sentiment', 
+        ax2.text(0.02, 0.02, 'Sentiment Spectrum: Bright Colors = Positive Sentiment\nDark Red = Negative Sentiment', 
                 transform=ax2.transAxes, fontsize=8, bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
     else:
         ax2.text(0.5, 0.5, 'No keywords found for word cloud', ha='center', va='center', transform=ax2.transAxes)

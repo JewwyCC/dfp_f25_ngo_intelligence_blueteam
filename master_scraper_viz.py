@@ -418,22 +418,23 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 wc = WordCloud(width=800, height=400, background_color='white', max_words=50)
                 wc.generate_from_frequencies(word_frequencies)
                 
-                # Create sentiment spectrum colormap (green to red)
-                colors_list = ['#2E8B57', '#FFD700', '#FF6347']
-                n_bins = 100
-                cmap = LinearSegmentedColormap.from_list('sentiment', colors_list, N=n_bins)
+                # Create sentiment spectrum colormap (dark red for negative, bright colors for positive)
+                colors_list = ['#8B0000', '#A00000', '#B50000', '#CA0000', '#DF0000', '#F40000', '#FF0000', '#FF1A1A', '#FF3333', '#FF4D4D', '#FF6666', '#FF8080', '#FF9999', '#FFB3B3', '#FFCCCC', '#FFE5E5', '#FFFFFF', '#F0F8FF', '#E6F3FF', '#CCE7FF', '#B3DBFF', '#99CFFF', '#80C3FF', '#66B7FF', '#4DABFF', '#339FFF', '#1A93FF', '#0087FF', '#007BFF', '#006FFF', '#0063FF', '#0057FF']
+                n_bins = 256
+                cmap = LinearSegmentedColormap.from_list('sentiment_spectrum', colors_list, N=n_bins)
                 
-                # Color words by sentiment
+                # Color words by sentiment (negative=dark red, positive=bright colors)
                 def sentiment_color_func(word, **kwargs):
                     sentiment = word_sentiments.get(word, 0)
                     max_sentiment = max(abs(min(word_sentiments.values())), max(word_sentiments.values())) if word_sentiments else 1
+                    # Map sentiment from [-max, +max] to [0, 1] for colormap
                     normalized = float((sentiment / max_sentiment + 1) / 2 if max_sentiment > 0 else 0.5)
                     rgb = cmap(normalized)[:3]  # Get RGB tuple
                     return 'rgb({},{},{})'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
                 
                 wc.recolor(color_func=sentiment_color_func)
                 ax.imshow(wc, interpolation='bilinear')
-            ax.set_title('Housing Crisis Keywords Word Cloud (Sentiment-Colored)', fontsize=14, fontweight='bold')
+            ax.set_title('Housing Crisis Keywords Word Cloud (Dark Red=Negative, Bright Colors=Positive)', fontsize=14, fontweight='bold')
             ax.axis('off')
             plt.tight_layout()
             fig.savefig(self.artifacts_dir / f"reddit_sentiment_wordcloud_{self.timestamp}.png", dpi=300, bbox_inches='tight')

@@ -212,9 +212,10 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 fig, ax = plt.subplots(figsize=(12, 8))
                 source_counts = df['source'].value_counts().head(15)
                 source_counts.plot(kind='barh', ax=ax, color='#D98586')
-                ax.set_title('News Outlets Covering Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
-                ax.set_xlabel('Number of Articles')
-                ax.set_ylabel('News Outlet')
+                ax.set_title('News Outlets Covering Homelessness', fontsize=13, fontweight='bold', pad=10)
+                ax.set_xlabel('Number of Articles', fontsize=11)
+                ax.set_ylabel('News Outlet', fontsize=11)
+                ax.invert_yaxis()  # Invert to show top outlets at the top
                 ax.grid(axis='x', alpha=0.3)
                 plt.tight_layout()
 
@@ -644,39 +645,39 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                         right_count += 1
                         right_texts.append(text)
             
-            # 3a. Polarization Gauge - NYT style
+            # 3a. Polarization Gauge - NYT style (reduced 30% for better layout)
             total_polar = left_count + right_count
             if total_polar > 0:
-                fig, ax = plt.subplots(figsize=(14, 8), facecolor=page_bg)
+                fig, ax = plt.subplots(figsize=(10, 6), facecolor=page_bg)
                 ax.set_facecolor(bg_color)
                 ax.patch.set_edgecolor(border_color)
                 ax.patch.set_linewidth(1)
-                
+
                 left_pct = (left_count / total_polar) * 100
                 right_pct = (right_count / total_polar) * 100
-                
+
                 sizes = [left_pct, right_pct]
                 colors = [left_color, right_color]
                 labels = [f'Left-leaning\n{left_count} posts\n({left_pct:.1f}%)',
                          f'Right-leaning\n{right_count} posts\n({right_pct:.1f}%)']
-                
+
                 wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors,
                                                   autopct='', startangle=180,
                                                   wedgeprops={'width': 0.4, 'linewidth': 1, 'edgecolor': 'white'})
                 ax.set_ylim(-1, 0.2)
-                
+
                 for text in texts:
-                    text.set_fontsize(10)
+                    text.set_fontsize(9)
                     text.set_family('sans-serif')
-                
+
                 ax.set_title('Political Polarization Analysis',
-                           fontsize=18, color=text_color, weight='normal', pad=20,
+                           fontsize=14, color=text_color, weight='normal', pad=15,
                            family='serif', loc='center')
-                
+
                 ax.text(0, -0.5, f'{total_polar}\npolarized posts',
-                       ha='center', va='center', fontsize=12, color='#666666',
+                       ha='center', va='center', fontsize=10, color='#666666',
                        family='sans-serif', weight='bold')
-                
+
                 plt.tight_layout()
                 fig.savefig(self.artifacts_dir / f"bluesky_polarization_gauge_{self.timestamp}.png", dpi=300, bbox_inches='tight')
                 plt.close(fig)
@@ -775,44 +776,6 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 fig.savefig(self.artifacts_dir / f"bluesky_engagement_totals_{self.timestamp}.png", dpi=300, bbox_inches='tight')
                 plt.close(fig)
                 viz_count += 1
-            
-            # 5. Engagement: Hourly Posting Pattern - NYT style
-            if 'created_at' in df.columns:
-                try:
-                    fig, ax = plt.subplots(figsize=(14, 6), facecolor=page_bg)
-                    ax.set_facecolor(bg_color)
-                    ax.patch.set_edgecolor(border_color)
-                    ax.patch.set_linewidth(1)
-
-                    df_hourly = df.copy()
-                    df_hourly['created_at_dt'] = pd.to_datetime(df_hourly['created_at'], errors='coerce')
-                    df_hourly = df_hourly[df_hourly['created_at_dt'].notna()]
-                    df_hourly['hour'] = df_hourly['created_at_dt'].dt.hour
-                    hourly_counts = df_hourly['hour'].value_counts().sort_index()
-                
-                    ax.plot(hourly_counts.index, hourly_counts.values,
-                           marker='o', linewidth=2.5, markersize=6, color=accent_color)
-                    ax.fill_between(hourly_counts.index, hourly_counts.values, alpha=0.1, color=accent_color)
-
-                    ax.set_title('Engagement: Hourly Posting Pattern', fontsize=14, color=text_color,
-                               weight='normal', pad=20, family='serif', loc='left')
-                    ax.set_xlabel('Hour of Day (UTC)', fontsize=11, color='#666666', family='sans-serif')
-                    ax.set_ylabel('Number of Posts', fontsize=11, color='#666666', family='sans-serif')
-                    ax.set_xticks(range(0, 24))
-                    ax.tick_params(colors='#666666', labelsize=9)
-                    ax.spines['top'].set_visible(False)
-                    ax.spines['right'].set_visible(False)
-                    ax.spines['bottom'].set_color(grid_color)
-                    ax.spines['left'].set_color(grid_color)
-                    ax.grid(True, alpha=0.3, color=grid_color, linestyle='-', linewidth=0.5)
-
-                    plt.tight_layout()
-                    fig.savefig(self.artifacts_dir / f"bluesky_hourly_pattern_{self.timestamp}.png", dpi=300, bbox_inches='tight')
-                    plt.close(fig)
-                    viz_count += 1
-                except Exception as e:
-                    self.print_error(f"Hourly pattern failed: {str(e)}")
-            
             # 6. Author Analysis: Top 15 by Engagement with Political Colors
             if 'author_handle' in df.columns:
                 fig, ax = plt.subplots(figsize=(14, 10), facecolor=page_bg)

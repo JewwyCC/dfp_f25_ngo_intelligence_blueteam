@@ -6,10 +6,11 @@ import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 
-# Add RedditScraper to path
-sys.path.append('RedditScraper')
+# Add scripts/reddit to path
+sys.path.append('scripts/reddit')
 
 from data_collection import collect_by_search
+from reddit_client import create_reddit_client
 
 def main():
     print("=" * 60)
@@ -55,13 +56,18 @@ def main():
     print(f"📱 Subreddits: {', '.join(subreddits)}\n")
     print("🚀 Starting collection...\n")
 
+    # Create Reddit client
+    print("📡 Connecting to Reddit API...")
+    reddit = create_reddit_client()
+
     # Collect data
     result_df = collect_by_search(
-        keywords=keywords,
+        reddit=reddit,
         subreddits=subreddits,
-        max_results=5000,  # Aim for large dataset
-        sort_by="relevance",
-        time_filter="year"
+        keywords=keywords,
+        posts_per_sub=1000,  # Aim for large dataset
+        time_filter="year",
+        strategy="relevance"
     )
 
     if result_df is not None and not result_df.empty:

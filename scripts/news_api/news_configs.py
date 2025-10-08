@@ -6,25 +6,25 @@ from torch.export.graph_signature import OutputKind
 ### Data Viz Settings ###
 
 # Change cmap name here to change color map for all news data viz.
-CMAP = getattr(plt.cm, 'viridis')
+CMAP = getattr(plt.cm, 'magma')
 
 ## Word Cloud Settings ##
 # News word cloud terms to drop
-STOPWORDS = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-            'by', 'from', 'up', 'about', 'into', 'through', 'during', 'is', 'are', 'was', 'were',
-            'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'say',
-            'could', 'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'not'
-            'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'them', 'their', 'what', 'which',
-            'who', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'U',
-            'most', 'other', 'some', 'such', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'D',
-            's', 't', 'just', 'don', 'now', 'npr', 'news', 'says', 'said', 'new', 'year', 'years', 'US',
-            'one', 'two', 'said', 'her', 'hers', 'him', 'his', 'Eva', 'Brian', 'Marie', 'as', 'told',
-            'there', 'here', 'part', 'if', 'Gaza', 'Ukraine', 'Ukrainian', 'Iryna', 'C', 'after', 'zarutska'
-            'Zarutska', 'chars', 'its', 'xbox', 'homelessness', 'homeless', 'Homelessness', 'Homeless']
+STOPWORDS = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
+            'up', 'about', 'into', 'through', 'during', 'is', 'are', 'was', 'were', 'been', 'be', 'have',
+            'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'say', 'could', 'may', 'might',
+            'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'not', 'those', 'i', 'you', 'he', 'she',
+            'it', 'we', 'they', 'them', 'their', 'what', 'which', 'who', 'when', 'where', 'why', 'how', 'all',
+            'each', 'every', 'both', 'few', 'more', 'U', 'most', 'other', 'some', 'such', 'only', 'own', 'same',
+            'so', 'than', 'too', 'very', 'D', 's', 't', 'just', 'don', 'now', 'npr', 'news', 'says', 'said',
+            'new', 'year', 'years', 'US', 'one', 'two', 'said', 'her', 'hers', 'him', 'his', 'Eva', 'Brian',
+            'Marie', 'as', 'told', 'there', 'here', 'part', 'if', 'Gaza', 'Ukraine', 'Ukrainian', 'Iryna', 'C',
+            'after', 'zarutska', 'Zarutska', 'donald', 'Donald', 'chars', 'its', 'xbox', 'homelessness', 'homeless',
+            'Homelessness', 'Homeless']
 
 MAX_WORDS = 100 # Maximum number of words to include in word cloud
 
-OUTPUT_DIRECTORY = '/viz/news_api'
+OUTPUT_DIRECTORY = 'viz/news_api'
 
 WC_BG_COLOR = 'white' # Word cloud background color
 WC_LAYOUT_PADDING = 1

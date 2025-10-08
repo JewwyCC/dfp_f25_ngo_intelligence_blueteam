@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -73,12 +74,7 @@ class Visualizations:
 
         # Create horizontal bars
         y_pos = np.arange(len(top_sources))
-        bars = ax.barh(y_pos, top_sources['Article Count'])
-
-        # Color bars with gradient
-        colors = CMAP(np.linspace(0.3, 0.9, len(top_sources)))
-        for bar, color in zip(bars, colors):
-            bar.set_color(color)
+        bars = ax.barh(y_pos, top_sources['Article Count'], color='#D98586')
 
         # Customize the plot
         ax.set_yticks(y_pos)
@@ -95,11 +91,14 @@ class Visualizations:
 
         plt.grid(axis='x', alpha=0.3)
         plt.tight_layout()
-        plt.show()
-        news_timestamp = datetime.now()
-        barchart_fname = f'news_US-News-Outlets-Reporting-on-Homelessness-in-the-Last-30-Days-{news_timestamp}.png'
+
+
+        now = datetime.now()
+        news_timestamp = now.strftime("%Y%m%d_%H%M%S")
+        barchart_fname = f'news_News-Outlet-Bar-{news_timestamp}.png'
         barchart_path = os.path.join(self.output_directory, barchart_fname)
         plt.savefig(barchart_path)
+        plt.show()
 
 
     def generate_wordcloud(self, text):
@@ -129,12 +128,15 @@ class Visualizations:
         plt.title(f'Word Cloud for US News Articles on Homelessness\nfrom the Last 30 Days', fontsize=WC_TITLE_FONT_SIZE, fontweight='bold', pad=WC_TITLE_PADDING)
         plt.axis('off')
         plt.tight_layout(pad=WC_LAYOUT_PADDING)
-        plt.show()
 
-        news_timestamp = datetime.now()
-        wordcloud_fname = f'news_Word-Cloud-for-US-News-Articles-on-Homelessness-from-the-Last-30-Days_{news_timestamp}.png'
+
+        now = datetime.now()
+        news_timestamp = now.strftime("%Y%m%d_%H%M%S")
+        wordcloud_fname = f'news_Wordcloud_{news_timestamp}.png'
         wordcloud_path = os.path.join(self.output_directory, wordcloud_fname)
         plt.savefig(wordcloud_path)
+
+        plt.show()
 
         return wordcloud
 
@@ -149,7 +151,7 @@ class Visualizations:
         # Create a color mapping dictionary
         color_map = {
             'LEFT': '#013364',  # Blue for left
-            'CENTER': '#cbcaca',  # Gray for center
+            'CENTER': '#D98586',  # Gray for center
             'RIGHT': '#d30b0d'  # Red for right
         }
 
@@ -159,16 +161,20 @@ class Visualizations:
         plt.pie(label_counts.values,
                 labels=label_counts.index,
                 colors=colors,
+                textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 14},
                 autopct='%1.1f%%',
                 startangle=90)
 
         plt.title('Proportion of US Media Articles on Homelessness by Political Leaning', fontsize=12, fontweight='bold')
-        plt.show()
+        plt.legend(loc='lower left')
 
-        news_timestamp = datetime.now()
-        pie_chart_fname = f'news_Proportion of US Media Articles on Homelessness by Political Leaning_{news_timestamp}.png'
+        now = datetime.now()
+        news_timestamp = now.strftime("%Y%m%d_%H%M%S")
+        pie_chart_fname = f'news_Pie-Chart_{news_timestamp}.png'
         pie_chart_path = os.path.join(self.output_directory, pie_chart_fname)
         plt.savefig(pie_chart_path)
+
+        plt.show()
 
 
 class PoliticalAnalysisVisualizer:
@@ -177,7 +183,7 @@ class PoliticalAnalysisVisualizer:
         """Initialize the visualizer with color schemes."""
         self.color_map = {
             'LEFT': '#013364',  # Blue for left
-            'CENTER': '#cbcaca',  # Gray for center
+            'CENTER': '#333333',  # Gray for center
             'RIGHT': '#d30b0d'  # Red for right
         }
         self.output_directory = OUTPUT_DIRECTORY
@@ -204,30 +210,33 @@ class PoliticalAnalysisVisualizer:
 
         # Plot each line with different colors
         if 'LEFT' in timeline_data.columns:
-            plt.plot(timeline_data.index, timeline_data['LEFT'],
-                     marker='o', linewidth=2, color='#3366CC', label='LEFT')
+            plt.bar(timeline_data.index, timeline_data['LEFT'],
+                     color='#3366CC', label='LEFT')
 
         if 'CENTER' in timeline_data.columns:
-            plt.plot(timeline_data.index, timeline_data['CENTER'],
-                     marker='s', linewidth=2, color='#808080', label='CENTER')
+            plt.bar(timeline_data.index, timeline_data['CENTER'],
+                     color='#808080', label='CENTER')
 
         if 'RIGHT' in timeline_data.columns:
-            plt.plot(timeline_data.index, timeline_data['RIGHT'],
-                     marker='^', linewidth=2, color='#CC3333', label='RIGHT')
+            plt.bar(timeline_data.index, timeline_data['RIGHT'],
+                     color='#CC3333', label='RIGHT')
 
         plt.xlabel('Date')
         plt.ylabel('Number of Articles')
         plt.title('Timeline of US News Articles in the Last 30D ays by Political Leaning')
-        plt.legend(title='Political Leaning')
+        plt.legend(title='Political Leaning', loc='upper right')
         plt.grid(True, alpha=0.3)
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
-        plt.show()
 
-        news_timestamp = datetime.now()
-        timeline_fname = f'news_Timeline-of-US-News-Articles-in-the-Last-30-Days-by-Political-Leaning_{news_timestamp}.png'
+
+        now = datetime.now()
+        news_timestamp = now.strftime("%Y%m%d_%H%M%S")
+        timeline_fname = f'news_Timeline_{news_timestamp}.png'
         timeline_path = os.path.join(self.output_directory, timeline_fname)
         plt.savefig(timeline_path)
+
+        plt.show()
 
 
     def create_interactive_visualizations(self, df):
@@ -262,7 +271,7 @@ class PoliticalAnalysisVisualizer:
                 target=[node_indices[label] for label in link_data['leaning']],
                 value=link_data['count'],
                 color='rgba(128, 128, 128, 0.2)'
-            )
+            ),
         )])
 
         fig_sankey.update_layout(
@@ -270,8 +279,9 @@ class PoliticalAnalysisVisualizer:
             font_size=10,
             height=600
         )
-        fig_sankey.show()
-        news_timestamp = datetime.now()
-        sankey_fname = f'news_Political Leaning of Articles on Homelessness from US Media_{news_timestamp}.html'
+
+        now = datetime.now()
+        news_timestamp = now.strftime("%Y%m%d_%H%M%S")
+        sankey_fname = f'news_Sankey_{news_timestamp}.html'
         sankey_path = os.path.join(self.output_directory, sankey_fname)
         fig_sankey.write_html(sankey_path, auto_open=False)

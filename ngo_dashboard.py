@@ -2276,11 +2276,25 @@ class NGODashboard:
                 if news_viz:
                     # Organize visualizations by type for better layout
                     wordcloud_viz = [f for f in news_viz if 'wordcloud' in f.name.lower()]
-                    political_viz = [f for f in news_viz if 'political' in f.name.lower()]
+                    political_viz = [f for f in news_viz if 'political' in f.name.lower() and f.suffix == '.png']
                     outlet_viz = [f for f in news_viz if 'outlet' in f.name.lower()]
-                    other_viz = [f for f in news_viz if f not in wordcloud_viz + political_viz + outlet_viz]
+                    sankey_viz = [f for f in news_viz if 'sankey' in f.name.lower() and f.suffix == '.html']
+                    other_viz = [f for f in news_viz if f not in wordcloud_viz + political_viz + outlet_viz + sankey_viz]
 
-                    # Two-column layout for related visualizations
+                    # Wordcloud first (full width) - most engaging
+                    for viz_file in wordcloud_viz:
+                        st.image(str(viz_file), use_container_width=True, caption=None)
+
+                    # Sankey diagram (full width interactive)
+                    for viz_file in sankey_viz:
+                        try:
+                            with open(viz_file, 'r', encoding='utf-8') as f:
+                                sankey_html = f.read()
+                            components.html(sankey_html, height=520, scrolling=False)
+                        except Exception as e:
+                            st.error(f"Could not load Sankey diagram: {e}")
+
+                    # Two-column layout for political visualizations (same height)
                     if political_viz and len(political_viz) >= 2:
                         col1, col2 = st.columns(2)
                         with col1:
@@ -2291,17 +2305,21 @@ class NGODashboard:
                         for viz_file in political_viz[2:]:
                             st.image(str(viz_file), use_container_width=True, caption=None)
 
-                    # Wordcloud (full width)
-                    for viz_file in wordcloud_viz:
-                        st.image(str(viz_file), use_container_width=True, caption=None)
-
-                    # Outlet comparison
+                    # Outlet comparison (full width)
                     for viz_file in outlet_viz:
                         st.image(str(viz_file), use_container_width=True, caption=None)
 
                     # Other visualizations
                     for viz_file in other_viz:
-                        st.image(str(viz_file), use_container_width=True, caption=None)
+                        if viz_file.suffix == '.png':
+                            st.image(str(viz_file), use_container_width=True, caption=None)
+                        elif viz_file.suffix == '.html':
+                            try:
+                                with open(viz_file, 'r', encoding='utf-8') as f:
+                                    html_content = f.read()
+                                components.html(html_content, height=600, scrolling=True)
+                            except Exception as e:
+                                st.error(f"Could not load HTML visualization: {e}")
 
                     # Display News data insights
                     try:
@@ -2418,27 +2436,23 @@ class NGODashboard:
                     for viz_file in timeline_viz:
                         st.image(str(viz_file), use_container_width=True, caption=None)
 
-                    # Two-column: Main wordcloud and polarization
-                    if wordcloud_viz and polarization_viz:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            # Show main wordcloud (not left/right specific)
-                            main_wc = [f for f in wordcloud_viz if 'all' in f.name.lower() or ('left' not in f.name.lower() and 'right' not in f.name.lower())]
-                            for viz_file in main_wc[:1]:
-                                st.image(str(viz_file), use_container_width=True, caption=None)
-                        with col2:
-                            for viz_file in polarization_viz[:1]:
-                                st.image(str(viz_file), use_container_width=True, caption=None)
-
-                    # Two-column: Left/Right wordclouds
+                    # Political Analysis Row: Left wordcloud | Polarization Gauge | Right wordcloud
                     left_wc = [f for f in wordcloud_viz if 'left' in f.name.lower()]
                     right_wc = [f for f in wordcloud_viz if 'right' in f.name.lower()]
-                    if left_wc and right_wc:
-                        col1, col2 = st.columns(2)
+
+                    if left_wc and right_wc and polarization_viz:
+                        col1, col2, col3 = st.columns(3)
                         with col1:
                             st.image(str(left_wc[0]), use_container_width=True, caption=None)
                         with col2:
+                            for viz_file in polarization_viz[:1]:
+                                st.image(str(viz_file), use_container_width=True, caption=None)
+                        with col3:
                             st.image(str(right_wc[0]), use_container_width=True, caption=None)
+                    elif polarization_viz:
+                        # If no wordclouds, just show polarization centered
+                        for viz_file in polarization_viz[:1]:
+                            st.image(str(viz_file), use_container_width=True, caption=None)
 
                     # Two-column: Engagement patterns
                     if engagement_viz and len(engagement_viz) >= 2:

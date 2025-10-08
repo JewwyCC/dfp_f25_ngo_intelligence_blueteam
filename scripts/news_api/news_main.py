@@ -21,7 +21,16 @@ def main():
     scrape = CombinedNewsAnalyzer(newsapi_key=NEWSAPI_KEY)
 
     # Fetch and combine articles from NewsAPI and NPR, and combine.
-    combined_articles = scrape.combine_sources()
+    combined_articles: list[dict] = scrape.combine_sources()
+    print(combined_articles)
+
+    # Update NPR labels.
+    search_string = 'section_/sections/'
+    npr = 'NPR'
+
+    for article in combined_articles:
+        if search_string in article['source']:
+            article['source'] = npr
 
     # Output article data.
     scrape.save_combined_data('combined_articles.json')
@@ -30,13 +39,10 @@ def main():
     classifier = PoliticalLeaningClassifier()
 
     # Classify all articles.
-    classified_articles = classifier.classify_batch(combined_articles)
+    classified_articles: list[dict] = classifier.classify_batch(combined_articles)
 
     # Convert classified articles to DataFrame.
     class_df = pd.DataFrame(classified_articles)
-
-    # Update NPR labels.
-    class_df.loc[class_df['source'] == 'section_/sections/news/', 'source'] = 'NPR'
 
     class_df.to_csv('classified.csv', index=False)
 
@@ -47,7 +53,7 @@ def main():
     viz = Visualizations(class_df, 'homelessness')
 
     # Get summary stats
-    summary_df = viz.analyze_sources(combined_articles)
+    summary_df = viz.analyze_sources(classified_articles)
 
     # Generate word cloud
     text = scrape.all_text(combined_articles)

@@ -192,12 +192,12 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 all_text = ' '.join(df['title'].fillna('')) + ' ' + ' '.join(df['text'].fillna(''))
 
                 stopwords = set(STOPWORDS)
-                wordcloud = WordCloud(width=1400, height=600, background_color='white',
-                                     stopwords=stopwords, max_words=150, colormap='magma').generate(all_text)
-
-                fig, ax = plt.subplots(figsize=(14, 6))
+                wordcloud = WordCloud(width=1600, height=800, background_color='white', 
+                                     stopwords=stopwords, max_words=200, colormap='magma').generate(all_text)
+                
+                fig, ax = plt.subplots(figsize=(16, 8))
                 ax.imshow(wordcloud, interpolation='bilinear')
-                ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=14, fontweight='bold', pad=10)
+                ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=16, fontweight='bold')
                 ax.axis('off')
 
                 output_file = self.artifacts_dir / f"news_wordcloud_{self.timestamp}.png"
@@ -209,12 +209,12 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             
             # Outlet comparison - simple bar chart
             try:
-                fig, ax = plt.subplots(figsize=(10, 7))
-                source_counts = df['source'].value_counts().head(12)
+                fig, ax = plt.subplots(figsize=(12, 8))
+                source_counts = df['source'].value_counts().head(15)
                 source_counts.plot(kind='barh', ax=ax, color='#D98586')
-                ax.set_title('News Outlets Covering Homelessness', fontsize=13, fontweight='bold', pad=10)
-                ax.set_xlabel('Number of Articles', fontsize=11)
-                ax.set_ylabel('News Outlet', fontsize=11)
+                ax.set_title('News Outlets Covering Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
+                ax.set_xlabel('Number of Articles')
+                ax.set_ylabel('News Outlet')
                 ax.grid(axis='x', alpha=0.3)
                 plt.tight_layout()
 
@@ -231,14 +231,11 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 leaning_counts = df['leaning'].value_counts()
                 colors = {'LEFT': '#013364', 'CENTER': '#333333', 'RIGHT': '#d30b0d'}
                 colors_list = [colors.get(x, 'gray') for x in leaning_counts.index]
-
-                wedges, texts, autotexts = ax.pie(leaning_counts, labels=leaning_counts.index, autopct='%1.1f%%',
-                      colors=colors_list, startangle=90, textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 12})
-                ax.set_title('Political Leaning of News Coverage', fontsize=13, fontweight='bold', pad=10)
-
-                # Add legend with counts
-                legend_labels = [f"{idx}: {count} articles" for idx, count in leaning_counts.items()]
-                ax.legend(legend_labels, loc='lower left', fontsize=9, framealpha=0.9)
+                
+                ax.pie(leaning_counts, labels=leaning_counts.index, autopct='%1.1f%%', 
+                      colors=colors_list, startangle=90, textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 14})
+                ax.set_title('Political Leaning of Homelessness News Coverage', fontsize=14, fontweight='bold')
+                ax.legend(loc='lower left')
                 plt.tight_layout()
 
                 output_file = self.artifacts_dir / f"news_political_pie_{self.timestamp}.png"

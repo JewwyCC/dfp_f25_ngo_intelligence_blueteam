@@ -67,12 +67,9 @@ class SocialJusticeCollector:
     """Main social justice data collector"""
     
     def __init__(self, method="search", duration=900, keywords="homelessness", prevent_sleep=True, date_from=None, date_to=None):
-        # If date filtering is requested, use firehose for better real-time data
-        if date_from or date_to:
-            logger.info("📅 Date filtering requested - switching to firehose method for real-time data")
-            self.method = "firehose"
-        else:
-            self.method = method
+        # Always use search method for comprehensive data collection
+        logger.info("📅 Using search method for comprehensive data collection with profile data")
+        self.method = method
         self.duration = duration  # in seconds
         self.keywords = keywords
         self.prevent_sleep = prevent_sleep
@@ -93,10 +90,10 @@ class SocialJusticeCollector:
         # Get keywords based on selection
         self.keyword_list = self._get_keywords()
         
-        # Create collector config
+        # Create collector config with higher limits for comprehensive collection
         self.config = CollectionConfig(
             method=method,
-            max_posts_per_keyword=50,
+            max_posts_per_keyword=200,  # Increased from 50 to 200 for comprehensive collection
             days_back=30,
             session_name=f"socmed_{method}_{duration}min"
         )

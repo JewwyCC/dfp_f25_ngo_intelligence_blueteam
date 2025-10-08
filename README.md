@@ -1,430 +1,288 @@
 # NGO Intelligence Platform - Homelessness Research
 
-Comprehensive multi-source data collection and analysis platform for homelessness research. Collects data from Google Trends, News APIs, Reddit, and Bluesky with automated visualizations and political analysis.
+**Comprehensive multi-source data collection and analysis platform for homelessness research**
 
-**Carnegie Mellon University - DFP F25**
+*Carnegie Mellon University - DFP F25 | DFP Blue Team: Jerry, Kaitlin, Mel, Rizaldy, Shriya*
+
+---
+
+## 🎯 Overview
+
+The NGO Intelligence Platform is a comprehensive data collection and visualization system designed for homelessness research. It integrates data from multiple sources including Google Trends, News APIs, Reddit, and Bluesky social media, providing automated analysis and interactive visualizations.
+
+### Key Features
+
+- **Multi-Source Data Collection**: Google Trends, News API, Reddit, Bluesky
+- **Interactive Dashboard**: Streamlit-based web interface
+- **Automated Visualizations**: Charts, maps, and analysis reports
+- **Political Classification**: News sentiment and political bias analysis
+- **Real-Time Processing**: Live data collection and analysis
+- **Demo Data Integration**: Fast loading with comprehensive sample data
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
-
-```bash
-# Install all required packages
-pip install -r requirements.txt
-```
-
-### 2. Run Master Scraper
-
-```bash
-# Run comprehensive scraper (15 minutes for full analysis)
-python3 master_scraper.py --duration 900
-
-# Quick test run (5 minutes - uses cached Google Trends if available)
-python3 master_scraper.py --duration 300
-```
-
-### 3. View Results
-
-All data saved to: `data/master_output/session_YYYYMMDD_HHMMSS/`
-
----
-
-## 📊 What It Collects
-
-The master scraper runs **4 modules sequentially**:
-
-| Module | Duration | What It Collects | Visualizations |
-|--------|----------|------------------|----------------|
-| **Google Trends** | ~13 min (fresh) <br> <1 sec (cached) | Search trends, keywords, geographic data | 20+ charts & maps |
-| **News API** | ~30 sec | 75+ articles from NewsAPI + NPR | 4 visualizations |
-| **Reddit** | ~30 sec | 150+ posts from 9 subreddits | Raw data (CSV/JSON) |
-| **Bluesky** | ~1 sec | Social media posts | Script integration |
-
-**Total Output:** ~36 files per run including data, visualizations, and logs
-
----
-
-## 📁 Output Structure
-
-```
-data/master_output/session_20251006_123042/
-├── Google Trends (28 files)
-│   ├── googletrends_national_*.xlsx       # National trends data
-│   ├── googletrends_state_*.xlsx          # State-level trends
-│   ├── googletrends_help_*.csv            # Help-seeking queries
-│   ├── googletrends_mapdata_*.pkl         # Geographic data
-│   └── viz_*.png/html (20 visualizations)
-│       ├── national_timeseries            # National trends over time
-│       ├── CA_timeseries                  # California state trends
-│       ├── theme_comp                     # Theme comparison chart
-│       ├── national_seasonal_* (4)        # National seasonal patterns
-│       ├── state_seasonal_* (4)           # State seasonal patterns
-│       └── choropleth_*.html (2)          # Interactive maps
-│
-├── News API (6 files)
-│   ├── combined_articles.json             # 75 articles (NewsAPI + NPR)
-│   ├── classified.csv                     # Political classification
-│   └── news_*.png (4 visualizations)
-│       ├── wordcloud                      # Most common words
-│       ├── outlet_counts                  # Articles by outlet
-│       ├── political_pie                  # LEFT/CENTER/RIGHT split
-│       └── political_timeline             # Coverage over time
-│
-├── Reddit (2 files)
-│   ├── reddit_posts.csv                   # 150+ posts with metadata
-│   └── reddit_posts.json                  # Same data in JSON format
-│
-└── Master Log
-    └── master_log_*.json                  # Complete execution log
-```
-
----
-
-## 🔧 Installation Guide
-
 ### Prerequisites
 
-- **Python 3.8+** (tested on 3.13)
-- **pip** package manager
-- Internet connection for API calls
+- Python 3.8+
+- Git
+- Internet connection for data collection
 
-### Step-by-Step Setup
+### Installation
 
-1. **Clone/Download the Repository**
-```bash
-cd /path/to/dfp_ngo_module
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd dfp_ngo_module
+   ```
 
-2. **Install All Dependencies**
-```bash
-pip install -r requirements.txt
-```
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-This installs:
-- Core: `pandas`, `numpy`, `requests`
-- Google Trends: `pytrends`, `geopandas`, `folium`, `statsmodels`
-- News API: `newsapi-python`, `beautifulsoup4`, `wordcloud`, `transformers`, `torch`
-- Reddit: `praw`, `textblob`
-- Bluesky: `atproto`
-- Visualization: `matplotlib`, `seaborn`, `plotly`
+3. **Run the platform**
+   ```bash
+   # Option 1: Simple launcher (recommended)
+   ./start_platform.sh dashboard
+   
+   # Option 2: Direct Streamlit
+   streamlit run ngo_dashboard.py
+   ```
 
-3. **Configure API Keys (Optional)**
-
-For News API:
-```bash
-# Edit scripts/news_api/credentials.py
-NEWS_API_KEY = "your_api_key_here"  # Get from https://newsapi.org
-```
-
-For Reddit (optional - works without):
-```bash
-# Edit scripts/reddit/config.py if you have Reddit API credentials
-```
-
-For Bluesky (optional):
-```bash
-# Edit auth/bluesky/config/auth.json if you have Bluesky account
-```
+4. **Access the dashboard**
+   - Open your browser to `http://localhost:8501`
+   - Use demo data or enter a ZIP code for fresh analysis
 
 ---
 
-## 🎯 Usage
-
-### Master Scraper (Recommended)
-
-Runs all 4 modules sequentially:
-
-```bash
-# Comprehensive run (15-20 minutes)
-python3 master_scraper.py --duration 900
-
-# Quick run (5 minutes) - uses cached Google Trends if <7 days old
-python3 master_scraper.py --duration 300
-
-# Custom duration (30 seconds to 60 minutes)
-python3 master_scraper.py --duration <seconds>
-```
-
-**Output:** `data/master_output/session_YYYYMMDD_HHMMSS/`
-
-### Individual Modules
-
-Run modules independently:
-
-```bash
-# Google Trends (creates 20+ visualizations)
-cd scripts/google_trends
-python3 googletrends.py
-
-# News API
-cd scripts/news_api
-python3 news_main.py
-
-# Reddit
-cd scripts/reddit
-python3 reddit_scraper_app.py
-
-# Bluesky
-cd scripts/bluesky
-python3 main.py
-```
-
----
-
-## 📖 Module Details
+## 📊 Data Sources
 
 ### 1. Google Trends
-
-**What it does:**
-- Analyzes search trends for homelessness-related keywords
-- Generates national and state-level time series
-- Creates seasonal decomposition plots for 4 themes:
-  - General Information and Definitions
-  - Location-specific search
-  - Policy, Organisations and Solutions
-  - Statistics, Data, and Scope
-- Produces interactive choropleth maps
-
-**Output:**
-- 8 data files (XLSX, CSV, PKL)
-- 20 visualizations (PNG, HTML)
-- Keywords extracted for use by other modules
-
-**Caching:** Results cached for 7 days to avoid API rate limits
+- **Purpose**: Search volume patterns and geographic interest
+- **Data**: National and state-level search trends
+- **Visualizations**: Time series, choropleth maps, seasonal patterns
+- **Note**: Uses demo data for fast loading during analysis
 
 ### 2. News API
-
-**What it does:**
-- Fetches articles from NewsAPI and NPR
-- Classifies political leaning (LEFT/CENTER/RIGHT) using HuggingFace transformers
-- Generates word clouds and timeline charts
-
-**Output:**
-- 2 data files (75+ articles)
-- 4 visualizations
-- Political classification: typically 50-70% LEFT, 20-40% RIGHT, <5% CENTER
+- **Purpose**: Media coverage analysis and political classification
+- **Data**: Articles from major news sources
+- **Analysis**: Sentiment analysis, political bias classification
+- **Visualizations**: Word clouds, timeline analysis, source distribution
 
 ### 3. Reddit
+- **Purpose**: Community discussions and lived experiences
+- **Data**: Posts from homelessness-related subreddits
+- **Analysis**: Engagement metrics, topic clustering
+- **Visualizations**: Engagement trends, subreddit analysis, post timelines
 
-**What it does:**
-- Scrapes 9 homelessness-related subreddits:
-  - r/homeless, r/housing, r/eviction, r/affordablehousing
-  - r/rent, r/shelter, r/housingcrisis, r/povertyfinance, r/urbancarliving
-- Uses keywords from Google Trends for filtering
-- Collects 150-200 posts with metadata
-
-**Output:**
-- CSV and JSON formats
-- Title, selftext, author, score, num_comments, created_utc
-
-### 4. Bluesky
-
-**What it does:**
-- Integrates with Bluesky social media platform
-- Searches for homelessness-related posts
-- Can generate visualizations if run independently
-
-**Output:**
-- Post data in JSONL format
-- Metadata: author, engagement, timestamps
+### 4. Bluesky Social
+- **Purpose**: Social media sentiment and real-time discussions
+- **Data**: Posts and engagement metrics
+- **Analysis**: Sentiment trends, author analysis
+- **Visualizations**: Engagement patterns, top posts table, sentiment timeline
 
 ---
 
-## 🔍 Key Features
+## 🖥️ Dashboard Features
 
-### Intelligent Caching
-- **Google Trends:** 7-day cache to avoid API rate limits
-- Automatically reuses recent data when available
-- Manual cache clearing: `rm -rf viz/google_trends/* scripts/google_trends/googletrends_*`
+### Home Page
+- **Interactive ZIP Code Analysis**: Enter any US ZIP code for regional analysis
+- **Demo Data Access**: Quick access to comprehensive sample data
+- **Progress Tracking**: Real-time data collection status
+- **Navigation**: Seamless flow between data collection and visualization
 
-### Centralized Output
-- All modules write to single session directory
-- Timestamped sessions: `session_20251006_123042`
-- Easy to find and analyze complete runs
+### Data Collection
+- **Smart Scraping**: Fresh data collection for News, Reddit, and Bluesky
+- **Demo Integration**: Fast Google Trends loading using demo data
+- **Progress Monitoring**: Real-time status updates and completion tracking
+- **Error Handling**: Robust error management and recovery
 
-### Political Analysis
-- News articles classified as LEFT/CENTER/RIGHT
-- Uses `cardiffnlp/twitter-roberta-base-sentiment-latest` transformer model
-- Provides insights into media coverage bias
+### Visualizations
+- **Interactive Charts**: Plotly-based interactive visualizations
+- **Geographic Maps**: Choropleth maps with real data integration
+- **Data Tables**: Sortable and paginated data displays
+- **Responsive Design**: Optimized for different screen sizes
 
-### Keyword Propagation
-- Google Trends extracts homelessness keywords
-- Keywords automatically used by Reddit and News modules
-- Ensures consistent search terms across platforms
-
----
-
-## 📊 Sample Statistics
-
-From a typical comprehensive run:
-
-| Metric | Value |
-|--------|-------|
-| Total Duration | ~15 minutes (fresh) / ~1 minute (cached) |
-| Success Rate | 4/4 modules (100%) |
-| Total Files | 36 files (3-4 MB) |
-| Google Trends Visualizations | 20 charts & maps |
-| News Articles | 75 articles |
-| Reddit Posts | 150-200 posts |
-| Keywords Extracted | 10-15 terms |
+### Analysis Sections
+1. **Search Trends**: Google Trends analysis with geographic insights
+2. **Media Coverage**: News analysis with political classification
+3. **Community Discussions**: Reddit engagement and topic analysis
+4. **Social Sentiment**: Bluesky sentiment and engagement patterns
 
 ---
 
-## 🛠️ Troubleshooting
+## 🛠️ Technical Architecture
 
-### Issue: Missing Dependencies
+### Core Components
+
+- **`ngo_dashboard.py`**: Main Streamlit dashboard application
+- **`master_scraper_data.py`**: Data collection orchestrator
+- **`master_scraper_viz.py`**: Visualization generation system
+- **`start_platform.sh`**: Platform launcher script
+
+### Data Flow
+
+1. **Data Collection**: Multi-source scraping with session management
+2. **Data Processing**: Cleaning, deduplication, and formatting
+3. **Visualization Generation**: Automated chart and map creation
+4. **Dashboard Integration**: Real-time display and interaction
+
+### Session Management
+
+- **Session Directories**: Organized by timestamp (`session_YYYYMMDD_HHMMSS`)
+- **Raw Data Storage**: CSV, JSON, JSONL files in `raw_data/`
+- **Visualizations**: PNG, HTML files in `artifacts/`
+- **Demo Data**: Comprehensive sample data in `demo_data/`
+
+---
+
+## 📁 Project Structure
+
+```
+dfp_ngo_module/
+├── ngo_dashboard.py              # Main dashboard application
+├── master_scraper_data.py        # Data collection orchestrator
+├── master_scraper_viz.py         # Visualization generator
+├── start_platform.sh            # Platform launcher
+├── requirements.txt             # Python dependencies
+├── README.md                    # This file
+├── data/
+│   ├── demo_data/               # Demo/sample data
+│   │   └── demo_session/
+│   │       ├── raw_data/        # Sample CSV/JSON files
+│   │       └── artifacts/       # Sample visualizations
+│   └── master_output/           # Generated data sessions
+│       └── session_*/           # Timestamped sessions
+├── scripts/                     # Individual scraper modules
+│   ├── google_trends/           # Google Trends scraper
+│   ├── news_api/                # News API scraper
+│   ├── reddit/                  # Reddit scraper
+│   └── bluesky/                 # Bluesky scraper
+└── auth/                        # Authentication configurations
+    └── bluesky/                 # Bluesky API credentials
+```
+
+---
+
+## 🔧 Configuration
+
+### API Credentials
+
+1. **News API**: Add your API key to `scripts/news_api/credentials.py`
+2. **Reddit**: Configure PRAW credentials in `scripts/reddit/config.py`
+3. **Bluesky**: Add authentication to `auth/bluesky/auth.json`
+
+### Environment Variables
 
 ```bash
-# Error: No module named 'newsapi'
-pip install newsapi-python
+# Optional: Disable HuggingFace tokenizers parallelism warning
+export TOKENIZERS_PARALLELISM=false
+```
 
-# Error: No module named 'praw'
-pip install praw prawcore
+---
 
-# Error: No module named 'wordcloud'
-pip install wordcloud
+## 📈 Usage Examples
 
-# Install all at once:
+### Quick Analysis with Demo Data
+
+1. Launch the dashboard: `./start_platform.sh dashboard`
+2. Click "Go To Visualization" to load demo data
+3. Explore comprehensive sample visualizations
+
+### Fresh Data Collection
+
+1. Enter a US ZIP code (e.g., "10001" for NYC)
+2. Click "Analyze Region"
+3. Monitor real-time progress
+4. View generated visualizations
+
+### Custom Analysis
+
+1. Navigate to specific sections
+2. Filter by themes or time periods
+3. Export data or visualizations
+4. Share insights and findings
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Dashboard won't start**
+```bash
+# Check dependencies
 pip install -r requirements.txt
+
+# Try direct Streamlit
+streamlit run ngo_dashboard.py
 ```
 
-### Issue: Google Trends Timeout
-
-**Symptom:** Google Trends running for 20+ minutes
-
-**Solution:** This is normal for first run! Google Trends makes many API calls. Subsequent runs will use cached data (<1 second).
-
-To force fresh data:
+**Data collection fails**
 ```bash
-rm -rf viz/google_trends/* scripts/google_trends/googletrends_*
+# Check API credentials
+# Verify internet connection
+# Check logs in terminal output
 ```
 
-### Issue: News API Failing
-
-**Symptom:** "No articles found" or API errors
-
-**Solution:**
-1. Check internet connection
-2. Verify NEWS_API_KEY in `scripts/news_api/credentials.py`
-3. NPR scraping works without API key
-
-### Issue: Reddit Rate Limiting
-
-**Symptom:** "Too many requests"
-
-**Solution:**
-- Reduce posts_per_subreddit in master_scraper.py
-- Wait 5-10 minutes before retrying
-- Add Reddit API credentials for higher limits
-
----
-
-## 📝 Configuration
-
-### Master Scraper Time Budget
-
-Edit `master_scraper.py` line 47-52:
-
-```python
-self.time_budget = {
-    'google_trends': int(self.total_duration * 0.15),  # 15%
-    'news_api': int(self.total_duration * 0.30),       # 30%
-    'reddit': int(self.total_duration * 0.25),         # 25%
-    'bluesky': int(self.total_duration * 0.30)         # 30%
-}
+**Visualizations not loading**
+```bash
+# Ensure demo data exists in data/demo_data/
+# Check file permissions
+# Verify Streamlit cache
 ```
 
-### Keywords & Subreddits
+### Performance Tips
 
-Customize in each module's script or use GUI interfaces:
-- Google Trends: `scripts/google_trends/data python files/keyword_theme.xlsx`
-- Reddit: `scripts/reddit/config.py`
-- News API: `scripts/news_api/news_configs.py`
-
----
-
-## 📚 Documentation
-
-- **Master Scraper Results:** `MASTER_SCRAPER_RESULTS.md` - Detailed output breakdown
-- **Lessons Learned:** `LESSONS_LEARNED.md` - Problems & solutions
-- **Individual Modules:**
-  - Google Trends: `scripts/google_trends/README-googletrends.md`
-  - News API: `scripts/news_api/README.md`
-  - Reddit: `scripts/reddit/README.md`
-  - Bluesky: `scripts/bluesky/README.md`
+- Use demo data for quick exploration
+- Google Trends uses demo data for fast loading
+- Fresh data collection may take 2-5 minutes
+- Clear browser cache if visualizations appear outdated
 
 ---
 
 ## 🤝 Contributing
 
-This is a research project for CMU DFP F25. For questions or issues:
+### Development Setup
 
-1. Check documentation in each module's folder
-2. Review `LESSONS_LEARNED.md` for common issues
-3. Check master_log_*.json for detailed execution logs
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and test thoroughly
+4. Submit a pull request
+
+### Code Style
+
+- Follow Python PEP 8 guidelines
+- Use descriptive variable names
+- Add docstrings to functions
+- Include error handling
 
 ---
 
 ## 📄 License
 
-Carnegie Mellon University - DFP F25 Project
+This project is developed for educational and research purposes at Carnegie Mellon University.
 
 ---
 
-## 🎓 Project Structure
+## 🙏 Acknowledgments
 
-```
-dfp_ngo_module/
-├── master_scraper.py              # Main orchestrator (use this!)
-├── requirements.txt               # All dependencies
-├── README.md                      # This file
-│
-├── data/
-│   └── master_output/            # All output goes here
-│       └── session_*/            # Timestamped sessions
-│
-├── scripts/
-│   ├── google_trends/            # Google Trends module
-│   ├── news_api/                 # News API module
-│   ├── reddit/                   # Reddit scraper
-│   └── bluesky/                  # Bluesky integration
-│
-├── viz/
-│   ├── google_trends/            # Google Trends visualizations (cached)
-│   ├── news_api/                 # News visualizations
-│   └── reddit/                   # Reddit visualizations
-│
-└── auth/                         # API credentials (gitignored)
-```
+- **DFP Blue Team**: Jerry, Kaitlin, Mel, Rizaldy, Shriya
+- **Carnegie Mellon University**: DFP F25 Program
+- **Open Source Libraries**: Streamlit, Plotly, Pandas, and more
 
 ---
 
-## ⚡ Quick Reference
+## 📞 Support
 
-```bash
-# Full comprehensive run
-python3 master_scraper.py --duration 900
-
-# Quick test (uses cache)
-python3 master_scraper.py --duration 300
-
-# Clear cache for fresh data
-rm -rf viz/google_trends/* scripts/google_trends/googletrends_*
-
-# Install dependencies
-pip install -r requirements.txt
-
-# View results
-ls -lh data/master_output/session_*/
-
-# Check logs
-cat data/master_output/master_log_*.json
-```
+For questions or issues:
+1. Check the troubleshooting section above
+2. Review the demo data and examples
+3. Check terminal output for detailed error messages
+4. Ensure all dependencies are properly installed
 
 ---
 
-**Status:** ✅ All 4 modules working comprehensively as of October 6, 2025
-
-**Last Updated:** October 6, 2025
+*Last updated: January 2025*

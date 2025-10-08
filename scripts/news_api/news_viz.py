@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import os
 from datetime import datetime
 from news_configs import *
@@ -62,44 +64,50 @@ class Visualizations:
 
     def plot_comparison_horizontal(self, summary_df, top_n=20):
         """
-        Create a horizontal bar chart for better readability of source names.
+        Create a horizontal bar chart with gradient for better readability of source names.
         """
 
         # Get top sources
         top_sources = summary_df.head(top_n)
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(12, 10))
 
         # Create horizontal bars
         y_pos = np.arange(len(top_sources))
         bars = ax.barh(y_pos, top_sources['Article Count'])
 
-        # Color bars with gradient
-        colors = CMAP(np.linspace(0.3, 0.9, len(top_sources)))
+        # Apply gradient colors from blue to yellow (viridis colormap)
+        cmap = cm.get_cmap('viridis')
+        colors = cmap(np.linspace(0.2, 0.95, len(top_sources)))
+
         for bar, color in zip(bars, colors):
             bar.set_color(color)
+            bar.set_edgecolor('white')
+            bar.set_linewidth(0.5)
 
         # Customize the plot
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(top_sources['Source'])
+        ax.set_yticklabels(top_sources['Source'], fontsize=10)
         ax.invert_yaxis()  # Labels read top-to-bottom
         ax.set_xlabel('Number of Articles', fontsize=12, fontweight='bold')
-        ax.set_title(f'US News Outlets Reporting on Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
+        ax.set_title(f'US News Outlets Reporting on Homelessness in the Last 30 Days',
+                     fontsize=14, fontweight='bold', pad=20)
 
-        # Add value labels
+        # Add value labels on bars
         for i, (count, pct) in enumerate(zip(top_sources['Article Count'],
                                              top_sources['Percentage'])):
-            ax.text(count + 0.5, i, f'{count}',
-                    va='center', fontsize=9)
+            ax.text(count + 0.3, i, f'{count}',
+                    va='center', fontsize=9, fontweight='bold', color='white')
 
-        plt.grid(axis='x', alpha=0.3)
+        plt.grid(axis='x', alpha=0.2, linestyle='--')
         plt.tight_layout()
         plt.show()
+
         news_timestamp = datetime.now()
-        barchart_fname = f'news_US-News-Outlets-Reporting-on-Homelessness-in-the-Last-30-Days-{news_timestamp}.png'
+        barchart_fname = f'news_outlet_comparison_{news_timestamp}.png'
         barchart_path = os.path.join(self.output_directory, barchart_fname)
-        plt.savefig(barchart_path)
+        plt.savefig(barchart_path, dpi=150, bbox_inches='tight')
 
 
     def generate_wordcloud(self, text):
@@ -186,7 +194,7 @@ class PoliticalAnalysisVisualizer:
 
     def political_timeline(self, df):
         """
-        Fixed version: Creates timeline with 3 lines (left, center, right).
+        Creates timeline emphasizing LEFT and RIGHT political leanings with CENTER minimized.
         """
         # Prepare data
         df = df.copy()
@@ -194,40 +202,45 @@ class PoliticalAnalysisVisualizer:
         df = df[df['date'].notna()]
         df['date_day'] = df['date'].dt.date
 
-        # Group articles by date and political classification.
+        # Group articles by date and political classification
         daily_counts = df.groupby(['date_day', 'leaning']).size().reset_index(name='count')
         timeline_data = daily_counts.pivot(index='date_day', columns='leaning', values='count')
         timeline_data = timeline_data.fillna(0)
 
-        # Plot figure.
+        # Plot figure
         plt.figure(figsize=(14, 7))
 
-        # Plot each line with different colors
+        # Plot LEFT with prominent blue line
         if 'LEFT' in timeline_data.columns:
             plt.plot(timeline_data.index, timeline_data['LEFT'],
-                     marker='o', linewidth=2, color='#3366CC', label='LEFT')
+                     marker='o', linewidth=2.5, color='#013364', label='LEFT',
+                     markersize=6, markerfacecolor='#013364', markeredgewidth=0)
 
+        # Plot CENTER with subtle gray line
         if 'CENTER' in timeline_data.columns:
             plt.plot(timeline_data.index, timeline_data['CENTER'],
-                     marker='s', linewidth=2, color='#808080', label='CENTER')
+                     marker='s', linewidth=1, color='#cbcaca', label='CENTER',
+                     markersize=4, alpha=0.6, markerfacecolor='#cbcaca', markeredgewidth=0)
 
+        # Plot RIGHT with prominent red line
         if 'RIGHT' in timeline_data.columns:
             plt.plot(timeline_data.index, timeline_data['RIGHT'],
-                     marker='^', linewidth=2, color='#CC3333', label='RIGHT')
+                     marker='^', linewidth=2.5, color='#d30b0d', label='RIGHT',
+                     markersize=6, markerfacecolor='#d30b0d', markeredgewidth=0)
 
-        plt.xlabel('Date')
-        plt.ylabel('Number of Articles')
-        plt.title('Timeline of US News Articles in the Last 30D ays by Political Leaning')
-        plt.legend(title='Political Leaning')
-        plt.grid(True, alpha=0.3)
+        plt.xlabel('Date', fontsize=12, fontweight='bold')
+        plt.ylabel('Number of Articles', fontsize=12, fontweight='bold')
+        plt.title('Political Leaning Timeline', fontsize=14, fontweight='bold')
+        plt.legend(title='Political Leaning', loc='upper right', fontsize=10)
+        plt.grid(True, alpha=0.3, linestyle='--')
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         plt.show()
 
         news_timestamp = datetime.now()
-        timeline_fname = f'news_Timeline-of-US-News-Articles-in-the-Last-30-Days-by-Political-Leaning_{news_timestamp}.png'
+        timeline_fname = f'news_political_timeline_{news_timestamp}.png'
         timeline_path = os.path.join(self.output_directory, timeline_fname)
-        plt.savefig(timeline_path)
+        plt.savefig(timeline_path, dpi=150, bbox_inches='tight')
 
 
     def create_interactive_visualizations(self, df):

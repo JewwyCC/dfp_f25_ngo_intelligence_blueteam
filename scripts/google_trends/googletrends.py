@@ -134,7 +134,7 @@ class GoogleTrendsAnalyzer:
         """Get state abbreviation from ZIP code"""
         return self.zip_to_state.get(str(zipcode), 'Unknown')
 
-    def batch_extract(self, theme_kw_map, base_keyword, geo, years=5, batch_size=5, delay=60, max_retries=5):
+    def batch_extract(self, theme_kw_map, base_keyword, geo, years=5, batch_size=5, delay=10, max_retries=5):
         """Extract data in batches with retry logic"""
         all_keywords = theme_kw_map['Keyword'].unique().tolist()
         # Remove duplicates, always include base keyword at front
@@ -146,19 +146,24 @@ class GoogleTrendsAnalyzer:
         for batch in batches:
             batch = list(dict.fromkeys(batch))  # remove duplicates within batch
             print(f"Processing batch ({geo}): {batch}")
+            # Track whether this batch succeeded so we can avoid an extra post-batch sleep
+            success = False
             for attempt in range(max_retries):
                 try:
                     self.pytrends.build_payload(batch, geo=geo, timeframe=f'today {years}-y')
                     batch_data = self.pytrends.interest_over_time()
                     batch_dfs.append(batch_data)
+                    success = True
                     break  # Success, break out of retry loop
                 except TooManyRequestsError:
                     wait = delay * (attempt + 1)  # exponential backoff
                     print(f"Rate limit hit. Waiting {wait} seconds before retrying...")
                     time.sleep(wait)
-            else:
+
+            if not success:
                 print(f"Failed to fetch batch after {max_retries} attempts: {batch}")
-            time.sleep(delay)  # Always wait between batches
+                # Only sleep the configured delay after a failed batch (we already waited during retries)
+                time.sleep(delay)
 
         return batch_dfs
 
@@ -233,11 +238,11 @@ class GoogleTrendsAnalyzer:
 
         # Extract National Search Volume
         print("Extracting national data...")
-        national_batches = self.batch_extract(self.theme_kw_map, base_national_keyword, geo='US', delay=15)
+        national_batches = self.batch_extract(self.theme_kw_map, base_national_keyword, geo='US', delay=10)
         
         # Extract State Search Volume
         print(f"Extracting state data for {state_abbr}...")
-        state_batches = self.batch_extract(self.theme_kw_map, base_state_keyword, geo=f'US-{state_abbr}', delay=15)
+        state_batches = self.batch_extract(self.theme_kw_map, base_state_keyword, geo=f'US-{state_abbr}', delay=10)
 
         # Normalize data
         self.national_norm = self.normalize_batches(national_batches, base_national_keyword)
@@ -520,33 +525,63 @@ class GoogleTrendsAnalyzer:
 
     def display_choropleth_maps(self, merged, df_heatmap):
         """Display choropleth maps for each theme"""
+        if df_heatmap is None or df_heatmap.empty:
+            print("Warning: No heatmap data available for choropleth maps")
+            return
+            
         for theme in df_heatmap.columns:
             if theme == 'state_name':
                 continue
-            merged[theme] = pd.to_numeric(merged[theme], errors='coerce')
-            m = folium.Map(location=[37.8, -96], zoom_start=4)
-            folium.Choropleth(
-                geo_data=merged,
-                name='Choropleth',
-                data=merged,
-                columns=['name', theme],
-                key_on='feature.properties.name',
-                fill_color='YlOrRd',
-                fill_opacity=0.7,
-                line_opacity=0.2,
-                legend_name=f'{theme} (Mean Search Interest)',
-                nan_fill_color='gray'
-            ).add_to(m)
-            folium.GeoJson(
-                merged,
-                tooltip=folium.features.GeoJsonTooltip(fields=['name', theme], aliases=['State:', 'Value:'])
-            ).add_to(m)
-            # Save map instead of displaying (since we're in a script)
-            current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"choropleth_{theme}_{current_datetime}.html"
-            map_file = os.path.join(VIZ_OUTPUT_DIR, filename)
-            m.save(map_file)
-            print(f"✓ Choropleth map saved for theme: {theme} -> {map_file}")
+                
+            try:
+                # Ensure data is numeric
+                merged[theme] = pd.to_numeric(merged[theme], errors='coerce')
+                
+                # Create map
+                m = folium.Map(location=[37.8, -96], zoom_start=4, tiles='OpenStreetMap')
+                
+                # Add choropleth layer
+                folium.Choropleth(
+                    geo_data=merged.__geo_interface__,
+                    name='Choropleth',
+                    data=merged,
+                    columns=['name', theme],
+                    key_on='feature.properties.name',
+                    fill_color='YlOrRd',
+                    fill_opacity=0.7,
+                    line_opacity=0.2,
+                    legend_name=f'{theme} (Mean Search Interest)',
+                    nan_fill_color='gray'
+                ).add_to(m)
+                
+                # Add GeoJson layer for tooltips
+                folium.GeoJson(
+                    merged,
+                    tooltip=folium.features.GeoJsonTooltip(
+                        fields=['name', theme], 
+                        aliases=['State:', 'Value:'],
+                        localize=True
+                    )
+                ).add_to(m)
+                
+                # Add layer control
+                folium.LayerControl().add_to(m)
+                
+                # Save map
+                current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"google_trends_choropleth_{theme}_{current_datetime}.html"
+                map_file = os.path.join(VIZ_OUTPUT_DIR, filename)
+                
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(map_file), exist_ok=True)
+                
+                # Save the map
+                m.save(map_file)
+                print(f"✓ Choropleth map saved for theme: {theme} -> {map_file}")
+                
+            except Exception as e:
+                print(f"Error creating choropleth map for {theme}: {str(e)}")
+                continue
 
     def run_historical_analysis(self, zipcode='90001'):
         """Run complete historical analysis workflow"""

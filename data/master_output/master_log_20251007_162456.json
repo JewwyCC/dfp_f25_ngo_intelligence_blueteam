@@ -1,0 +1,62 @@
+{
+  "session_info": {
+    "start_time": "2025-10-07T16:24:56.782641",
+    "duration_budget": 120,
+    "time_budget": {
+      "google_trends": 18,
+      "news_api": 36,
+      "reddit": 30,
+      "bluesky": 36
+    },
+    "timestamp": "20251007_162456"
+  },
+  "results": {
+    "google_trends": {
+      "status": "success",
+      "duration": 340.4952528476715,
+      "data_files": 4,
+      "output": "Data files in raw_data/"
+    },
+    "news_api": {
+      "status": "FAILED",
+      "error": "[Errno 32] Broken pipe"
+    },
+    "reddit": {
+      "status": "FAILED",
+      "error": "[Errno 32] Broken pipe"
+    },
+    "bluesky": {
+      "status": "FAILED",
+      "error": "[Errno 32] Broken pipe"
+    }
+  },
+  "keywords": [
+    "causes of homelessness",
+    "what is homelessness",
+    "homelessness definition",
+    "california homelessness",
+    "los angeles homelessness",
+    "san francisco homelessness",
+    "hud homeless",
+    "alliance to end homelessness",
+    "end homelessness",
+    "homeless statistics",
+    "homelessness statistics"
+  ],
+  "log_entries": [
+    {
+      "timestamp": "2025-10-07T16:24:57.354178",
+      "module": "init",
+      "level": "info",
+      "message": "Loaded 11 keywords from theme file",
+      "data": null
+    },
+    {
+      "timestamp": "2025-10-07T16:24:57.354188",
+      "module": "init",
+      "level": "info",
+      "message": "Using 9 homeless-focused wildcard keywords",
+      "data": null
+    }
+  ]
+}

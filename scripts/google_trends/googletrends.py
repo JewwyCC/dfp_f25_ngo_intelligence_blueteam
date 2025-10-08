@@ -525,33 +525,63 @@ class GoogleTrendsAnalyzer:
 
     def display_choropleth_maps(self, merged, df_heatmap):
         """Display choropleth maps for each theme"""
+        if df_heatmap is None or df_heatmap.empty:
+            print("Warning: No heatmap data available for choropleth maps")
+            return
+            
         for theme in df_heatmap.columns:
             if theme == 'state_name':
                 continue
-            merged[theme] = pd.to_numeric(merged[theme], errors='coerce')
-            m = folium.Map(location=[37.8, -96], zoom_start=4)
-            folium.Choropleth(
-                geo_data=merged,
-                name='Choropleth',
-                data=merged,
-                columns=['name', theme],
-                key_on='feature.properties.name',
-                fill_color='YlOrRd',
-                fill_opacity=0.7,
-                line_opacity=0.2,
-                legend_name=f'{theme} (Mean Search Interest)',
-                nan_fill_color='gray'
-            ).add_to(m)
-            folium.GeoJson(
-                merged,
-                tooltip=folium.features.GeoJsonTooltip(fields=['name', theme], aliases=['State:', 'Value:'])
-            ).add_to(m)
-            # Save map instead of displaying (since we're in a script)
-            current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"choropleth_{theme}_{current_datetime}.html"
-            map_file = os.path.join(VIZ_OUTPUT_DIR, filename)
-            m.save(map_file)
-            print(f"✓ Choropleth map saved for theme: {theme} -> {map_file}")
+                
+            try:
+                # Ensure data is numeric
+                merged[theme] = pd.to_numeric(merged[theme], errors='coerce')
+                
+                # Create map
+                m = folium.Map(location=[37.8, -96], zoom_start=4, tiles='OpenStreetMap')
+                
+                # Add choropleth layer
+                folium.Choropleth(
+                    geo_data=merged.__geo_interface__,
+                    name='Choropleth',
+                    data=merged,
+                    columns=['name', theme],
+                    key_on='feature.properties.name',
+                    fill_color='YlOrRd',
+                    fill_opacity=0.7,
+                    line_opacity=0.2,
+                    legend_name=f'{theme} (Mean Search Interest)',
+                    nan_fill_color='gray'
+                ).add_to(m)
+                
+                # Add GeoJson layer for tooltips
+                folium.GeoJson(
+                    merged,
+                    tooltip=folium.features.GeoJsonTooltip(
+                        fields=['name', theme], 
+                        aliases=['State:', 'Value:'],
+                        localize=True
+                    )
+                ).add_to(m)
+                
+                # Add layer control
+                folium.LayerControl().add_to(m)
+                
+                # Save map
+                current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"google_trends_choropleth_{theme}_{current_datetime}.html"
+                map_file = os.path.join(VIZ_OUTPUT_DIR, filename)
+                
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(map_file), exist_ok=True)
+                
+                # Save the map
+                m.save(map_file)
+                print(f"✓ Choropleth map saved for theme: {theme} -> {map_file}")
+                
+            except Exception as e:
+                print(f"Error creating choropleth map for {theme}: {str(e)}")
+                continue
 
     def run_historical_analysis(self, zipcode='90001'):
         """Run complete historical analysis workflow"""

@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import os
 from datetime import datetime
 from news_configs import *
@@ -63,14 +65,14 @@ class Visualizations:
 
     def plot_comparison_horizontal(self, summary_df, top_n=20):
         """
-        Create a horizontal bar chart for better readability of source names.
+        Create a horizontal bar chart with gradient for better readability of source names.
         """
 
         # Get top sources
         top_sources = summary_df.head(top_n)
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(12, 10))
 
         # Create horizontal bars
         y_pos = np.arange(len(top_sources))
@@ -78,18 +80,19 @@ class Visualizations:
 
         # Customize the plot
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(top_sources['Source'])
+        ax.set_yticklabels(top_sources['Source'], fontsize=10)
         ax.invert_yaxis()  # Labels read top-to-bottom
         ax.set_xlabel('Number of Articles', fontsize=12, fontweight='bold')
-        ax.set_title(f'US News Outlets Reporting on Homelessness in the Last 30 Days', fontsize=14, fontweight='bold')
+        ax.set_title(f'US News Outlets Reporting on Homelessness in the Last 30 Days',
+                     fontsize=14, fontweight='bold', pad=20)
 
-        # Add value labels
+        # Add value labels on bars
         for i, (count, pct) in enumerate(zip(top_sources['Article Count'],
                                              top_sources['Percentage'])):
-            ax.text(count + 0.5, i, f'{count}',
-                    va='center', fontsize=9)
+            ax.text(count + 0.3, i, f'{count}',
+                    va='center', fontsize=9, fontweight='bold', color='white')
 
-        plt.grid(axis='x', alpha=0.3)
+        plt.grid(axis='x', alpha=0.2, linestyle='--')
         plt.tight_layout()
 
 
@@ -192,7 +195,7 @@ class PoliticalAnalysisVisualizer:
 
     def political_timeline(self, df):
         """
-        Fixed version: Creates timeline with 3 lines (left, center, right).
+        Creates timeline emphasizing LEFT and RIGHT political leanings with CENTER minimized.
         """
         # Prepare data
         df = df.copy()
@@ -200,23 +203,25 @@ class PoliticalAnalysisVisualizer:
         df = df[df['date'].notna()]
         df['date_day'] = df['date'].dt.date
 
-        # Group articles by date and political classification.
+        # Group articles by date and political classification
         daily_counts = df.groupby(['date_day', 'leaning']).size().reset_index(name='count')
         timeline_data = daily_counts.pivot(index='date_day', columns='leaning', values='count')
         timeline_data = timeline_data.fillna(0)
 
-        # Plot figure.
+        # Plot figure
         plt.figure(figsize=(14, 7))
 
-        # Plot each line with different colors
+        # Plot LEFT with prominent blue line
         if 'LEFT' in timeline_data.columns:
             plt.bar(timeline_data.index, timeline_data['LEFT'],
                      color='#3366CC', label='LEFT')
 
+        # Plot CENTER with subtle gray line
         if 'CENTER' in timeline_data.columns:
             plt.bar(timeline_data.index, timeline_data['CENTER'],
                      color='#808080', label='CENTER')
 
+        # Plot RIGHT with prominent red line
         if 'RIGHT' in timeline_data.columns:
             plt.bar(timeline_data.index, timeline_data['RIGHT'],
                      color='#CC3333', label='RIGHT')
@@ -234,7 +239,7 @@ class PoliticalAnalysisVisualizer:
         news_timestamp = now.strftime("%Y%m%d_%H%M%S")
         timeline_fname = f'news_Timeline_{news_timestamp}.png'
         timeline_path = os.path.join(self.output_directory, timeline_fname)
-        plt.savefig(timeline_path)
+        plt.savefig(timeline_path, dpi=150, bbox_inches='tight')
 
         plt.show()
 

@@ -1,0 +1,46 @@
+# Distribution ignore file - files to exclude from the distribution package
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# PyInstaller files (no longer needed)
+*.spec
+
+# Test files
+test_*.py
+*_test.py
+
+# Backup files
+*.bak
+*.backup

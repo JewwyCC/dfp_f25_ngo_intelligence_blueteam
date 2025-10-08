@@ -210,6 +210,7 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 ax.set_title('Timeline of News Coverage by Political Leaning', fontsize=14, fontweight='bold')
                 ax.set_xlabel('Date')
                 ax.set_ylabel('Number of Articles')
+                ax.invert_yaxis()
                 ax.legend()
                 ax.grid(alpha=0.3)
                 plt.tight_layout()

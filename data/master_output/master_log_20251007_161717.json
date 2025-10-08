@@ -1,0 +1,27 @@
+{
+  "session_info": {
+    "start_time": "2025-10-07T16:19:12.433731",
+    "duration_budget": 30,
+    "time_budget": {
+      "google_trends": 4,
+      "news_api": 9,
+      "reddit": 7,
+      "bluesky": 9
+    },
+    "timestamp": "20251007_161717"
+  },
+  "results": {
+    "google_trends_viz": {
+      "status": "success",
+      "duration": 0.121246337890625,
+      "visualizations": 124
+    },
+    "news_api_viz": {
+      "status": "success",
+      "duration": 5.880914211273193,
+      "visualizations": 4
+    }
+  },
+  "keywords": [],
+  "log_entries": []
+}

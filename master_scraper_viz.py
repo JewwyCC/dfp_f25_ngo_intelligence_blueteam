@@ -132,15 +132,65 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             # Generate visualizations (Visualizations needs keyword parameter)
             viz = Visualizations(df, keyword='homelessness')
             pol_viz = PoliticalAnalysisVisualizer()
-            
+
             viz_count = 0
+
+            # Sankey diagram - interactive HTML visualization
+            try:
+                import plotly.graph_objects as go
+
+                sources = df['source'].unique()[:15]  # Top 15 sources for readability
+                political_labels = df['leaning'].unique()
+
+                # Filter df to only include top sources
+                df_filtered = df[df['source'].isin(sources)]
+
+                # Create node labels
+                all_nodes = list(sources) + list(political_labels)
+                node_indices = {node: i for i, node in enumerate(all_nodes)}
+
+                # Create links
+                link_data = df_filtered.groupby(['source', 'leaning']).size().reset_index(name='count')
+
+                # Color mapping
+                color_map = {'LEFT': '#013364', 'CENTER': '#cbcaca', 'RIGHT': '#d30b0d'}
+
+                fig_sankey = go.Figure(data=[go.Sankey(
+                    node=dict(
+                        pad=15,
+                        thickness=20,
+                        line=dict(color="black", width=0.5),
+                        label=all_nodes,
+                        color=['#8B4789'] * len(sources) +  # Purple for sources
+                              [color_map.get(label, '#gray') for label in political_labels]
+                    ),
+                    link=dict(
+                        source=[node_indices[source] for source in link_data['source']],
+                        target=[node_indices[label] for label in link_data['leaning']],
+                        value=link_data['count'],
+                        color='rgba(128, 128, 128, 0.2)'
+                    )
+                )])
+
+                fig_sankey.update_layout(
+                    title_text='Political Leaning of Articles on Homelessness from US Media',
+                    font_size=11,
+                    height=500,
+                    margin=dict(l=20, r=20, t=60, b=20)
+                )
+
+                output_file = self.artifacts_dir / f"news_sankey_{self.timestamp}.html"
+                fig_sankey.write_html(output_file, auto_open=False)
+                viz_count += 1
+            except Exception as e:
+                self.print_error(f"Sankey diagram failed: {str(e)}")
             
             # Word cloud - generate manually to avoid path issues
             try:
                 from wordcloud import WordCloud, STOPWORDS
                 # Use 'text' column (not 'description')
                 all_text = ' '.join(df['title'].fillna('')) + ' ' + ' '.join(df['text'].fillna(''))
-                
+
                 stopwords = set(STOPWORDS)
                 wordcloud = WordCloud(width=1600, height=800, background_color='white', 
                                      stopwords=stopwords, max_words=200, colormap='magma').generate(all_text)
@@ -149,9 +199,9 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 ax.imshow(wordcloud, interpolation='bilinear')
                 ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=16, fontweight='bold')
                 ax.axis('off')
-                
+
                 output_file = self.artifacts_dir / f"news_wordcloud_{self.timestamp}.png"
-                fig.savefig(output_file, dpi=300, bbox_inches='tight')
+                fig.savefig(output_file, dpi=150, bbox_inches='tight')
                 plt.close(fig)
                 viz_count += 1
             except Exception as e:
@@ -167,17 +217,17 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 ax.set_ylabel('News Outlet')
                 ax.grid(axis='x', alpha=0.3)
                 plt.tight_layout()
-                
+
                 output_file = self.artifacts_dir / f"news_outlet_comparison_{self.timestamp}.png"
-                fig.savefig(output_file, dpi=300, bbox_inches='tight')
+                fig.savefig(output_file, dpi=150, bbox_inches='tight')
                 plt.close(fig)
                 viz_count += 1
             except Exception as e:
                 self.print_error(f"Outlet comparison failed: {str(e)}")
             
-            # Political pie chart
+            # Political pie chart - same height as timeline for two-column layout
             try:
-                fig, ax = plt.subplots(figsize=(10, 8))
+                fig, ax = plt.subplots(figsize=(7, 7))
                 leaning_counts = df['leaning'].value_counts()
                 colors = {'LEFT': '#013364', 'CENTER': '#333333', 'RIGHT': '#d30b0d'}
                 colors_list = [colors.get(x, 'gray') for x in leaning_counts.index]
@@ -187,15 +237,15 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 ax.set_title('Political Leaning of Homelessness News Coverage', fontsize=14, fontweight='bold')
                 ax.legend(loc='lower left')
                 plt.tight_layout()
-                
+
                 output_file = self.artifacts_dir / f"news_political_pie_{self.timestamp}.png"
-                fig.savefig(output_file, dpi=300, bbox_inches='tight')
+                fig.savefig(output_file, dpi=150, bbox_inches='tight')
                 plt.close(fig)
                 viz_count += 1
             except Exception as e:
                 self.print_error(f"Political pie failed: {str(e)}")
             
-            # Political timeline
+            # Political timeline - line plot matching original style
             try:
                 # Use 'date' column (not 'publishedAt')
                 df['published'] = pd.to_datetime(df['date'])
@@ -214,9 +264,9 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 ax.legend()
                 ax.grid(alpha=0.3)
                 plt.tight_layout()
-                
+
                 output_file = self.artifacts_dir / f"news_political_timeline_{self.timestamp}.png"
-                fig.savefig(output_file, dpi=300, bbox_inches='tight')
+                fig.savefig(output_file, dpi=150, bbox_inches='tight')
                 plt.close(fig)
                 viz_count += 1
             except Exception as e:
@@ -474,7 +524,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             from wordcloud import WordCloud
             
             # Load data
-            df = pd.read_csv(bluesky_file)
+            df_original = pd.read_csv(bluesky_file)
+            df = df_original.copy()  # Working copy
             viz_count = 0
             
             # FIRST: Generate comprehensive narrative (like original)
@@ -726,59 +777,97 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             
             # 5. Engagement: Hourly Posting Pattern - NYT style
             if 'created_at' in df.columns:
-                fig, ax = plt.subplots(figsize=(14, 6), facecolor=page_bg)
-                ax.set_facecolor(bg_color)
-                ax.patch.set_edgecolor(border_color)
-                ax.patch.set_linewidth(1)
+                try:
+                    fig, ax = plt.subplots(figsize=(14, 6), facecolor=page_bg)
+                    ax.set_facecolor(bg_color)
+                    ax.patch.set_edgecolor(border_color)
+                    ax.patch.set_linewidth(1)
+
+                    df_hourly = df.copy()
+                    df_hourly['created_at_dt'] = pd.to_datetime(df_hourly['created_at'], errors='coerce')
+                    df_hourly = df_hourly[df_hourly['created_at_dt'].notna()]
+                    df_hourly['hour'] = df_hourly['created_at_dt'].dt.hour
+                    hourly_counts = df_hourly['hour'].value_counts().sort_index()
                 
-                df['hour'] = pd.to_datetime(df['created_at'], errors='coerce').dt.hour
-                hourly_counts = df['hour'].value_counts().sort_index()
-                
-                ax.plot(hourly_counts.index, hourly_counts.values,
-                       marker='o', linewidth=2.5, markersize=6, color=accent_color)
-                ax.fill_between(hourly_counts.index, hourly_counts.values, alpha=0.1, color=accent_color)
-                
-                ax.set_title('Engagement: Hourly Posting Pattern', fontsize=14, color=text_color,
-                           weight='normal', pad=20, family='serif', loc='left')
-                ax.set_xlabel('Hour of Day (UTC)', fontsize=11, color='#666666', family='sans-serif')
-                ax.set_ylabel('Number of Posts', fontsize=11, color='#666666', family='sans-serif')
-                ax.set_xticks(range(0, 24))
-                ax.tick_params(colors='#666666', labelsize=9)
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                ax.spines['bottom'].set_color(grid_color)
-                ax.spines['left'].set_color(grid_color)
-                ax.grid(True, alpha=0.3, color=grid_color, linestyle='-', linewidth=0.5)
-                
-                plt.tight_layout()
-                fig.savefig(self.artifacts_dir / f"bluesky_hourly_pattern_{self.timestamp}.png", dpi=300, bbox_inches='tight')
-                plt.close(fig)
-                viz_count += 1
+                    ax.plot(hourly_counts.index, hourly_counts.values,
+                           marker='o', linewidth=2.5, markersize=6, color=accent_color)
+                    ax.fill_between(hourly_counts.index, hourly_counts.values, alpha=0.1, color=accent_color)
+
+                    ax.set_title('Engagement: Hourly Posting Pattern', fontsize=14, color=text_color,
+                               weight='normal', pad=20, family='serif', loc='left')
+                    ax.set_xlabel('Hour of Day (UTC)', fontsize=11, color='#666666', family='sans-serif')
+                    ax.set_ylabel('Number of Posts', fontsize=11, color='#666666', family='sans-serif')
+                    ax.set_xticks(range(0, 24))
+                    ax.tick_params(colors='#666666', labelsize=9)
+                    ax.spines['top'].set_visible(False)
+                    ax.spines['right'].set_visible(False)
+                    ax.spines['bottom'].set_color(grid_color)
+                    ax.spines['left'].set_color(grid_color)
+                    ax.grid(True, alpha=0.3, color=grid_color, linestyle='-', linewidth=0.5)
+
+                    plt.tight_layout()
+                    fig.savefig(self.artifacts_dir / f"bluesky_hourly_pattern_{self.timestamp}.png", dpi=300, bbox_inches='tight')
+                    plt.close(fig)
+                    viz_count += 1
+                except Exception as e:
+                    self.print_error(f"Hourly pattern failed: {str(e)}")
             
-            # 6. Author Analysis: Top 15 Contributors - NYT style
+            # 6. Author Analysis: Top 15 by Engagement with Political Colors
             if 'author_handle' in df.columns:
                 fig, ax = plt.subplots(figsize=(14, 10), facecolor=page_bg)
                 ax.set_facecolor(bg_color)
                 ax.patch.set_edgecolor(border_color)
                 ax.patch.set_linewidth(1)
-                
-                top_authors = df['author_handle'].value_counts().head(15)
-                if len(top_authors) > 0:
-                    bars = ax.barh(range(len(top_authors)), top_authors.values,
-                                  color=accent_color, height=0.7)
-                    ax.set_yticks(range(len(top_authors)))
-                    ax.set_yticklabels(top_authors.index, fontsize=10, family='sans-serif')
+
+                # Calculate engagement per author
+                df_authors = df.copy()
+                df_authors['total_engagement'] = df_authors.get('like_count', 0) + df_authors.get('reply_count', 0) + df_authors.get('repost_count', 0)
+                author_engagement = df_authors.groupby('author_handle')['total_engagement'].sum().sort_values(ascending=False).head(15)
+
+                # Determine political leaning for each author based on their posts
+                author_colors = []
+                for author in author_engagement.index:
+                    author_posts = df_authors[df_authors['author_handle'] == author]['text'].dropna().astype(str)
+                    left_score = 0
+                    right_score = 0
+
+                    for text in author_posts:
+                        text_lower = text.lower()
+                        left_score += sum(1 for kw in left_keywords if kw in text_lower)
+                        right_score += sum(1 for kw in right_keywords if kw in text_lower)
+
+                    if left_score > right_score and left_score > 0:
+                        author_colors.append(left_color)  # Blue for left
+                    elif right_score > left_score and right_score > 0:
+                        author_colors.append(right_color)  # Red for right
+                    else:
+                        author_colors.append(accent_color)  # Gray for neutral/center
+
+                if len(author_engagement) > 0:
+                    bars = ax.barh(range(len(author_engagement)), author_engagement.values,
+                                  color=author_colors, height=0.7, edgecolor='white', linewidth=0.5)
+                    ax.set_yticks(range(len(author_engagement)))
+                    ax.set_yticklabels(author_engagement.index, fontsize=10, family='sans-serif')
                     ax.invert_yaxis()
-                    ax.set_title('Author Analysis: Top 15 Contributors', fontsize=16,
+                    ax.set_title('Author Analysis: Top 15 by Total Engagement', fontsize=16,
                                color=text_color, weight='normal', pad=20, family='serif', loc='left')
-                    ax.set_xlabel('Number of Posts', fontsize=11, color='#666666', family='sans-serif')
+                    ax.set_xlabel('Total Engagement (Likes + Replies + Reposts)', fontsize=11, color='#666666', family='sans-serif')
                     ax.tick_params(colors='#666666', labelsize=9)
                     ax.spines['top'].set_visible(False)
                     ax.spines['right'].set_visible(False)
                     ax.spines['bottom'].set_color(grid_color)
                     ax.spines['left'].set_color(grid_color)
                     ax.grid(True, alpha=0.3, axis='x', color=grid_color, linestyle='-', linewidth=0.5)
-                
+
+                    # Add legend for colors
+                    from matplotlib.patches import Patch
+                    legend_elements = [
+                        Patch(facecolor=left_color, edgecolor='white', label='Left-leaning'),
+                        Patch(facecolor=accent_color, edgecolor='white', label='Neutral'),
+                        Patch(facecolor=right_color, edgecolor='white', label='Right-leaning')
+                    ]
+                    ax.legend(handles=legend_elements, loc='lower right', fontsize=9, framealpha=0.9)
+
                 plt.tight_layout()
                 fig.savefig(self.artifacts_dir / f"bluesky_top_authors_{self.timestamp}.png", dpi=300, bbox_inches='tight')
                 plt.close(fig)

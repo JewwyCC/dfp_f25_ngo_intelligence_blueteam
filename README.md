@@ -65,6 +65,8 @@ The NGO Intelligence Platform is a comprehensive data collection and visualizati
 - **Visualizations**: Time series, choropleth maps, seasonal patterns
 - **Note**: Uses demo data for fast loading during analysis
 
+⚠️ **Important Limitation**: Google Trends API rate limiting may prevent real-time data collection for user-specified ZIP codes due to API rate limits. The platform includes a fallback California dataset to ensure functionality. Live data requests may succeed but could also time out due to temporary API restrictions encountered during development.
+
 ### 2. News API
 - **Purpose**: Media coverage analysis and political classification
 - **Data**: Articles from major news sources

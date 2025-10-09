@@ -51,7 +51,7 @@ def main():
         subreddits=subreddits,
         keywords=keywords,
         posts_per_sub=100,  # 100 posts per subreddit
-        time_filter='month',  # Last 30 days
+        time_filter='year',  # Last 365 days (1 year)
         strategy='comprehensive'  # Use comprehensive strategy (not fast)
     )
     

@@ -61,7 +61,6 @@ Need a quick ad-hoc archive?
 zip -r ngo_intel_project.zip dfp_ngo_module -x 'dfp_ngo_module/.venv/*' 'dfp_ngo_module/data/master_output/session_*'
 ```
 
-
 ## Notes & Troubleshooting
 
 - Collectors expect live credentials and outbound access (News API key, Bluesky app password, etc.).
@@ -76,6 +75,7 @@ For further automation (CI, tests) rely on the standard Python tooling already l
 │   └── bluesky/                 # Bluesky scraper
 └── auth/                        # Authentication configurations
     └── bluesky/                 # Bluesky API credentials
+
 ```
 
 ---
@@ -126,6 +126,7 @@ export TOKENIZERS_PARALLELISM=false
 ### Common Issues
 
 **Dashboard won't start**
+
 ```bash
 # Check dependencies
 pip install -r requirements.txt
@@ -135,6 +136,7 @@ streamlit run ngo_dashboard.py
 ```
 
 **Data collection fails**
+
 ```bash
 # Check API credentials
 # Verify internet connection
@@ -142,6 +144,7 @@ streamlit run ngo_dashboard.py
 ```
 
 **Visualizations not loading**
+
 ```bash
 # Ensure demo data exists in data/demo_data/
 # Check file permissions
@@ -192,6 +195,7 @@ This project is developed for educational and research purposes at Carnegie Mell
 ## 📞 Support
 
 For questions or issues:
+
 1. Check the troubleshooting section above
 2. Review the demo data and examples
 3. Check terminal output for detailed error messages
@@ -199,4 +203,4 @@ For questions or issues:
 
 ---
 
-*Last updated: January 2025*
+*Last updated: 9 October 2025*

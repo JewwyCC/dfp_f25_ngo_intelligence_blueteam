@@ -35,8 +35,8 @@ Open http://localhost:8501, choose “Load Visualization” for the demo session
 Use the lightweight scripts in `packaging/` to produce a self-contained archive (embedded venv, demo data, launchers):
 
 ```bash
-# macOS / Linux (zsh or bash)
-zsh packaging/build_bundle.sh
+# macOS / Linux
+bash packaging/build_bundle.sh
 
 # Windows (PowerShell or cmd)
 packaging\build_bundle.bat

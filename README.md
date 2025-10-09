@@ -53,6 +53,15 @@ scripts\run_dashboard.bat       # Windows
 
 Both launchers activate the bundled virtual environment and start Streamlit on port 8501.
 
+> Re-run these scripts whenever you cut a new release — they rebuild the embedded venv and refresh `ngo_intel_bundle.zip`.
+
+Need a quick ad-hoc archive?
+
+```bash
+zip -r ngo_intel_project.zip dfp_ngo_module -x 'dfp_ngo_module/.venv/*' 'dfp_ngo_module/data/master_output/session_*'
+```
+
+
 ## Notes & Troubleshooting
 
 - Collectors expect live credentials and outbound access (News API key, Bluesky app password, etc.).

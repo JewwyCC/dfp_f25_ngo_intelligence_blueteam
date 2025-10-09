@@ -1689,7 +1689,7 @@ class NGODashboard:
             st.session_state.collection_logs.append(f"[0.0s] 📊 Collecting from 4 sources...")
     
     def update_data_collection_progress(self):
-        """Mock progress tracking with natural pacing"""
+        """Progress tracking with natural pacing"""
         if not hasattr(st.session_state, 'progress_start_time'):
             st.session_state.progress_start_time = time.time()
 
@@ -1702,15 +1702,7 @@ class NGODashboard:
 
         total_time = 123  # Bluesky(60s) + News(30s) + Reddit(30s) + GoogleTrends(3s)
 
-        # Light-touch timeline cues (no counts)
         log_schedule = [
-            (2, 'bluesky_init', '🦋 Bluesky: booting collector...'),
-            (18, 'bluesky_scan', '🦋 Bluesky: scanning social timeline...'),
-            (65, 'news_fetch', '📰 News API: checking latest coverage...'),
-            (82, 'news_digest', '📰 News API: summarizing headlines...'),
-            (95, 'reddit_fetch', '💬 Reddit: gathering discussion threads...'),
-            (110, 'reddit_digest', '💬 Reddit: highlighting community topics...'),
-            (120, 'trends_prep', '📊 Google Trends: loading reference data...'),
         ]
 
         def emit_log(key, message):

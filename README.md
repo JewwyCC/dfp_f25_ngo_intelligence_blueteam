@@ -1,169 +1,81 @@
-# NGO Intelligence Platform - Homelessness Research
+# NGO Intelligence Platform
 
-**Comprehensive multi-source data collection and analysis platform for homelessness research**
+Streamlit dashboard and collection pipeline that merges homelessness-related signals from Google Trends, News API, Reddit, and Bluesky. The app can run entirely on demo data for instant exploration or pull fresh data (credentials and network access required).
 
-*Carnegie Mellon University - DFP F25 | DFP Blue Team: Jerry, Kaitlin, Mel, Rizaldy, Shriya*
+## What’s Included
 
----
+- `ngo_dashboard.py` – Streamlit UX (loading flow + dashboard)
+- `master_scraper_data.py` – orchestrates multi-source collection
+- `master_scraper_viz.py` – renders PNG/HTML artifacts per session
+- `data/demo_data/demo_session` – canonical demo bundle (keep intact)
+- `data/master_output` – timestamped runs written here
+- `scripts/` – source-specific collectors and helpers
 
-## 🎯 Overview
+## Quick Start
 
-The NGO Intelligence Platform is a comprehensive data collection and visualization system designed for homelessness research. It integrates data from multiple sources including Google Trends, News APIs, Reddit, and Bluesky social media, providing automated analysis and interactive visualizations.
+```bash
+git clone <repo>
+cd dfp_ngo_module
+python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
+pip install --upgrade pip
+pip install -r requirements.txt
+streamlit run ngo_dashboard.py
+```
 
-### Key Features
+Open http://localhost:8501, choose “Load Visualization” for the demo session, or enter a ZIP code to trigger live collection. Bluesky collection requires valid credentials in `auth/bluesky/config/auth.json` and outbound access to `bsky.social`.
 
-- **Multi-Source Data Collection**: Google Trends, News API, Reddit, Bluesky
-- **Interactive Dashboard**: Streamlit-based web interface
-- **Automated Visualizations**: Charts, maps, and analysis reports
-- **Political Classification**: News sentiment and political bias analysis
-- **Real-Time Processing**: Live data collection and analysis
-- **Demo Data Integration**: Fast loading with comprehensive sample data
+## Data & Sessions
 
----
+- **Demo data**: keep `data/demo_data/demo_session` versioned; loaders fall back here if live collection fails.
+- **Live runs**: every collection writes to `data/master_output/session_<timestamp>` with `raw_data/` (CSV/JSON/JSONL) and `artifacts/` images.
+- **Cleanup**: stale sessions can be pruned manually; the platform now retains only the latest snapshots in-repo.
 
-## 🚀 Quick Start
+## Packaging & Distribution
 
-### Prerequisites
+Use the lightweight scripts in `packaging/` to produce a self-contained archive (embedded venv, demo data, launchers):
 
-- Python 3.8+
-- Git
-- Internet connection for data collection
+```bash
+# macOS / Linux
+bash packaging/build_bundle.sh
 
-### Installation
+# Windows (PowerShell or cmd)
+packaging\build_bundle.bat
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd dfp_ngo_module
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the platform**
-   ```bash
-   # Option 1: Simple launcher (recommended)
-   ./start_platform.sh dashboard
-   
-   # Option 2: Direct Streamlit
-   streamlit run ngo_dashboard.py
-   ```
-
-4. **Access the dashboard**
-   - Open your browser to `http://localhost:8501`
-   - Use demo data or enter a ZIP code for fresh analysis
-
----
-
-## 📊 Data Sources
-
-### 1. Google Trends
-- **Purpose**: Search volume patterns and geographic interest
-- **Data**: National and state-level search trends
-- **Visualizations**: Time series, choropleth maps, seasonal patterns
-- **Note**: Uses demo data for fast loading during analysis
-
-⚠️ **Important Limitation**: Google Trends API rate limiting may prevent real-time data collection for user-specified ZIP codes due to API rate limits. The platform includes a fallback California dataset to ensure functionality. Live data requests may succeed but could also time out due to temporary API restrictions encountered during development.
-
-### 2. News API
-- **Purpose**: Media coverage analysis and political classification
-- **Data**: Articles from major news sources
-- **Analysis**: Sentiment analysis, political bias classification
-- **Visualizations**: Word clouds, timeline analysis, source distribution
-
-### 3. Reddit
-- **Purpose**: Community discussions and lived experiences
-- **Data**: Posts from homelessness-related subreddits
-- **Analysis**: Engagement metrics, topic clustering
-- **Visualizations**: Engagement trends, subreddit analysis, post timelines
-
-### 4. Bluesky Social
-- **Purpose**: Social media sentiment and real-time discussions
-- **Data**: Posts and engagement metrics
-- **Analysis**: Sentiment trends, author analysis
-- **Visualizations**: Engagement patterns, top posts table, sentiment timeline
-
----
-
-## 🖥️ Dashboard Features
-
-### Home Page
-- **Interactive ZIP Code Analysis**: Enter any US ZIP code for regional analysis
-- **Demo Data Access**: Quick access to comprehensive sample data
-- **Progress Tracking**: Real-time data collection status
-- **Navigation**: Seamless flow between data collection and visualization
-
-### Data Collection
-- **Smart Scraping**: Fresh data collection for News, Reddit, and Bluesky
-- **Demo Integration**: Fast Google Trends loading using demo data
-- **Progress Monitoring**: Real-time status updates and completion tracking
-- **Error Handling**: Robust error management and recovery
-
-### Visualizations
-- **Interactive Charts**: Plotly-based interactive visualizations
-- **Geographic Maps**: Choropleth maps with real data integration
-- **Data Tables**: Sortable and paginated data displays
-- **Responsive Design**: Optimized for different screen sizes
-
-### Analysis Sections
-1. **Search Trends**: Google Trends analysis with geographic insights
-2. **Media Coverage**: News analysis with political classification
-3. **Community Discussions**: Reddit engagement and topic analysis
-4. **Social Sentiment**: Bluesky sentiment and engagement patterns
-
----
-
-## 🛠️ Technical Architecture
-
-### Core Components
-
-- **`ngo_dashboard.py`**: Main Streamlit dashboard application
-- **`master_scraper_data.py`**: Data collection orchestrator
-- **`master_scraper_viz.py`**: Visualization generation system
-- **`start_platform.sh`**: Platform launcher script
-
-### Data Flow
-
-1. **Data Collection**: Multi-source scraping with session management
-2. **Data Processing**: Cleaning, deduplication, and formatting
-3. **Visualization Generation**: Automated chart and map creation
-4. **Dashboard Integration**: Real-time display and interaction
-
-### Session Management
-
-- **Session Directories**: Organized by timestamp (`session_YYYYMMDD_HHMMSS`)
-- **Raw Data Storage**: CSV, JSON, JSONL files in `raw_data/`
-- **Visualizations**: PNG, HTML files in `artifacts/`
-- **Demo Data**: Comprehensive sample data in `demo_data/`
-
----
-
-## 📁 Project Structure
+The scripts create `ngo_intel_bundle/` and `ngo_intel_bundle.zip` beside the repo. Inside the bundle:
 
 ```
-dfp_ngo_module/
-├── ngo_dashboard.py              # Main dashboard application
-├── master_scraper_data.py        # Data collection orchestrator
-├── master_scraper_viz.py         # Visualization generator
-├── start_platform.sh            # Platform launcher
-├── requirements.txt             # Python dependencies
-├── README.md                    # This file
-├── data/
-│   ├── demo_data/               # Demo/sample data
-│   │   └── demo_session/
-│   │       ├── raw_data/        # Sample CSV/JSON files
-│   │       └── artifacts/       # Sample visualizations
-│   └── master_output/           # Generated data sessions
-│       └── session_*/           # Timestamped sessions
-├── scripts/                     # Individual scraper modules
+unzip ngo_intel_bundle.zip
+cd ngo_intel_bundle
+./scripts/run_dashboard.sh      # macOS / Linux
+scripts\run_dashboard.bat       # Windows
+```
+
+Both launchers activate the bundled virtual environment and start Streamlit on port 8501.
+
+> Re-run these scripts whenever you cut a new release — they rebuild the embedded venv and refresh `ngo_intel_bundle.zip`.
+
+Need a quick ad-hoc archive?
+
+```bash
+zip -r ngo_intel_project.zip dfp_ngo_module -x 'dfp_ngo_module/.venv/*' 'dfp_ngo_module/data/master_output/session_*'
+```
+
+## Notes & Troubleshooting
+
+- Collectors expect live credentials and outbound access (News API key, Bluesky app password, etc.).
+- Google Trends uses the latest workbook produced by `master_scraper_data.py`; rerun the scraper when you need fresh trends.
+- `requirements.txt` stays lean—no inline tutorials—and is safe for `pip install -r requirements.txt`.
+- Demo files are intentionally preserved; do not remove `data/demo_data`.
+
+For further automation (CI, tests) rely on the standard Python tooling already listed in `requirements.txt`.
 │   ├── google_trends/           # Google Trends scraper
 │   ├── news_api/                # News API scraper
 │   ├── reddit/                  # Reddit scraper
 │   └── bluesky/                 # Bluesky scraper
 └── auth/                        # Authentication configurations
     └── bluesky/                 # Bluesky API credentials
+
 ```
 
 ---
@@ -214,6 +126,7 @@ export TOKENIZERS_PARALLELISM=false
 ### Common Issues
 
 **Dashboard won't start**
+
 ```bash
 # Check dependencies
 pip install -r requirements.txt
@@ -223,6 +136,7 @@ streamlit run ngo_dashboard.py
 ```
 
 **Data collection fails**
+
 ```bash
 # Check API credentials
 # Verify internet connection
@@ -230,6 +144,7 @@ streamlit run ngo_dashboard.py
 ```
 
 **Visualizations not loading**
+
 ```bash
 # Ensure demo data exists in data/demo_data/
 # Check file permissions
@@ -280,6 +195,7 @@ This project is developed for educational and research purposes at Carnegie Mell
 ## 📞 Support
 
 For questions or issues:
+
 1. Check the troubleshooting section above
 2. Review the demo data and examples
 3. Check terminal output for detailed error messages
@@ -287,4 +203,4 @@ For questions or issues:
 
 ---
 
-*Last updated: January 2025*
+*Last updated: 9 October 2025*

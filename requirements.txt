@@ -1,197 +1,42 @@
-# ============================================================================
-# NGO Intelligence Platform - Comprehensive Requirements
-# DFP F25 - Carnegie Mellon University
-# ============================================================================
-# 
-# INSTALLATION INSTRUCTIONS:
-# 
-# 1. Create a virtual environment (RECOMMENDED):
-#    python3 -m venv venv
-#    source venv/bin/activate  # On Windows: venv\Scripts\activate
-#
-# 2. Upgrade pip:
-#    pip install --upgrade pip
-#
-# 3. Install all dependencies:
-#    pip install -r requirements.txt
-#
-# 4. For Apple Silicon (M1/M2/M3) Macs:
-#    pip install --upgrade torch torchvision torchaudio
-#
-# 5. Linux users - install tkinter separately if needed:
-#    sudo apt-get install python3-tk  # Ubuntu/Debian
-#    sudo yum install python3-tkinter  # CentOS/RHEL
-#
-# ============================================================================
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+requests>=2.31.0,<3.0.0
+scipy>=1.10.0,<2.0.0
+python-dateutil>=2.8.0,<3.0.0
 
-# ============================================================================
-# CORE DEPENDENCIES (Required for all modules)
-# ============================================================================
-pandas>=2.0.0,<3.0.0          # Data manipulation and analysis
-numpy>=1.24.0,<2.0.0          # Numerical computing
-requests>=2.31.0,<3.0.0       # HTTP requests for API calls
-scipy>=1.10.0,<2.0.0          # Scientific computing (interpolation, filters)
-python-dateutil>=2.8.0        # Date/time utilities
+atproto>=0.0.38,<1.0.0
+praw>=7.7.0,<8.0.0
+textblob>=0.15.0,<1.0.0
 
-# ============================================================================
-# BLUESKY SOCIAL MEDIA SCRAPER
-# ============================================================================
-atproto>=0.0.38,<1.0.0        # Bluesky AT Protocol client
+pytrends==4.9.2
+urllib3==1.26.18
+openpyxl>=3.0.0,<4.0.0
+folium>=0.12.0,<1.0.0
+geopandas>=0.10.0,<1.0.0
+us>=2.0.0,<4.0.0
+statsmodels>=0.13.0,<1.0.0
 
-# ============================================================================
-# REDDIT SCRAPER
-# ============================================================================
-praw>=7.7.0,<8.0.0            # Reddit API wrapper (Python Reddit API Wrapper)
-textblob>=0.15.0,<1.0.0       # Natural language processing and sentiment analysis
+newsapi-python>=0.2.7,<1.0.0
+beautifulsoup4>=4.12.0,<5.0.0
+lxml>=4.9.0,<6.0.0
+html5lib>=1.1,<2.0.0
+tqdm>=4.65.0,<5.0.0
 
-# ============================================================================
-# GOOGLE TRENDS ANALYZER
-# ============================================================================
-pytrends==4.9.2               # Google Trends API (specific version for stability)
-urllib3==1.26.18              # HTTP library (specific version for pytrends compatibility)
-openpyxl>=3.0.0,<4.0.0        # Excel file read/write support
-folium>=0.12.0,<1.0.0         # Interactive maps (choropleth visualizations)
-geopandas>=0.10.0,<1.0.0      # Geographic data processing
-us>=2.0.0,<4.0.0              # US state metadata and utilities
-statsmodels>=0.13.0,<1.0.0    # Statistical models and time series decomposition
+transformers>=4.30.0,<5.0.0
+torch>=2.0.0,<3.0.0
 
-# ============================================================================
-# NEWS API & WEB SCRAPING
-# ============================================================================
-newsapi-python>=0.2.7,<1.0.0  # NewsAPI client
-beautifulsoup4>=4.12.0,<5.0.0 # HTML/XML parsing for NPR and web scraping
-lxml>=4.9.0,<6.0.0            # XML/HTML parser (faster than html.parser)
-html5lib>=1.1                 # HTML5 parser for BeautifulSoup
-tqdm>=4.65.0,<5.0.0           # Progress bars for long-running tasks
+matplotlib>=3.5.0,<4.0.0
+seaborn>=0.11.0,<1.0.0
+plotly>=5.15.0,<6.0.0
+wordcloud>=1.8.0,<2.0.0
+Pillow>=9.0.0,<11.0.0
 
-# ============================================================================
-# POLITICAL LEANING CLASSIFIER (HuggingFace Transformers)
-# ============================================================================
-transformers>=4.30.0,<5.0.0   # HuggingFace transformers for NLP
-torch>=2.0.0,<3.0.0           # PyTorch deep learning framework
-# Note: For Apple Silicon Macs (M1/M2/M3), install with:
-#   pip install --upgrade torch torchvision torchaudio
-# For CUDA GPU support, visit: https://pytorch.org/get-started/locally/
+streamlit>=1.28.0,<2.0.0
+flask>=2.3.0,<4.0.0
 
-# ============================================================================
-# VISUALIZATION & PLOTTING
-# ============================================================================
-matplotlib>=3.5.0,<4.0.0      # Core plotting library
-seaborn>=0.11.0,<1.0.0        # Statistical data visualization
-plotly>=5.15.0,<6.0.0         # Interactive visualizations
-wordcloud>=1.8.0,<2.0.0       # Word cloud generation
-Pillow>=9.0.0,<11.0.0         # Image processing (required for wordcloud)
+jupyter>=1.0.0,<2.0.0
+ipython>=8.0.0,<9.0.0
+notebook>=6.5.0,<8.0.0
 
-# ============================================================================
-# WEB DASHBOARDS & INTERFACES
-# ============================================================================
-streamlit>=1.28.0,<2.0.0      # Modern web dashboard framework
-flask>=2.3.0,<4.0.0           # Lightweight web framework
-# tkinter is typically included with Python - no pip install needed
-# If missing on Linux: sudo apt-get install python3-tk
-
-# ============================================================================
-# JUPYTER NOTEBOOK SUPPORT (Optional - for interactive analysis)
-# ============================================================================
-jupyter>=1.0.0,<2.0.0         # Jupyter notebook environment
-ipython>=8.0.0,<9.0.0         # Enhanced interactive Python shell
-notebook>=6.5.0,<8.0.0        # Classic Jupyter notebook interface
-
-# ============================================================================
-# DEVELOPMENT & TESTING (Optional)
-# ============================================================================
-pytest>=7.0.0,<9.0.0          # Testing framework
-pytest-cov>=4.0.0             # Code coverage for pytest
-
-# ============================================================================
-# SYSTEM UTILITIES
-# ============================================================================
-# The following are standard library modules (no pip install needed):
-# - json, os, sys, subprocess, argparse, pathlib
-# - datetime, time, logging, re, csv, pickle
-# - threading, asyncio, signal, webbrowser, shutil
-# - collections, dataclasses, typing
-# - glob, math, warnings
-
-# ============================================================================
-# COMPATIBILITY NOTES
-# ============================================================================
-# 
-# Python Version: Requires Python 3.8 or higher (tested on 3.9-3.11)
-# 
-# Platform-Specific:
-# - macOS: All packages install smoothly via pip
-# - Linux: May need to install tkinter separately (see instructions above)
-# - Windows: All packages install smoothly via pip
-# 
-# Apple Silicon (M1/M2/M3) Macs:
-# - After installing requirements, upgrade PyTorch for optimal performance:
-#   pip install --upgrade torch torchvision torchaudio
-# 
-# GPU Support (NVIDIA CUDA):
-# - Visit https://pytorch.org/get-started/locally/ for CUDA-enabled torch
-# - Install appropriate CUDA toolkit version first
-# 
-# ============================================================================
-# MINIMUM REQUIREMENTS BY MODULE
-# ============================================================================
-# 
-# Master Scraper (all modules):
-#   pandas, requests, numpy, scipy, atproto, praw, textblob,
-#   pytrends, newsapi-python, matplotlib, transformers, torch
-# 
-# Bluesky only:
-#   atproto, pandas, requests, matplotlib, wordcloud
-# 
-# Reddit only:
-#   praw, textblob, pandas, numpy, matplotlib, scipy, wordcloud
-# 
-# News API only:
-#   newsapi-python, beautifulsoup4, pandas, requests,
-#   transformers, torch, matplotlib, wordcloud
-# 
-# Google Trends only:
-#   pytrends, urllib3, pandas, openpyxl, matplotlib,
-#   folium, geopandas, us, statsmodels
-# 
-# Dashboard only:
-#   streamlit, plotly, pandas, numpy
-# 
-# ============================================================================
-# TROUBLESHOOTING COMMON ISSUES
-# ============================================================================
-# 
-# Issue: "No module named 'tkinter'"
-# Fix: sudo apt-get install python3-tk  # Linux only
-# 
-# Issue: PyTorch installation fails on Apple Silicon
-# Fix: pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
-# 
-# Issue: geopandas installation fails
-# Fix: Install via conda instead: conda install geopandas
-# Or: pip install geopandas --no-build-isolation
-# 
-# Issue: "SSL certificate verify failed" errors
-# Fix: pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
-# 
-# Issue: transformers model download fails
-# Fix: Set HuggingFace cache: export HF_HOME=~/.cache/huggingface
-# 
-# Issue: Memory errors during torch/transformers install
-# Fix: Install with --no-cache-dir flag:
-#      pip install --no-cache-dir transformers torch
-# 
-# ============================================================================
-# VERIFICATION
-# ============================================================================
-# 
-# After installation, verify all imports work:
-#   python -c "import pandas, numpy, requests, scipy; print('Core: OK')"
-#   python -c "import atproto; print('Bluesky: OK')"
-#   python -c "import praw, textblob; print('Reddit: OK')"
-#   python -c "from pytrends.request import TrendReq; print('Trends: OK')"
-#   python -c "from newsapi import NewsApiClient; print('News: OK')"
-#   python -c "import transformers, torch; print('AI: OK')"
-#   python -c "import matplotlib, plotly, streamlit; print('Viz: OK')"
-# 
-# ============================================================================
+pytest>=7.0.0,<9.0.0
+pytest-cov>=4.0.0,<5.0.0

@@ -187,17 +187,18 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             
             # Word cloud - generate manually to avoid path issues
             try:
-                from wordcloud import WordCloud, STOPWORDS
+                from wordcloud import WordCloud
+                from news_configs import STOPWORDS
                 # Use 'text' column (not 'description')
                 all_text = ' '.join(df['title'].fillna('')) + ' ' + ' '.join(df['text'].fillna(''))
 
                 stopwords = set(STOPWORDS)
-                wordcloud = WordCloud(width=1600, height=800, background_color='white', 
-                                     stopwords=stopwords, max_words=200, colormap='magma').generate(all_text)
-                
-                fig, ax = plt.subplots(figsize=(16, 8))
+                wordcloud = WordCloud(width=1400, height=600, background_color='white',
+                                     stopwords=stopwords, max_words=150, colormap='magma').generate(all_text)
+
+                fig, ax = plt.subplots(figsize=(14, 6))
                 ax.imshow(wordcloud, interpolation='bilinear')
-                ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=16, fontweight='bold')
+                ax.set_title('Word Cloud for Media Coverage of Homelessness in the Last 30 Days', fontsize=14, fontweight='bold', pad=10)
                 ax.axis('off')
 
                 output_file = self.artifacts_dir / f"news_wordcloud_{self.timestamp}.png"
@@ -209,8 +210,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             
             # Outlet comparison - simple bar chart
             try:
-                fig, ax = plt.subplots(figsize=(12, 8))
-                source_counts = df['source'].value_counts().head(15)
+                fig, ax = plt.subplots(figsize=(10, 7))
+                source_counts = df['source'].value_counts().head(12)
                 source_counts.plot(kind='barh', ax=ax, color='#D98586')
                 ax.set_title('News Outlets Covering Homelessness', fontsize=13, fontweight='bold', pad=10)
                 ax.set_xlabel('Number of Articles', fontsize=11)
@@ -232,11 +233,13 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
                 leaning_counts = df['leaning'].value_counts()
                 colors = {'LEFT': '#013364', 'CENTER': '#333333', 'RIGHT': '#d30b0d'}
                 colors_list = [colors.get(x, 'gray') for x in leaning_counts.index]
-                
-                ax.pie(leaning_counts, labels=leaning_counts.index, autopct='%1.1f%%', 
-                      colors=colors_list, startangle=90, textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 14})
-                ax.set_title('Political Leaning of Homelessness News Coverage', fontsize=14, fontweight='bold')
-                ax.legend(loc='lower left')
+                wedges, texts, autotexts = ax.pie(leaning_counts, labels=leaning_counts.index, autopct='%1.1f%%',
+                      colors=colors_list, startangle=90, textprops={'color': 'white', 'fontweight': 'bold', 'fontsize': 12})
+                ax.set_title('Political Leaning of News Coverage', fontsize=13, fontweight='bold', pad=10)
+
+                # Add legend with counts
+                legend_labels = [f"{idx}: {count} articles" for idx, count in leaning_counts.items()]
+                ax.legend(legend_labels, loc='lower left', fontsize=9, framealpha=0.9)
                 plt.tight_layout()
 
                 output_file = self.artifacts_dir / f"news_political_pie_{self.timestamp}.png"
@@ -249,21 +252,43 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             # Political timeline - line plot matching original style
             try:
                 # Use 'date' column (not 'publishedAt')
-                df['published'] = pd.to_datetime(df['date'])
-                fig, ax = plt.subplots(figsize=(14, 6))
-                
-                for leaning in ['LEFT', 'CENTER', 'RIGHT']:
-                    leaning_df = df[df['leaning'] == leaning]
-                    if len(leaning_df) > 0:
-                        leaning_df['published'].hist(bins=30, alpha=0.5, label=leaning, 
-                                                     color=colors.get(leaning, 'gray'), ax=ax)
-                
-                ax.set_title('Timeline of News Coverage by Political Leaning', fontsize=14, fontweight='bold')
-                ax.set_xlabel('Date')
-                ax.set_ylabel('Number of Articles')
-                ax.invert_yaxis()
-                ax.legend()
-                ax.grid(alpha=0.3)
+                df_time = df.copy()
+                df_time['date'] = pd.to_datetime(df_time['date'], errors='coerce', utc=True)
+                df_time = df_time[df_time['date'].notna()]
+                df_time['date_day'] = df_time['date'].dt.date
+
+                # Group articles by date and political classification
+                daily_counts = df_time.groupby(['date_day', 'leaning']).size().reset_index(name='count')
+                timeline_data = daily_counts.pivot(index='date_day', columns='leaning', values='count')
+                timeline_data = timeline_data.fillna(0)
+
+                # Plot figure (7x7 to match pie chart)
+                fig, ax = plt.subplots(figsize=(7, 7))
+
+                # Plot LEFT with prominent blue line
+                if 'LEFT' in timeline_data.columns:
+                    ax.plot(timeline_data.index, timeline_data['LEFT'],
+                           marker='o', linewidth=2.5, color='#013364', label='LEFT',
+                           markersize=5, markerfacecolor='#013364', markeredgewidth=0)
+
+                # Plot CENTER with subtle gray line
+                if 'CENTER' in timeline_data.columns:
+                    ax.plot(timeline_data.index, timeline_data['CENTER'],
+                           marker='s', linewidth=1, color='#cbcaca', label='CENTER',
+                           markersize=3, alpha=0.6, markerfacecolor='#cbcaca', markeredgewidth=0)
+
+                # Plot RIGHT with prominent red line
+                if 'RIGHT' in timeline_data.columns:
+                    ax.plot(timeline_data.index, timeline_data['RIGHT'],
+                           marker='^', linewidth=2.5, color='#d30b0d', label='RIGHT',
+                           markersize=5, markerfacecolor='#d30b0d', markeredgewidth=0)
+
+                ax.set_title('Political Leaning Timeline', fontsize=13, fontweight='bold', pad=10)
+                ax.set_xlabel('Date', fontsize=11, fontweight='bold')
+                ax.set_ylabel('Number of Articles', fontsize=11, fontweight='bold')
+                ax.legend(title='Political Leaning', loc='upper left', fontsize=9, framealpha=0.9)
+                ax.grid(True, alpha=0.3, linestyle='--')
+                plt.xticks(rotation=45, ha='right', fontsize=9)
                 plt.tight_layout()
 
                 output_file = self.artifacts_dir / f"news_political_timeline_{self.timestamp}.png"
@@ -513,8 +538,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
         try:
             bluesky_file = self.raw_data_dir / "bluesky_homelessness_posts.csv"
             
-            if not bluesky_file.exists():
-                self.print_info("⚠️  No Bluesky data found, skipping")
+            if not self._ensure_bluesky_data(bluesky_file):
+                self.print_info("⚠️  No Bluesky data available, skipping")
                 return
             
             self.print_progress("🦋 Generating individual Bluesky visualizations...")
@@ -843,6 +868,77 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             self.print_error(f"Bluesky viz failed: {str(e)}")
             import traceback
             traceback.print_exc()
+
+    def _ensure_bluesky_data(self, bluesky_csv):
+        """Ensure Bluesky CSV exists with data; fallback to demo if necessary."""
+        if bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0:
+            return True
+
+        if self._copy_historical_bluesky_data():
+            return bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0
+
+        if self._copy_demo_bluesky_data():
+            return bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0
+
+        return False
+
+    def _copy_historical_bluesky_data(self):
+        """Copy Bluesky data from previous sessions into current raw_data directory."""
+        import shutil
+
+        if not self.master_output_dir.exists():
+            return False
+
+        current_session = self.session_dir.name
+        session_dirs = sorted(
+            [d for d in self.master_output_dir.iterdir()
+             if d.is_dir() and d.name.startswith('session_')],
+            key=lambda d: d.stat().st_mtime,
+            reverse=True
+        )
+
+        for session_dir in session_dirs:
+            if session_dir.name == current_session:
+                continue
+            src_csv = session_dir / "raw_data" / "bluesky_homelessness_posts.csv"
+            if src_csv.exists() and self._count_csv_rows(src_csv) > 0:
+                shutil.copy2(src_csv, self.raw_data_dir / "bluesky_homelessness_posts.csv")
+                src_jsonl = session_dir / "raw_data" / "bluesky_homelessness_posts.jsonl"
+                if src_jsonl.exists():
+                    shutil.copy2(src_jsonl, self.raw_data_dir / "bluesky_homelessness_posts.jsonl")
+                return True
+
+        return False
+
+    def _copy_demo_bluesky_data(self):
+        """Copy Bluesky data from demo session into current raw_data directory."""
+        demo_raw = self.project_root / "data" / "demo_data" / "demo_session" / "raw_data"
+        if not demo_raw.exists():
+            return False
+
+        import shutil
+        copied = False
+        for filename in ["bluesky_homelessness_posts.csv", "bluesky_homelessness_posts.jsonl"]:
+            src = demo_raw / filename
+            if src.exists():
+                dst = self.raw_data_dir / filename
+                shutil.copy2(src, dst)
+                copied = True
+        return copied
+
+    def _count_csv_rows(self, csv_path):
+        """Return number of data rows (excluding header) in CSV."""
+        try:
+            if not csv_path.exists():
+                return 0
+            count = 0
+            with open(csv_path, 'r', encoding='utf-8') as handle:
+                next(handle, None)
+                for _ in handle:
+                    count += 1
+            return count
+        except Exception:
+            return 0
     
     def run(self):
         """Execute visualization generation for all modules"""

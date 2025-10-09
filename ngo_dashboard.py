@@ -1741,7 +1741,17 @@ class NGODashboard:
         if len(st.session_state.collection_logs) > 4:
             st.session_state.collection_logs = st.session_state.collection_logs[-4:]
 
-        # Define data source keywords
+        if session_dir and session_dir.exists():
+            candidate_raw = session_dir / 'raw_data'
+            if candidate_raw.exists():
+                raw_data_dir = candidate_raw
+
+        source_labels = {
+            'google_trends': 'Google Trends',
+            'news_api': 'News API',
+            'reddit': 'Reddit',
+            'bluesky': 'Bluesky'
+        }
         data_sources = {
             'google_trends': ['trends', 'google'],
             'news_api': ['news', 'articles'],
@@ -1749,36 +1759,36 @@ class NGODashboard:
             'bluesky': ['bluesky', 'social']
         }
 
-        all_sources_complete = True
+        process = st.session_state.get('scraper_process')
+        process_done = bool(process and getattr(process, 'poll', lambda: None)() is not None)
 
         for source, keywords in data_sources.items():
-            source_complete = False
+            data_found = False
 
-            # Check for CSV files with relevant keywords in raw_data/
-            if raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.csv"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
+            if raw_data_dir and raw_data_dir.exists():
+                search_patterns = ['*.csv', '*.json', '*.jsonl']
+                if source == 'google_trends':
+                    search_patterns.append('*.xlsx')
+
+                for pattern in search_patterns:
+                    for file in raw_data_dir.glob(pattern):
+                        filename = file.name.lower()
+                        if any(keyword in filename for keyword in keywords):
+                            data_found = True
+                            break
+                    if data_found:
                         break
 
-            # Check for JSON/JSONL files with relevant keywords
-            if not source_complete and raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.json*"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
-                        break
+            if data_found:
+                if st.session_state.data_sources_status[source]['status'] != 'completed':
+                    st.session_state.data_sources_status[source]['status'] = 'completed'
+                    st.session_state.data_sources_status[source]['progress'] = 100
+                    info = self._get_source_data_summary(source, raw_data_dir)
+                    suffix = f" ({info})" if info else ''
+                    emit_log(f'{source}_data_ready', f"✅ {source_labels[source]} data ready{suffix}")
+                continue
 
-            # Check for Excel files (Google Trends)
-            if not source_complete and source == 'google_trends' and raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.xlsx"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
-                        break
-
-            if source_complete:
-                st.session_state.data_sources_status[source]['status'] = 'completed'
-                st.session_state.data_sources_status[source]['progress'] = 100
-            else:
+            if process_done and st.session_state.data_sources_status[source]['status'] != 'completed':
                 st.session_state.data_sources_status[source]['status'] = 'failed'
                 st.session_state.data_sources_status[source]['progress'] = 0
                 all_sources_complete = False
@@ -1795,11 +1805,48 @@ class NGODashboard:
         elif all_sources_complete:
             # All sources completed successfully
             st.session_state.all_data_collected = True
-        else:
-            # No data collected at all, use backup data only
-            st.info("🔄 No live data collected. Dashboard will use backup data.")
-            st.session_state.all_data_collected = True  # Allow dashboard to proceed
-    
+        elif any_failed and process_done:
+            st.session_state.all_data_collected = True
+
+        if elapsed_time >= total_time and not st.session_state.all_data_collected:
+            st.session_state.all_data_collected = True
+            emit_log('timeout_complete', '✅ Collection window finished')
+    def _get_source_data_summary(self, source, raw_data_dir):
+        """Return a brief summary of collected records for logging."""
+        try:
+            if not raw_data_dir or not raw_data_dir.exists():
+                return None
+
+            if source == 'bluesky':
+                count = self._count_csv_rows(raw_data_dir / "bluesky_homelessness_posts.csv")
+                if count is not None:
+                    return f"{count} posts"
+            elif source == 'news_api':
+                count = self._count_csv_rows(raw_data_dir / "news_classified.csv")
+                if count is not None:
+                    return f"{count} articles"
+            elif source == 'reddit':
+                count = self._count_csv_rows(raw_data_dir / "reddit_posts.csv")
+                if count is not None:
+                    return f"{count} discussions"
+        except Exception:
+            return None
+        return None
+
+    def _count_csv_rows(self, csv_path):
+        """Count data rows in a CSV file (excluding header)."""
+        try:
+            if not csv_path.exists():
+                return None
+            count = 0
+            with open(csv_path, 'r', encoding='utf-8') as handle:
+                next(handle, None)
+                for _ in handle:
+                    count += 1
+            return count
+        except Exception:
+            return None
+
     def render_dashboard_header(self):
         """Render the dashboard page header"""
         st.markdown("""

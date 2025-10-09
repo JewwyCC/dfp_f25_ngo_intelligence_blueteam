@@ -1602,6 +1602,8 @@ class NGODashboard:
             # Choose icon based on status
             if status['status'] == 'completed':
                 icon = "✅"
+            elif status['status'] == 'failed':
+                icon = "⚠️"
             elif status['status'] == 'collecting':
                 icon = "⏳"
             else:
@@ -1650,6 +1652,19 @@ class NGODashboard:
             # Initialize logs
             st.session_state.collection_logs = ["[0.0s] 🚀 Starting data collection..."]
 
+            # Record existing session directories to identify the new one
+            existing_sessions = []
+            if self.data_manager.output_dir.exists():
+                existing_sessions = [
+                    d.name for d in self.data_manager.output_dir.iterdir()
+                    if d.is_dir() and d.name.startswith('session_')
+                ]
+            st.session_state.previous_sessions = existing_sessions
+            st.session_state.current_session_dir = None
+            st.session_state.announced_session_dir = None
+            st.session_state.completed_sources_logged = set()
+            st.session_state.failed_sources_logged = set()
+
             # Start the master scraper process
             st.session_state.scraper_process = self.data_manager.run_master_scraper(duration=120)
             st.session_state.collection_start_time = time.time()
@@ -1658,6 +1673,9 @@ class NGODashboard:
             for source in st.session_state.data_sources_status:
                 st.session_state.data_sources_status[source]['status'] = 'pending'
                 st.session_state.data_sources_status[source]['progress'] = 0
+
+            # Track which mock log timestamps have been emitted
+            st.session_state.progress_log_timestamps = set()
 
             # Simple progress tracking - just use time-based progress
             st.session_state.progress_start_time = time.time()
@@ -1675,6 +1693,8 @@ class NGODashboard:
         # Initialize logs if not exists
         if 'collection_logs' not in st.session_state:
             st.session_state.collection_logs = []
+        if 'progress_log_timestamps' not in st.session_state:
+            st.session_state.progress_log_timestamps = set()
 
         # Simple time-based progress - 123 seconds total
         total_time = 123  # Bluesky(60s) + News(30s) + Reddit(30s) + GoogleTrends(3s)
@@ -1695,7 +1715,6 @@ class NGODashboard:
             15: "🦋 Bluesky: Found 150+ posts...",
             30: "🦋 Bluesky: Processing engagement data...",
             45: "🦋 Bluesky: Analyzing sentiment...",
-            60: "✅ Bluesky: Completed (200+ posts)",
             65: "📰 News API: Fetching recent articles...",
             75: "📰 News API: Retrieved 70 articles...",
             90: "✅ News API: Completed",
@@ -1708,8 +1727,9 @@ class NGODashboard:
 
         # Add mock logs at specific timestamps
         for timestamp, message in mock_logs.items():
-            if int(elapsed_time) == timestamp and not any(message in log for log in st.session_state.collection_logs):
+            if elapsed_time >= timestamp and timestamp not in st.session_state.progress_log_timestamps:
                 st.session_state.collection_logs.append(f"[{elapsed_time:.1f}s] {message}")
+                st.session_state.progress_log_timestamps.add(timestamp)
 
         # Update progress for each source based on timing
         # Order: Bluesky → News API → Reddit → Google Trends (preloaded)
@@ -1741,65 +1761,142 @@ class NGODashboard:
         if len(st.session_state.collection_logs) > 4:
             st.session_state.collection_logs = st.session_state.collection_logs[-4:]
 
-        # Define data source keywords
+        # Determine the session directory for this collection run
+        session_dir = None
+        raw_data_dir = None
+
+        current_session_path = st.session_state.get('current_session_dir')
+        if current_session_path:
+            candidate = Path(current_session_path)
+            if candidate.exists():
+                session_dir = candidate
+
+        if session_dir is None:
+            latest_session = self.data_manager.get_latest_session_dir()
+            previous_sessions = set(st.session_state.get('previous_sessions', []))
+            if latest_session and latest_session.name.startswith('session_') and latest_session.name not in previous_sessions:
+                session_dir = latest_session
+                st.session_state.current_session_dir = str(latest_session)
+                if st.session_state.get('announced_session_dir') != latest_session.name:
+                    st.session_state.collection_logs.append(
+                        f"[{elapsed_time:.1f}s] 📁 Session initialized: {latest_session.name}"
+                    )
+                    st.session_state.announced_session_dir = latest_session.name
+                previous_sessions.add(latest_session.name)
+                st.session_state.previous_sessions = list(previous_sessions)
+
+        if session_dir and session_dir.exists():
+            candidate_raw = session_dir / "raw_data"
+            if candidate_raw.exists():
+                raw_data_dir = candidate_raw
+
+        # Define data source keywords and friendly labels
         data_sources = {
             'google_trends': ['trends', 'google'],
             'news_api': ['news', 'articles'],
             'reddit': ['reddit', 'posts'],
             'bluesky': ['bluesky', 'social']
         }
+        source_labels = {
+            'google_trends': 'Google Trends',
+            'news_api': 'News API',
+            'reddit': 'Reddit',
+            'bluesky': 'Bluesky'
+        }
 
-        all_sources_complete = True
+        if 'completed_sources_logged' not in st.session_state:
+            st.session_state.completed_sources_logged = set()
+
+        process = st.session_state.get('scraper_process')
+        process_done = bool(process and getattr(process, "poll", lambda: None)() is not None)
+        completion_buffer = 5  # seconds after expected finish before flagging failure
 
         for source, keywords in data_sources.items():
-            source_complete = False
+            data_found = False
 
-            # Check for CSV files with relevant keywords in raw_data/
-            if raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.csv"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
+            if raw_data_dir and raw_data_dir.exists():
+                search_patterns = ["*.csv", "*.json", "*.jsonl"]
+                if source == 'google_trends':
+                    search_patterns.append("*.xlsx")
+
+                for pattern in search_patterns:
+                    for file in raw_data_dir.glob(pattern):
+                        filename = file.name.lower()
+                        if any(keyword in filename for keyword in keywords):
+                            data_found = True
+                            break
+                    if data_found:
                         break
 
-            # Check for JSON/JSONL files with relevant keywords
-            if not source_complete and raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.json*"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
-                        break
+            if data_found:
+                if st.session_state.data_sources_status[source]['status'] != 'completed':
+                    st.session_state.data_sources_status[source]['status'] = 'completed'
+                    st.session_state.data_sources_status[source]['progress'] = 100
+                    if source not in st.session_state.completed_sources_logged:
+                        info_suffix = self._get_source_data_summary(source, raw_data_dir)
+                        message = f"[{elapsed_time:.1f}s] ✅ {source_labels[source]} data ready"
+                        if info_suffix:
+                            message += f" ({info_suffix})"
+                        st.session_state.collection_logs.append(message)
+                        st.session_state.completed_sources_logged.add(source)
+                continue
 
-            # Check for Excel files (Google Trends)
-            if not source_complete and source == 'google_trends' and raw_data_dir.exists():
-                for file in raw_data_dir.glob("*.xlsx"):
-                    if any(keyword in file.name.lower() for keyword in keywords):
-                        source_complete = True
-                        break
-
-            if source_complete:
-                st.session_state.data_sources_status[source]['status'] = 'completed'
-                st.session_state.data_sources_status[source]['progress'] = 100
-            else:
+            # Only mark as failed after the process is done or the expected time plus buffer has elapsed
+            _, expected_end = source_timing[source]
+            if elapsed_time >= expected_end + completion_buffer:
                 st.session_state.data_sources_status[source]['status'] = 'failed'
                 st.session_state.data_sources_status[source]['progress'] = 0
-                all_sources_complete = False
+                if source not in st.session_state.failed_sources_logged:
+                    st.session_state.collection_logs.append(
+                        f"[{elapsed_time:.1f}s] ⚠️ {source_labels[source]} data unavailable"
+                    )
+                    st.session_state.failed_sources_logged.add(source)
 
-        # Use backup mode if ANY source failed (new logic)
-        failed_sources = [source for source, status in st.session_state.data_sources_status.items()
-                        if status['status'] == 'failed']
-        completed_sources = [source for source, status in st.session_state.data_sources_status.items()
-                           if status['status'] == 'completed']
+        statuses = st.session_state.data_sources_status
+        all_sources_complete = all(info['status'] == 'completed' for info in statuses.values())
+        any_failed = any(info['status'] == 'failed' for info in statuses.values())
 
-        if len(failed_sources) > 0:
-            # ANY failure - silently proceed to dashboard
-            st.session_state.all_data_collected = True  # Allow dashboard to proceed
-        elif all_sources_complete:
-            # All sources completed successfully
+        if all_sources_complete:
             st.session_state.all_data_collected = True
-        else:
-            # No data collected at all, use backup data only
-            st.info("🔄 No live data collected. Dashboard will use backup data.")
-            st.session_state.all_data_collected = True  # Allow dashboard to proceed
-    
+        elif any_failed and (process_done or elapsed_time >= total_time + completion_buffer):
+            st.session_state.all_data_collected = True
+
+    def _get_source_data_summary(self, source, raw_data_dir):
+        """Return a brief summary of collected records for logging."""
+        try:
+            if not raw_data_dir or not raw_data_dir.exists():
+                return None
+
+            if source == 'bluesky':
+                count = self._count_csv_rows(raw_data_dir / "bluesky_homelessness_posts.csv")
+                if count is not None:
+                    return f"{count} posts"
+            elif source == 'news_api':
+                count = self._count_csv_rows(raw_data_dir / "news_classified.csv")
+                if count is not None:
+                    return f"{count} articles"
+            elif source == 'reddit':
+                count = self._count_csv_rows(raw_data_dir / "reddit_posts.csv")
+                if count is not None:
+                    return f"{count} discussions"
+        except Exception:
+            return None
+        return None
+
+    def _count_csv_rows(self, csv_path):
+        """Count data rows in a CSV file (excluding header)."""
+        try:
+            if not csv_path.exists():
+                return None
+            count = 0
+            with open(csv_path, 'r', encoding='utf-8') as handle:
+                next(handle, None)
+                for _ in handle:
+                    count += 1
+            return count
+        except Exception:
+            return None
+
     def render_dashboard_header(self):
         """Render the dashboard page header"""
         st.markdown("""
@@ -2507,33 +2604,29 @@ class NGODashboard:
             self.render_landing_page()
         elif st.session_state.current_page == 'loading':
             self.render_loading_screen()
-            
-            # Auto-advance to dashboard after data collection (even if partial)
-            if st.session_state.all_data_collected or any(status['status'] in ['completed', 'failed'] for status in st.session_state.data_sources_status.values()):
-                # Check if we have at least some data or if enough time has passed
-                elapsed_time = time.time() - st.session_state.collection_start_time if st.session_state.collection_start_time else 0
+            refresh_interval = 3  # seconds between progress updates for smoother animation
 
-                # If ALL sources completed or enough time has passed, automatically proceed
-                if st.session_state.all_data_collected or elapsed_time > 123:
-                    st.session_state.current_page = 'dashboard'
-                    st.rerun()
-                else:
-                    # Update progress for ongoing collection with slower refresh (5 seconds)
-                    self.update_data_collection_progress()
-                    time.sleep(5)
-                    st.rerun()
-            else:
-                # Start real data collection on first load
-                if all(status['status'] == 'pending' for status in st.session_state.data_sources_status.values()):
-                    # Start real data collection
-                    self.start_real_data_collection()
-                    time.sleep(2)
-                    st.rerun()
-                else:
-                    # Update progress for ongoing collection with slower refresh (5 seconds)
-                    self.update_data_collection_progress()
-                    time.sleep(5)
-                    st.rerun()
+            # If collection has already finished, jump straight to the dashboard
+            if st.session_state.all_data_collected:
+                st.session_state.current_page = 'dashboard'
+                st.rerun()
+
+            # Kick off data collection the first time we hit the loading screen
+            if st.session_state.scraper_process is None:
+                self.start_real_data_collection()
+                time.sleep(1.5)
+                st.rerun()
+
+            # Update progress indicators based on elapsed time
+            self.update_data_collection_progress()
+
+            elapsed_time = time.time() - st.session_state.collection_start_time if st.session_state.collection_start_time else 0
+            if st.session_state.all_data_collected or elapsed_time > 123:
+                st.session_state.current_page = 'dashboard'
+                st.rerun()
+
+            time.sleep(refresh_interval)
+            st.rerun()
         elif st.session_state.current_page == 'dashboard':
             self.render_dashboard_header()
             

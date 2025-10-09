@@ -406,18 +406,17 @@ class BlueskySocialJusticeCollector:
     
     def authenticate(self):
         """Authenticate with Bluesky"""
+        creds = self.load_credentials()
+        if not creds:
+            raise RuntimeError("Missing Bluesky credentials")
+        
         try:
-            creds = self.load_credentials()
-            if not creds:
-                return
-            
             self.client = Client()
             self.client.login(creds['username'], creds['password'])
             print(f"✅ Authenticated as {creds['username']}")
-            
         except Exception as e:
-            print(f"❌ Authentication failed: {e}")
             self.client = None
+            raise RuntimeError(f"Bluesky authentication failed: {e}") from e
     
     def load_existing_uris(self):
         """Load existing URIs from alltime files to avoid duplicates"""

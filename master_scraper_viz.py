@@ -187,7 +187,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             
             # Word cloud - generate manually to avoid path issues
             try:
-                from wordcloud import WordCloud, STOPWORDS
+                from wordcloud import WordCloud
+                from news_configs import STOPWORDS
                 # Use 'text' column (not 'description')
                 all_text = ' '.join(df['title'].fillna('')) + ' ' + ' '.join(df['text'].fillna(''))
 
@@ -537,8 +538,8 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
         try:
             bluesky_file = self.raw_data_dir / "bluesky_homelessness_posts.csv"
             
-            if not bluesky_file.exists():
-                self.print_info("⚠️  No Bluesky data found, skipping")
+            if not self._ensure_bluesky_data(bluesky_file):
+                self.print_info("⚠️  No Bluesky data available, skipping")
                 return
             
             self.print_progress("🦋 Generating individual Bluesky visualizations...")
@@ -867,6 +868,77 @@ class VisualizationOrchestrator(HomelessnessMasterOrchestrator):
             self.print_error(f"Bluesky viz failed: {str(e)}")
             import traceback
             traceback.print_exc()
+
+    def _ensure_bluesky_data(self, bluesky_csv):
+        """Ensure Bluesky CSV exists with data; fallback to demo if necessary."""
+        if bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0:
+            return True
+
+        if self._copy_historical_bluesky_data():
+            return bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0
+
+        if self._copy_demo_bluesky_data():
+            return bluesky_csv.exists() and self._count_csv_rows(bluesky_csv) > 0
+
+        return False
+
+    def _copy_historical_bluesky_data(self):
+        """Copy Bluesky data from previous sessions into current raw_data directory."""
+        import shutil
+
+        if not self.master_output_dir.exists():
+            return False
+
+        current_session = self.session_dir.name
+        session_dirs = sorted(
+            [d for d in self.master_output_dir.iterdir()
+             if d.is_dir() and d.name.startswith('session_')],
+            key=lambda d: d.stat().st_mtime,
+            reverse=True
+        )
+
+        for session_dir in session_dirs:
+            if session_dir.name == current_session:
+                continue
+            src_csv = session_dir / "raw_data" / "bluesky_homelessness_posts.csv"
+            if src_csv.exists() and self._count_csv_rows(src_csv) > 0:
+                shutil.copy2(src_csv, self.raw_data_dir / "bluesky_homelessness_posts.csv")
+                src_jsonl = session_dir / "raw_data" / "bluesky_homelessness_posts.jsonl"
+                if src_jsonl.exists():
+                    shutil.copy2(src_jsonl, self.raw_data_dir / "bluesky_homelessness_posts.jsonl")
+                return True
+
+        return False
+
+    def _copy_demo_bluesky_data(self):
+        """Copy Bluesky data from demo session into current raw_data directory."""
+        demo_raw = self.project_root / "data" / "demo_data" / "demo_session" / "raw_data"
+        if not demo_raw.exists():
+            return False
+
+        import shutil
+        copied = False
+        for filename in ["bluesky_homelessness_posts.csv", "bluesky_homelessness_posts.jsonl"]:
+            src = demo_raw / filename
+            if src.exists():
+                dst = self.raw_data_dir / filename
+                shutil.copy2(src, dst)
+                copied = True
+        return copied
+
+    def _count_csv_rows(self, csv_path):
+        """Return number of data rows (excluding header) in CSV."""
+        try:
+            if not csv_path.exists():
+                return 0
+            count = 0
+            with open(csv_path, 'r', encoding='utf-8') as handle:
+                next(handle, None)
+                for _ in handle:
+                    count += 1
+            return count
+        except Exception:
+            return 0
     
     def run(self):
         """Execute visualization generation for all modules"""

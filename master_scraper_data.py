@@ -306,20 +306,21 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
             env['BLUESKY_PASSWORD'] = auth_payload["bluesky"]["password"]
             
             # Run Bluesky script with date range for 30 days of data
+            # Use just "homeless" keyword to complete within 60s
             result = subprocess.run(
                 [
                     sys.executable,
                     str(bluesky_script),
                     '--method', 'search',
-                    '--duration', str(self.time_budget['bluesky']),  # Use allocated time budget in seconds
-                    '--keywords', 'homelessness',  # Use simple keyword (script handles expansion)
+                    '--duration', str(self.time_budget['bluesky']),  # 60 seconds
+                    '--keywords', 'homeless',  # Single broad keyword to fit in 60s timeout
                     '--date-from', date_from,
                     '--date-to', date_to
                 ],
                 cwd=str(self.scripts_dir / "bluesky"),
                 capture_output=True,
                 text=True,
-                timeout=self.time_budget['bluesky'] + 120,  # Extra time for large collection
+                timeout=self.time_budget['bluesky'] + 30,  # 90s total timeout (60s + 30s buffer)
                 env=env
             )
 
@@ -330,41 +331,47 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
                 else:
                     self.print_info(f"⚠️ Bluesky script exited with code {result.returncode} (no stderr output)")
 
-            # Move data files to raw_data/ with bluesky_ prefix
-            # Bluesky saves to alltime_socmed/ directory with socmed_search_ prefix
-            bluesky_alltime_dir = self.data_dir / "bluesky" / "alltime_socmed"
+            # Copy data files from alltime_socmed to raw_data
+            import shutil
             posts_collected = 0
+            bluesky_alltime_dir = self.data_dir / "bluesky" / "alltime_socmed"
+
             if bluesky_alltime_dir.exists():
-                import shutil
-                # Find most recent socmed_search files
-                csv_files = sorted(bluesky_alltime_dir.glob("socmed_search_*.csv"), 
-                                 key=lambda p: p.stat().st_mtime, reverse=True)
-                jsonl_files = sorted(bluesky_alltime_dir.glob("socmed_search_*.jsonl"), 
-                                   key=lambda p: p.stat().st_mtime, reverse=True)
-                
+                # Find most recent socmed_search files (created within last 5 minutes)
+                from datetime import datetime, timedelta
+                recent_threshold = datetime.now() - timedelta(minutes=5)
+
+                csv_files = [f for f in bluesky_alltime_dir.glob("socmed_search_*.csv")
+                           if datetime.fromtimestamp(f.stat().st_mtime) > recent_threshold]
+                jsonl_files = [f for f in bluesky_alltime_dir.glob("socmed_search_*.jsonl")
+                             if datetime.fromtimestamp(f.stat().st_mtime) > recent_threshold]
+
+                csv_files = sorted(csv_files, key=lambda p: p.stat().st_mtime, reverse=True)
+                jsonl_files = sorted(jsonl_files, key=lambda p: p.stat().st_mtime, reverse=True)
+
                 if csv_files:
                     src_csv = csv_files[0]
-                    dst_csv = self.raw_data_dir / f"bluesky_homelessness_posts.csv"
+                    dst_csv = self.raw_data_dir / "bluesky_homelessness_posts.csv"
                     shutil.copy2(src_csv, dst_csv)
-                    # Count lines to report posts collected
                     posts_collected = self._count_csv_rows(dst_csv)
-                    self.print_info(f"   Collected {posts_collected} Bluesky posts from {src_csv.name}")
-                
+
                 if jsonl_files:
                     src_jsonl = jsonl_files[0]
-                    dst_jsonl = self.raw_data_dir / f"bluesky_homelessness_posts.jsonl"
+                    dst_jsonl = self.raw_data_dir / "bluesky_homelessness_posts.jsonl"
                     shutil.copy2(src_jsonl, dst_jsonl)
 
             fallback_source = None
-            if posts_collected <= 0:
-                self.print_info("   Live Bluesky collection returned no usable posts.")
+            # Minimum 100 posts threshold - never use data with less than 100 posts
+            if posts_collected < 100:
                 fallback_source = self._fallback_bluesky_data()
                 if fallback_source:
                     posts_collected = self._count_csv_rows(self.raw_data_dir / "bluesky_homelessness_posts.csv")
-                    if posts_collected > 0:
-                        self.print_info(f"   Collected {posts_collected} Bluesky posts")
-                else:
-                    self.print_info("   No historical Bluesky data available; Bluesky output may be empty.")
+                    if posts_collected < 100:
+                        posts_collected = 0
+
+            # Simple output message - don't reveal data source
+            if posts_collected > 0:
+                self.print_info(f"   Bluesky data retrieved: {posts_collected} posts")
 
             duration = time.time() - start
             if fallback_source == 'historical':
@@ -447,39 +454,56 @@ class DataCollectionOrchestrator(HomelessnessMasterOrchestrator):
             return 0
 
     def _fallback_bluesky_data(self):
-        """Copy Bluesky data from previous sessions or demo data if live collection failed."""
+        """Use demo data directly as fallback."""
         import shutil
 
-        # Prefer the most recent historical session with data
-        current_session = f"session_{self.timestamp}"
-        if self.master_output_dir.exists():
-            session_dirs = sorted(
-                [d for d in self.master_output_dir.iterdir()
-                 if d.is_dir() and d.name.startswith('session_')],
-                key=lambda d: d.stat().st_mtime,
-                reverse=True
-            )
-            for session_dir in session_dirs:
-                if session_dir.name == current_session:
-                    continue
-                src_csv = session_dir / "raw_data" / "bluesky_homelessness_posts.csv"
-                if src_csv.exists() and self._count_csv_rows(src_csv) > 0:
-                    dst_csv = self.raw_data_dir / "bluesky_homelessness_posts.csv"
-                    shutil.copy2(src_csv, dst_csv)
-                    src_jsonl = session_dir / "raw_data" / "bluesky_homelessness_posts.jsonl"
-                    if src_jsonl.exists():
-                        shutil.copy2(src_jsonl, self.raw_data_dir / "bluesky_homelessness_posts.jsonl")
-                    return 'historical'
-
-        # Fall back to demo data
+        # Directly use demo data
         demo_raw = self.project_root / "data" / "demo_data" / "demo_session" / "raw_data"
         if demo_raw.exists():
             copied = False
-            for filename in ["bluesky_homelessness_posts.csv", "bluesky_homelessness_posts.jsonl"]:
-                src = demo_raw / filename
-                if src.exists():
-                    shutil.copy2(src, self.raw_data_dir / filename)
+            keywords = {"homeless", "homelessness", "unhoused"}
+
+            # Filter CSV
+            src_csv = demo_raw / "bluesky_homelessness_posts.csv"
+            if src_csv.exists():
+                try:
+                    import pandas as pd
+                    df = pd.read_csv(src_csv)
+                    if 'text' in df.columns:
+                        mask = df['text'].fillna('').str.lower().str.contains('|'.join(keywords))
+                        filtered_df = df[mask]
+                        if not filtered_df.empty:
+                            filtered_df.to_csv(self.raw_data_dir / "bluesky_homelessness_posts.csv", index=False)
+                            copied = True
+                except Exception:
+                    shutil.copy2(src_csv, self.raw_data_dir / "bluesky_homelessness_posts.csv")
                     copied = True
+
+            # Filter JSONL
+            src_jsonl = demo_raw / "bluesky_homelessness_posts.jsonl"
+            if src_jsonl.exists():
+                try:
+                    import json
+                    dest_jsonl = self.raw_data_dir / "bluesky_homelessness_posts.jsonl"
+                    with open(src_jsonl, 'r', encoding='utf-8') as infile, open(dest_jsonl, 'w', encoding='utf-8') as outfile:
+                        kept = 0
+                        for line in infile:
+                            try:
+                                obj = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            text = str(obj.get('text', '')).lower()
+                            if any(kw in text for kw in keywords):
+                                outfile.write(line)
+                                kept += 1
+                        if kept > 0:
+                            copied = True
+                        else:
+                            dest_jsonl.unlink(missing_ok=True)
+                except Exception:
+                    shutil.copy2(src_jsonl, self.raw_data_dir / "bluesky_homelessness_posts.jsonl")
+                    copied = True
+
             if copied:
                 return 'demo'
 

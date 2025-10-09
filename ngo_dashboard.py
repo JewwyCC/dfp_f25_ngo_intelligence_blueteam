@@ -1145,11 +1145,18 @@ class DataCollectionManager:
         self.backup_data_dir = self.project_root / "data" / "BACKUP_RAWDATA"
         
     def run_master_scraper(self, duration=120):
-        """Run the master scraper with specified duration - outputs to terminal"""
+        """Run the master scraper with specified duration - capture output in real-time"""
         try:
-            # Run master scraper as subprocess - let output go to terminal
+            # Run master scraper as subprocess - capture stdout for real-time logs
             cmd = [sys.executable, str(self.master_scraper_path), "--duration", str(duration)]
-            process = subprocess.Popen(cmd)
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,  # Line buffered
+                universal_newlines=True
+            )
 
             return process
         except Exception as e:
@@ -1664,6 +1671,7 @@ class NGODashboard:
             st.session_state.announced_session_dir = None
             st.session_state.completed_sources_logged = set()
             st.session_state.failed_sources_logged = set()
+            st.session_state.last_logged_sources = set()
 
             # Start the master scraper process
             st.session_state.scraper_process = self.data_manager.run_master_scraper(duration=120)
@@ -1674,9 +1682,6 @@ class NGODashboard:
                 st.session_state.data_sources_status[source]['status'] = 'pending'
                 st.session_state.data_sources_status[source]['progress'] = 0
 
-            # Track which mock log timestamps have been emitted
-            st.session_state.progress_log_timestamps = set()
-
             # Simple progress tracking - just use time-based progress
             st.session_state.progress_start_time = time.time()
 
@@ -1684,84 +1689,69 @@ class NGODashboard:
             st.session_state.collection_logs.append(f"[0.0s] 📊 Collecting from 4 sources...")
     
     def update_data_collection_progress(self):
-        """Mock progress tracking with realistic logs"""
+        """Mock progress tracking with natural pacing"""
         if not hasattr(st.session_state, 'progress_start_time'):
             st.session_state.progress_start_time = time.time()
 
         elapsed_time = time.time() - st.session_state.progress_start_time
 
-        # Initialize logs if not exists
         if 'collection_logs' not in st.session_state:
             st.session_state.collection_logs = []
-        if 'progress_log_timestamps' not in st.session_state:
-            st.session_state.progress_log_timestamps = set()
+        if 'last_logged_sources' not in st.session_state:
+            st.session_state.last_logged_sources = set()
 
-        # Simple time-based progress - 123 seconds total
         total_time = 123  # Bluesky(60s) + News(30s) + Reddit(30s) + GoogleTrends(3s)
 
-        if elapsed_time >= total_time:
-            # All done
-            for source in st.session_state.data_sources_status:
-                st.session_state.data_sources_status[source]['status'] = 'completed'
-                st.session_state.data_sources_status[source]['progress'] = 100
-            st.session_state.all_data_collected = True
-            if not any('All sources completed' in log for log in st.session_state.collection_logs):
-                st.session_state.collection_logs.append(f"[{elapsed_time:.1f}s] ✅ All data collection complete!")
-            return
+        # Light-touch timeline cues (no counts)
+        log_schedule = [
+            (2, 'bluesky_init', '🦋 Bluesky: booting collector...'),
+            (18, 'bluesky_scan', '🦋 Bluesky: scanning social timeline...'),
+            (65, 'news_fetch', '📰 News API: checking latest coverage...'),
+            (82, 'news_digest', '📰 News API: summarizing headlines...'),
+            (95, 'reddit_fetch', '💬 Reddit: gathering discussion threads...'),
+            (110, 'reddit_digest', '💬 Reddit: highlighting community topics...'),
+            (120, 'trends_prep', '📊 Google Trends: loading reference data...'),
+        ]
 
-        # Mock terminal logs with realistic messages
-        mock_logs = {
-            5: "🦋 Bluesky: Searching past 30 days...",
-            15: "🦋 Bluesky: Found 150+ posts...",
-            30: "🦋 Bluesky: Processing engagement data...",
-            45: "🦋 Bluesky: Analyzing sentiment...",
-            65: "📰 News API: Fetching recent articles...",
-            75: "📰 News API: Retrieved 70 articles...",
-            90: "✅ News API: Completed",
-            95: "💬 Reddit: Scraping r/homeless, r/housing...",
-            105: "💬 Reddit: Found 50+ discussions...",
-            120: "✅ Reddit: Completed",
-            121: "📊 Google Trends: Loading data...",
-            123: "✅ Google Trends: Ready"
-        }
+        def emit_log(key, message):
+            if key not in st.session_state.last_logged_sources:
+                current_time = time.time() - st.session_state.progress_start_time
+                st.session_state.collection_logs.append(f"[{current_time:.1f}s] {message}")
+                st.session_state.last_logged_sources.add(key)
 
-        # Add mock logs at specific timestamps
-        for timestamp, message in mock_logs.items():
-            if elapsed_time >= timestamp and timestamp not in st.session_state.progress_log_timestamps:
-                st.session_state.collection_logs.append(f"[{elapsed_time:.1f}s] {message}")
-                st.session_state.progress_log_timestamps.add(timestamp)
+        for ts, key, message in log_schedule:
+            if elapsed_time >= ts:
+                emit_log(key, message)
 
-        # Update progress for each source based on timing
-        # Order: Bluesky → News API → Reddit → Google Trends (preloaded)
         source_timing = {
-            'bluesky': (0, 60),            # 0-60s: Bluesky first (1 month data)
-            'news_api': (60, 90),          # 60-90s: News API second
-            'reddit': (90, 120),           # 90-120s: Reddit third (1 year data)
-            'google_trends': (120, 123)    # 120-123s: Google Trends last (preloaded)
+            'bluesky': (0, 60),
+            'news_api': (60, 90),
+            'reddit': (90, 120),
+            'google_trends': (120, 123)
         }
 
         for source, (start_time, end_time) in source_timing.items():
-            if elapsed_time >= end_time:
-                # Source complete
-                if st.session_state.data_sources_status[source]['status'] != 'completed':
-                    st.session_state.data_sources_status[source]['status'] = 'completed'
-                    st.session_state.data_sources_status[source]['progress'] = 100
-            elif elapsed_time >= start_time:
-                # Source running - smooth progress
-                st.session_state.data_sources_status[source]['status'] = 'collecting'
-                source_progress = ((elapsed_time - start_time) / (end_time - start_time)) * 100
-                source_progress = int(min(100, max(0, source_progress)))
-                st.session_state.data_sources_status[source]['progress'] = source_progress
-            else:
-                # Source pending
+            status = st.session_state.data_sources_status[source]['status']
+            progress = st.session_state.data_sources_status[source]['progress']
+
+            if status == 'completed':
+                st.session_state.data_sources_status[source]['progress'] = max(progress, 100)
+                continue
+
+            if elapsed_time < start_time:
                 st.session_state.data_sources_status[source]['status'] = 'pending'
                 st.session_state.data_sources_status[source]['progress'] = 0
+            elif elapsed_time >= end_time:
+                st.session_state.data_sources_status[source]['status'] = 'collecting'
+                st.session_state.data_sources_status[source]['progress'] = max(progress, 95)
+            else:
+                st.session_state.data_sources_status[source]['status'] = 'collecting'
+                ratio = (elapsed_time - start_time) / max(1, (end_time - start_time))
+                st.session_state.data_sources_status[source]['progress'] = max(progress, int(min(95, max(5, ratio * 100))))
 
-        # Keep only last 4 log entries for cleaner display
-        if len(st.session_state.collection_logs) > 4:
-            st.session_state.collection_logs = st.session_state.collection_logs[-4:]
+        if len(st.session_state.collection_logs) > 5:
+            st.session_state.collection_logs = st.session_state.collection_logs[-5:]
 
-        # Determine the session directory for this collection run
         session_dir = None
         raw_data_dir = None
 
@@ -1777,47 +1767,38 @@ class NGODashboard:
             if latest_session and latest_session.name.startswith('session_') and latest_session.name not in previous_sessions:
                 session_dir = latest_session
                 st.session_state.current_session_dir = str(latest_session)
-                if st.session_state.get('announced_session_dir') != latest_session.name:
-                    st.session_state.collection_logs.append(
-                        f"[{elapsed_time:.1f}s] 📁 Session initialized: {latest_session.name}"
-                    )
-                    st.session_state.announced_session_dir = latest_session.name
+                emit_log('session_initialized', f"📁 Session ready: {latest_session.name}")
                 previous_sessions.add(latest_session.name)
                 st.session_state.previous_sessions = list(previous_sessions)
 
         if session_dir and session_dir.exists():
-            candidate_raw = session_dir / "raw_data"
+            candidate_raw = session_dir / 'raw_data'
             if candidate_raw.exists():
                 raw_data_dir = candidate_raw
 
-        # Define data source keywords and friendly labels
-        data_sources = {
-            'google_trends': ['trends', 'google'],
-            'news_api': ['news', 'articles'],
-            'reddit': ['reddit', 'posts'],
-            'bluesky': ['bluesky', 'social']
-        }
         source_labels = {
             'google_trends': 'Google Trends',
             'news_api': 'News API',
             'reddit': 'Reddit',
             'bluesky': 'Bluesky'
         }
-
-        if 'completed_sources_logged' not in st.session_state:
-            st.session_state.completed_sources_logged = set()
+        data_sources = {
+            'google_trends': ['trends', 'google'],
+            'news_api': ['news', 'articles'],
+            'reddit': ['reddit', 'posts'],
+            'bluesky': ['bluesky', 'social']
+        }
 
         process = st.session_state.get('scraper_process')
-        process_done = bool(process and getattr(process, "poll", lambda: None)() is not None)
-        completion_buffer = 5  # seconds after expected finish before flagging failure
+        process_done = bool(process and getattr(process, 'poll', lambda: None)() is not None)
 
         for source, keywords in data_sources.items():
             data_found = False
 
             if raw_data_dir and raw_data_dir.exists():
-                search_patterns = ["*.csv", "*.json", "*.jsonl"]
+                search_patterns = ['*.csv', '*.json', '*.jsonl']
                 if source == 'google_trends':
-                    search_patterns.append("*.xlsx")
+                    search_patterns.append('*.xlsx')
 
                 for pattern in search_patterns:
                     for file in raw_data_dir.glob(pattern):
@@ -1832,25 +1813,15 @@ class NGODashboard:
                 if st.session_state.data_sources_status[source]['status'] != 'completed':
                     st.session_state.data_sources_status[source]['status'] = 'completed'
                     st.session_state.data_sources_status[source]['progress'] = 100
-                    if source not in st.session_state.completed_sources_logged:
-                        info_suffix = self._get_source_data_summary(source, raw_data_dir)
-                        message = f"[{elapsed_time:.1f}s] ✅ {source_labels[source]} data ready"
-                        if info_suffix:
-                            message += f" ({info_suffix})"
-                        st.session_state.collection_logs.append(message)
-                        st.session_state.completed_sources_logged.add(source)
+                    info = self._get_source_data_summary(source, raw_data_dir)
+                    suffix = f" ({info})" if info else ''
+                    emit_log(f'{source}_data_ready', f"✅ {source_labels[source]} data ready{suffix}")
                 continue
 
-            # Only mark as failed after the process is done or the expected time plus buffer has elapsed
-            _, expected_end = source_timing[source]
-            if elapsed_time >= expected_end + completion_buffer:
+            if process_done and st.session_state.data_sources_status[source]['status'] != 'completed':
                 st.session_state.data_sources_status[source]['status'] = 'failed'
                 st.session_state.data_sources_status[source]['progress'] = 0
-                if source not in st.session_state.failed_sources_logged:
-                    st.session_state.collection_logs.append(
-                        f"[{elapsed_time:.1f}s] ⚠️ {source_labels[source]} data unavailable"
-                    )
-                    st.session_state.failed_sources_logged.add(source)
+                emit_log(f'{source}_failed', f"⚠️ {source_labels[source]} data unavailable")
 
         statuses = st.session_state.data_sources_status
         all_sources_complete = all(info['status'] == 'completed' for info in statuses.values())
@@ -1858,9 +1829,12 @@ class NGODashboard:
 
         if all_sources_complete:
             st.session_state.all_data_collected = True
-        elif any_failed and (process_done or elapsed_time >= total_time + completion_buffer):
+        elif any_failed and process_done:
             st.session_state.all_data_collected = True
 
+        if elapsed_time >= total_time and not st.session_state.all_data_collected:
+            st.session_state.all_data_collected = True
+            emit_log('timeout_complete', '✅ Collection window finished')
     def _get_source_data_summary(self, source, raw_data_dir):
         """Return a brief summary of collected records for logging."""
         try:

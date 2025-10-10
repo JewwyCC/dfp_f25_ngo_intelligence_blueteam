@@ -55,8 +55,8 @@ The scripts create `ngo_intel_bundle/` and `ngo_intel_bundle.zip` beside the rep
 ```
 unzip ngo_intel_bundle.zip
 cd ngo_intel_bundle
-./scripts/run_dashboard.sh      # macOS / Linux
-scripts\run_dashboard.bat       # Windows
+./packaging/run_dashboard.sh      # macOS / Linux
+packaging\run_dashboard.bat       # Windows
 ```
 
 Both launchers activate the bundled virtual environment and start Streamlit on port 8501.

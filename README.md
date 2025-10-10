@@ -77,6 +77,7 @@ zip -r ngo_intel_project.zip dfp_ngo_module -x 'dfp_ngo_module/.venv/*' 'dfp_ngo
 - Demo files are intentionally preserved; do not remove `data/demo_data`.
 
 For further automation (CI, tests) rely on the standard Python tooling already listed in `requirements.txt`.
+```
 │   ├── google_trends/           # Google Trends scraper
 │   ├── news_api/                # News API scraper
 │   ├── reddit/                  # Reddit scraper

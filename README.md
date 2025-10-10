@@ -23,8 +23,8 @@ cd dfp_ngo_module (from your own path, please direct here)
 python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
-./scripts/run_dashboard.sh      # macOS / Linux
-scripts\run_dashboard.bat       # Windows
+./packaging/run_dashboard.sh      # macOS / Linux
+packaging\run_dashboard.bat       # Windows
 
 --
 streamlit run ngo_dashboard.py
